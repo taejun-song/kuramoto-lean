@@ -128,4 +128,46 @@ theorem component_strict_lt_one (D : NPoleBarrierData n)
     D.α t k < 1 :=
   component_lt_one_uniform D k (∑ j, D.c j) le_rfl (hα_init_lt k) t ht
 
+/-- If α_k(t) = 1, then α_k(s) = 1 for all 0 ≤ s ≤ t.
+    Proof: the upper Grönwall multiplier G = (1-α_k)·exp(Mt) is non-decreasing
+    with G(t) = 0, so G(s) = 0 for s ≤ t. -/
+theorem alpha_one_backward (D : NPoleBarrierData n) (k : Fin n)
+    (t : ℝ) (ht : 0 ≤ t) (h1 : D.α t k = 1) :
+    ∀ s, 0 ≤ s → s ≤ t → D.α s k = 1 := by
+  set M := D.K * ∑ j, D.c j
+  have hM : ∀ u, 0 ≤ u → (D.K / 2) * D.r u * (1 + D.α u k) ≤ M := by
+    intro u hu
+    have hr_bound : D.r u ≤ ∑ j, D.c j := by
+      unfold NPoleBarrierData.r
+      calc ∑ j, D.c j * D.α u j
+          ≤ ∑ j, D.c j * 1 :=
+            Finset.sum_le_sum fun j _ =>
+              mul_le_mul_of_nonneg_left (D.hα_le u hu j) (le_of_lt (D.hc j))
+        _ = ∑ j, D.c j := by simp
+    have hcs_nn : 0 ≤ ∑ j, D.c j := le_trans (D.r_nonneg u hu) hr_bound
+    have hK2 : 0 < D.K / 2 := by linarith [D.hK]
+    calc (D.K / 2) * D.r u * (1 + D.α u k)
+        ≤ (D.K / 2) * (∑ j, D.c j) * (1 + D.α u k) := by
+          apply mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_left hr_bound (le_of_lt hK2))
+            (by linarith [D.hα_nn u hu k])
+      _ ≤ (D.K / 2) * (∑ j, D.c j) * 2 := by
+          apply mul_le_mul_of_nonneg_left (by linarith [D.hα_le u hu k])
+            (mul_nonneg (le_of_lt hK2) hcs_nn)
+      _ = M := by change _ = D.K * ∑ j, D.c j; ring
+  have hG_mono := upper_mul_monotone D k M hM
+  have hG_t : upper_mul D k M t = 0 := by
+    unfold upper_mul; rw [h1]; ring
+  intro s hs hst
+  have hG_s := hG_mono (mem_Ici.mpr hs) (mem_Ici.mpr ht) hst
+  rw [hG_t] at hG_s
+  have hG_nn : 0 ≤ upper_mul D k M s := by
+    unfold upper_mul
+    exact mul_nonneg (by linarith [D.hα_le s hs k]) (exp_nonneg _)
+  have hG_zero : upper_mul D k M s = 0 := le_antisymm hG_s hG_nn
+  have : (1 - D.α s k) * exp (M * s) = 0 := hG_zero
+  rcases mul_eq_zero.mp this with h | h
+  · linarith
+  · exact absurd h (ne_of_gt (exp_pos _))
+
 end
