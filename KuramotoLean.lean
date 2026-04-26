@@ -46,6 +46,7 @@ import KuramotoLean.GronwallBridge
 import KuramotoLean.GroundedConvergence
 import KuramotoLean.HomoclinicContradiction
 import KuramotoLean.IncoherenceInstability
+import KuramotoLean.InvariantBox
 import KuramotoLean.InfiniteEscape
 import KuramotoLean.InstabilityExclusion
 import KuramotoLean.InstabilityLyapunov
