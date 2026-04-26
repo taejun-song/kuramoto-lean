@@ -19,6 +19,7 @@ import KuramotoLean.ComponentBarrier
 import KuramotoLean.ComponentForwardInvariance
 import KuramotoLean.ContinuousLaSalle
 import KuramotoLean.CompleteTrifurcation
+import KuramotoLean.Trifurcation
 import KuramotoLean.CriticalConvergence
 import KuramotoLean.ContinuousLorentzianInstance
 import KuramotoLean.ContinuousStability
