@@ -15,6 +15,7 @@
 import KuramotoLean.SubcriticalLyapunov
 import KuramotoLean.ComponentBarrier
 import KuramotoLean.GronwallBridge
+import KuramotoLean.ExponentialConvergence
 
 open Real Set Finset Filter
 
@@ -65,16 +66,19 @@ theorem hasDerivAt_weightedW (D : NPoleBarrierData n) (t : ℝ) (ht : 0 < t) :
 
 /-! ## Derivative bound -/
 
+private theorem npoleCriticalK_pos (D : NPoleBarrierData n) (hn : Nonempty (Fin n)) :
+    0 < npoleCriticalK D.γ D.c := by
+  unfold npoleCriticalK
+  exact div_pos two_pos
+    (sum_pos (fun k _ => div_pos (D.hc k) (D.hγ k)) (univ_nonempty (α := Fin n)))
+
 theorem weightedW_deriv_le (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
     (t : ℝ) (ht : 0 < t)
     (γ_min : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_min : ∀ k, γ_min ≤ D.γ k)
     (hK_lt : D.K < npoleCriticalK D.γ D.c) :
     ∑ k, D.c k / D.γ k * nPoleODE D.γ D.c D.K (D.α t) k ≤
     -(γ_min * (1 - D.K / npoleCriticalK D.γ D.c)) * weightedW D.γ D.c D.α t := by
-  have hKc_pos : 0 < npoleCriticalK D.γ D.c := by
-    unfold npoleCriticalK
-    exact div_pos two_pos
-      (sum_pos (fun k _ => div_pos (D.hc k) (D.hγ k)) univ_nonempty)
+  have hKc_pos := npoleCriticalK_pos D hn
   have h_gap : (D.K / 2) * ∑ k, D.c k / D.γ k - 1 = D.K / npoleCriticalK D.γ D.c - 1 := by
     unfold npoleCriticalK; field_simp
   have h_neg : D.K / npoleCriticalK D.γ D.c - 1 < 0 := by
@@ -136,64 +140,101 @@ theorem subcritical_r_decay (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
     _ = γ_max * weightedW D.γ D.c D.α 0 *
           exp (-(γ_min * (1 - D.K / npoleCriticalK D.γ D.c)) * t) := by ring
 
-/-! ## Filter.Tendsto forms -/
+/-! ## Component exponential decay -/
 
-theorem subcritical_rate_pos (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+theorem subcritical_component_decay (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (γ_min : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_min : ∀ k, γ_min ≤ D.γ k)
+    (hK_lt : D.K < npoleCriticalK D.γ D.c) (k : Fin n) :
+    ∀ t, 0 ≤ t →
+    D.α t k ≤ D.γ k / D.c k * weightedW D.γ D.c D.α 0 *
+      exp (-(γ_min * (1 - D.K / npoleCriticalK D.γ D.c)) * t) := by
+  intro t ht
+  have hW := subcritical_W_decay D hn γ_min hγ_min_pos hγ_min hK_lt t ht
+  have hα_le : D.c k / D.γ k * D.α t k ≤ weightedW D.γ D.c D.α t :=
+    single_le_sum (fun j _ => mul_nonneg (div_nonneg (le_of_lt (D.hc j)) (le_of_lt (D.hγ j)))
+      (D.hα_nn t ht j)) (mem_univ k)
+  have hgc : 0 ≤ D.γ k / D.c k := div_nonneg (le_of_lt (D.hγ k)) (le_of_lt (D.hc k))
+  calc D.α t k
+      = D.γ k / D.c k * (D.c k / D.γ k * D.α t k) := by
+        field_simp [ne_of_gt (D.hc k), ne_of_gt (D.hγ k)]
+    _ ≤ D.γ k / D.c k * weightedW D.γ D.c D.α t :=
+        mul_le_mul_of_nonneg_left hα_le hgc
+    _ ≤ D.γ k / D.c k * (weightedW D.γ D.c D.α 0 *
+          exp (-(γ_min * (1 - D.K / npoleCriticalK D.γ D.c)) * t)) :=
+        mul_le_mul_of_nonneg_left hW hgc
+    _ = D.γ k / D.c k * weightedW D.γ D.c D.α 0 *
+          exp (-(γ_min * (1 - D.K / npoleCriticalK D.γ D.c)) * t) := by ring
+
+/-! ## Convergence -/
+
+private theorem subcritical_rate_pos (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
     (γ_min : ℝ) (hγ_min_pos : 0 < γ_min)
     (hK_lt : D.K < npoleCriticalK D.γ D.c) :
     0 < γ_min * (1 - D.K / npoleCriticalK D.γ D.c) := by
-  have hKc_pos : 0 < npoleCriticalK D.γ D.c := by
-    unfold npoleCriticalK
-    exact div_pos two_pos (sum_pos (fun k _ => div_pos (D.hc k) (D.hγ k))
-      (Finset.univ_nonempty (α := Fin n)))
-  apply mul_pos hγ_min_pos
-  have : D.K / npoleCriticalK D.γ D.c < 1 := by rwa [div_lt_one hKc_pos]
-  linarith
+  have hKc_pos := npoleCriticalK_pos D hn
+  exact mul_pos hγ_min_pos (sub_pos.mpr ((div_lt_one hKc_pos).mpr hK_lt))
+
+theorem subcritical_r_convergence (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
+    (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max)
+    (hK_lt : D.K < npoleCriticalK D.γ D.c) :
+    ∀ ε > 0, ∃ T : ℝ, ∀ t, T ≤ t → D.r t < ε := by
+  set μ := γ_min * (1 - D.K / npoleCriticalK D.γ D.c)
+  set C := γ_max * weightedW D.γ D.c D.α 0
+  have hμ_pos := subcritical_rate_pos D hn γ_min hγ_min_pos hK_lt
+  have hbound := subcritical_r_decay D hn γ_min γ_max hγ_min_pos hγ_max_pos hγ_min hγ_max hK_lt
+  by_cases hC_le : C ≤ 0
+  · intro ε hε; exact ⟨0, fun t ht => by
+      calc D.r t ≤ C * exp (-μ * t) := hbound t (by linarith)
+        _ ≤ 0 := mul_nonpos_of_nonpos_of_nonneg hC_le (exp_nonneg _)
+        _ < ε := hε⟩
+  · push_neg at hC_le
+    exact exponential_decay_convergence D.r C μ hμ_pos hC_le hbound
+
+theorem subcritical_component_convergence (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
+    (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max)
+    (hK_lt : D.K < npoleCriticalK D.γ D.c) (k : Fin n) :
+    ∀ ε > 0, ∃ T : ℝ, ∀ t, T ≤ t → D.α t k < ε := by
+  intro ε hε
+  obtain ⟨T, hT⟩ := subcritical_r_convergence D hn γ_min γ_max hγ_min_pos hγ_max_pos
+    hγ_min hγ_max hK_lt (D.c k * ε) (mul_pos (D.hc k) hε)
+  refine ⟨max T 0, fun t ht => ?_⟩
+  have ht_nn : 0 ≤ t := le_trans (le_max_right _ _) ht
+  have hcα_le_r : D.c k * D.α t k ≤ D.r t :=
+    single_le_sum (fun j _ => mul_nonneg (le_of_lt (D.hc j)) (D.hα_nn t ht_nn j))
+      (mem_univ k)
+  have hr_lt := hT t (le_trans (le_max_left _ _) ht)
+  nlinarith [D.hc k]
+
+/-! ## Filter.Tendsto forms -/
 
 theorem tendsto_r_subcritical (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
     (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
     (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max)
     (hK_lt : D.K < npoleCriticalK D.γ D.c) :
     Tendsto D.r atTop (nhds 0) := by
-  set μ := γ_min * (1 - D.K / npoleCriticalK D.γ D.c)
-  set C := γ_max * weightedW D.γ D.c D.α 0
-  have hμ_pos := subcritical_rate_pos D hn γ_min hγ_min_pos hK_lt
-  have hC_nn : 0 ≤ C := mul_nonneg (le_of_lt hγ_max_pos) (weightedW_nonneg D 0 le_rfl)
-  have hbound := subcritical_r_decay D hn γ_min γ_max hγ_min_pos hγ_max_pos hγ_min hγ_max hK_lt
-  have hexp_tend : Tendsto (fun t => exp (-μ * t)) atTop (nhds 0) := by
-    have h1 : Tendsto (fun t : ℝ => -μ * t) atTop atBot :=
-      (tendsto_const_mul_atBot_of_neg (by linarith : -μ < 0)).mpr tendsto_id
-    exact tendsto_exp_atBot.comp h1
-  have hCexp_tend : Tendsto (fun t => C * exp (-μ * t)) atTop (nhds 0) := by
-    have := hexp_tend.const_mul C; simp only [mul_zero] at this; exact this
-  rw [Metric.tendsto_atTop] at hCexp_tend ⊢
+  rw [Metric.tendsto_atTop]
   intro ε hε
-  obtain ⟨T, hT⟩ := hCexp_tend ε hε
+  obtain ⟨T, hT⟩ := subcritical_r_convergence D hn γ_min γ_max hγ_min_pos hγ_max_pos
+    hγ_min hγ_max hK_lt ε hε
   exact ⟨max T 0, fun t ht => by
-    have ht_nn : 0 ≤ t := le_trans (le_max_right _ _) ht
-    simp only [Real.dist_eq, sub_zero, abs_of_nonneg (D.r_nonneg t ht_nn)]
-    have h_up := hbound t ht_nn
-    have h_Cexp := hT t (le_trans (le_max_left _ _) ht)
-    rw [Real.dist_eq, sub_zero, abs_of_nonneg (mul_nonneg hC_nn (exp_nonneg _))] at h_Cexp
-    linarith⟩
+    simp only [Real.dist_eq, sub_zero, abs_of_nonneg
+      (D.r_nonneg t (le_trans (le_max_right _ _) ht))]
+    exact hT t (le_trans (le_max_left _ _) ht)⟩
 
 theorem tendsto_component_subcritical (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
     (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
     (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max)
     (hK_lt : D.K < npoleCriticalK D.γ D.c) (k : Fin n) :
     Tendsto (fun t => D.α t k) atTop (nhds 0) := by
-  have hr := tendsto_r_subcritical D hn γ_min γ_max hγ_min_pos hγ_max_pos hγ_min hγ_max hK_lt
-  rw [Metric.tendsto_atTop] at hr ⊢
+  rw [Metric.tendsto_atTop]
   intro ε hε
-  obtain ⟨T, hT⟩ := hr (D.c k * ε) (mul_pos (D.hc k) hε)
+  obtain ⟨T, hT⟩ := subcritical_component_convergence D hn γ_min γ_max hγ_min_pos hγ_max_pos
+    hγ_min hγ_max hK_lt k ε hε
   exact ⟨max T 0, fun t ht => by
-    have ht_nn : 0 ≤ t := le_trans (le_max_right _ _) ht
-    simp only [Real.dist_eq, sub_zero, abs_of_nonneg (D.hα_nn t ht_nn k)]
-    have hcα_le_r : D.c k * D.α t k ≤ D.r t :=
-      single_le_sum (fun j _ => mul_nonneg (le_of_lt (D.hc j)) (D.hα_nn t ht_nn j))
-        (mem_univ k)
-    have hr_lt := hT t (le_trans (le_max_left _ _) ht)
-    rw [Real.dist_eq, sub_zero, abs_of_nonneg (D.r_nonneg t ht_nn)] at hr_lt
-    nlinarith [D.hc k, lt_of_le_of_lt hcα_le_r hr_lt]⟩
+    simp only [Real.dist_eq, sub_zero, abs_of_nonneg
+      (D.hα_nn t (le_trans (le_max_right _ _) ht) k)]
+    exact hT t (le_trans (le_max_left _ _) ht)⟩
 
 end
