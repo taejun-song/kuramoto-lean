@@ -101,3 +101,4 @@ import KuramotoLean.WindowedApproximation
 import KuramotoLean.ZeroActivation
 import KuramotoLean.ExtendedConvergence
 import KuramotoLean.OneDeactivation
+import KuramotoLean.EventualRate
