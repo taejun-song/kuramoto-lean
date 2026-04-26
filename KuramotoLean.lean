@@ -21,6 +21,7 @@ import KuramotoLean.ContinuousLaSalle
 import KuramotoLean.CompleteTrifurcation
 import KuramotoLean.Trifurcation
 import KuramotoLean.CriticalConvergence
+import KuramotoLean.CriticalRate
 import KuramotoLean.ContinuousLorentzianInstance
 import KuramotoLean.ContinuousStability
 import KuramotoLean.ContinuumBarbalat
