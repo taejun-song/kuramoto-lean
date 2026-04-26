@@ -9,6 +9,7 @@ import KuramotoLean.AxiomElimination
 import KuramotoLean.BarbalatLemma
 import KuramotoLean.BarrierDrop
 import KuramotoLean.BifurcationAnalysis
+import KuramotoLean.SquareRootLaw
 import KuramotoLean.BarrierLemma
 import KuramotoLean.BoundaryStrictLyapunov
 import KuramotoLean.ChetaevEscape
@@ -93,6 +94,7 @@ import KuramotoLean.SelfConsistencyRigidity
 import KuramotoLean.SelfContainedConvergence
 import KuramotoLean.ShiftedBarrier
 import KuramotoLean.StrictLyapunov
+import KuramotoLean.SubcriticalLyapunov
 import KuramotoLean.TailBodySplit
 import KuramotoLean.TrajectoryLyapunov
 import KuramotoLean.UniformRate
