@@ -60,10 +60,8 @@ theorem weightedW_continuousOn (D : NPoleBarrierData n) :
 theorem hasDerivAt_weightedW (D : NPoleBarrierData n) (t : ℝ) (ht : 0 < t) :
     HasDerivAt (weightedW D.γ D.c D.α)
       (∑ k, D.c k / D.γ k * nPoleODE D.γ D.c D.K (D.α t) k) t := by
-  show HasDerivAt (fun s => ∑ k : Fin n, D.c k / D.γ k * D.α s k)
-    (∑ k, D.c k / D.γ k * nPoleODE D.γ D.c D.K (D.α t) k) t
-  exact HasDerivAt.fun_sum fun k _ =>
-    (D.hα_ode t ht k).const_mul (D.c k / D.γ k)
+  unfold weightedW
+  exact HasDerivAt.fun_sum fun k _ => (D.hα_ode t ht k).const_mul _
 
 /-! ## Derivative bound -/
 
@@ -137,5 +135,65 @@ theorem subcritical_r_decay (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
           (le_of_lt hγ_max_pos)
     _ = γ_max * weightedW D.γ D.c D.α 0 *
           exp (-(γ_min * (1 - D.K / npoleCriticalK D.γ D.c)) * t) := by ring
+
+/-! ## Filter.Tendsto forms -/
+
+theorem subcritical_rate_pos (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (γ_min : ℝ) (hγ_min_pos : 0 < γ_min)
+    (hK_lt : D.K < npoleCriticalK D.γ D.c) :
+    0 < γ_min * (1 - D.K / npoleCriticalK D.γ D.c) := by
+  have hKc_pos : 0 < npoleCriticalK D.γ D.c := by
+    unfold npoleCriticalK
+    exact div_pos two_pos (sum_pos (fun k _ => div_pos (D.hc k) (D.hγ k))
+      (Finset.univ_nonempty (α := Fin n)))
+  apply mul_pos hγ_min_pos
+  have : D.K / npoleCriticalK D.γ D.c < 1 := by rwa [div_lt_one hKc_pos]
+  linarith
+
+theorem tendsto_r_subcritical (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
+    (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max)
+    (hK_lt : D.K < npoleCriticalK D.γ D.c) :
+    Tendsto D.r atTop (nhds 0) := by
+  set μ := γ_min * (1 - D.K / npoleCriticalK D.γ D.c)
+  set C := γ_max * weightedW D.γ D.c D.α 0
+  have hμ_pos := subcritical_rate_pos D hn γ_min hγ_min_pos hK_lt
+  have hC_nn : 0 ≤ C := mul_nonneg (le_of_lt hγ_max_pos) (weightedW_nonneg D 0 le_rfl)
+  have hbound := subcritical_r_decay D hn γ_min γ_max hγ_min_pos hγ_max_pos hγ_min hγ_max hK_lt
+  have hexp_tend : Tendsto (fun t => exp (-μ * t)) atTop (nhds 0) := by
+    have h1 : Tendsto (fun t : ℝ => -μ * t) atTop atBot :=
+      (tendsto_const_mul_atBot_of_neg (by linarith : -μ < 0)).mpr tendsto_id
+    exact tendsto_exp_atBot.comp h1
+  have hCexp_tend : Tendsto (fun t => C * exp (-μ * t)) atTop (nhds 0) := by
+    have := hexp_tend.const_mul C; simp only [mul_zero] at this; exact this
+  rw [Metric.tendsto_atTop] at hCexp_tend ⊢
+  intro ε hε
+  obtain ⟨T, hT⟩ := hCexp_tend ε hε
+  exact ⟨max T 0, fun t ht => by
+    have ht_nn : 0 ≤ t := le_trans (le_max_right _ _) ht
+    simp only [Real.dist_eq, sub_zero, abs_of_nonneg (D.r_nonneg t ht_nn)]
+    have h_up := hbound t ht_nn
+    have h_Cexp := hT t (le_trans (le_max_left _ _) ht)
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg (mul_nonneg hC_nn (exp_nonneg _))] at h_Cexp
+    linarith⟩
+
+theorem tendsto_component_subcritical (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
+    (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max)
+    (hK_lt : D.K < npoleCriticalK D.γ D.c) (k : Fin n) :
+    Tendsto (fun t => D.α t k) atTop (nhds 0) := by
+  have hr := tendsto_r_subcritical D hn γ_min γ_max hγ_min_pos hγ_max_pos hγ_min hγ_max hK_lt
+  rw [Metric.tendsto_atTop] at hr ⊢
+  intro ε hε
+  obtain ⟨T, hT⟩ := hr (D.c k * ε) (mul_pos (D.hc k) hε)
+  exact ⟨max T 0, fun t ht => by
+    have ht_nn : 0 ≤ t := le_trans (le_max_right _ _) ht
+    simp only [Real.dist_eq, sub_zero, abs_of_nonneg (D.hα_nn t ht_nn k)]
+    have hcα_le_r : D.c k * D.α t k ≤ D.r t :=
+      single_le_sum (fun j _ => mul_nonneg (le_of_lt (D.hc j)) (D.hα_nn t ht_nn j))
+        (mem_univ k)
+    have hr_lt := hT t (le_trans (le_max_left _ _) ht)
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg (D.r_nonneg t ht_nn)] at hr_lt
+    nlinarith [D.hc k, lt_of_le_of_lt hcα_le_r hr_lt]⟩
 
 end
