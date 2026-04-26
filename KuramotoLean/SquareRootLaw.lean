@@ -2,12 +2,12 @@
   Kuramoto Stability — Square Root Law for r*
   =============================================
 
-  Proves: r*² ≥ 8(K - K_c) / (K³ · K_c · Σ c_k/γ_k³)
+  Proves: r*² ≥ 8(K - K_c) / (K³ · K_c · Σ c_k/γ_k³)  (lower bound)
+          r*² ≤ (K - K_c)(2γ_max + K)² / K³            (upper bound)
 
-  This is the lower half of the Kuramoto square root law:
-  r* = Θ(√(K - K_c)) near the bifurcation K → K_c+.
+  Together: r* = Θ(√(K - K_c)) near the bifurcation K → K_c+.
 
-  0 sorry.
+  1 sorry (slope_gap_lower_bound).
 -/
 
 import KuramotoLean.BifurcationAnalysis
@@ -83,7 +83,7 @@ theorem slope_gap_upper_bound (γ c : Fin n → ℝ) (K r : ℝ)
     _ = (K ^ 3 * r ^ 2 / 8) * ∑ k, c k / (γ k) ^ 3 := by
         symm; rw [Finset.mul_sum]; congr 1; ext k; ring
 
-/-! ## The square root law -/
+/-! ## The square root law (lower bound) -/
 
 theorem order_parameter_sq_lower_bound (γ c : Fin n → ℝ) (K r_star : ℝ)
     (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k)
@@ -123,5 +123,56 @@ theorem order_parameter_sq_lower_bound (γ c : Fin n → ℝ) (K r_star : ℝ)
       r_star ^ 2 * (K ^ 3 * npoleCriticalK γ c * ∑ k, c k / γ k ^ 3) := by
     ring
   linarith
+
+/-! ## Square root law upper bound: r*² ≤ (K - K_c)(2γ_max + K)²/K³
+
+  Each summand of S(0)-S(r) uses the conjugate identity
+  (γ+D)(D-γ) = K²r² with D = √(γ²+K²r²). Since D ≤ γ+Kr
+  (by √(a²+b²) ≤ a+b), we get γ+D ≤ 2γ+Kr ≤ 2γ_max+K. Then
+  gap_k ≥ cK³r²/(2γ(2γ_max+K)²), sum gives ≥ (K³r²/((2γ_max+K)²K_c)),
+  equate with (K-K_c)/K_c to get r² ≤ (K-K_c)(2γ_max+K)²/K³. -/
+
+theorem slope_gap_lower_bound (γ c : Fin n → ℝ) (K r : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k) (hK : 0 < K)
+    (hr_nn : 0 ≤ r) (hr_le : r ≤ 1)
+    (γ_max : ℝ) (hγ_max_pos : 0 < γ_max) (hγ_max : ∀ k, γ k ≤ γ_max) :
+    K ^ 3 * r ^ 2 / ((2 * γ_max + K) ^ 2) * (∑ k, c k / γ k) / 2 ≤
+    scSlope γ c K 0 - scSlope γ c K r := by
+  sorry
+
+theorem order_parameter_sq_upper_bound (γ c : Fin n → ℝ) (K r_star : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k)
+    (hn : Nonempty (Fin n)) (hK : 0 < K)
+    (hK_super : npoleCriticalK γ c < K)
+    (hr_pos : 0 < r_star) (hr_lt : r_star < 1)
+    (hfp : scSlope γ c K r_star = 1)
+    (γ_max : ℝ) (hγ_max_pos : 0 < γ_max) (hγ_max : ∀ k, γ k ≤ γ_max) :
+    r_star ^ 2 ≤ (K - npoleCriticalK γ c) * (2 * γ_max + K) ^ 2 / K ^ 3 := by
+  have hKc_pos : 0 < npoleCriticalK γ c := by
+    unfold npoleCriticalK
+    exact div_pos two_pos
+      (sum_pos (fun k _ => div_pos (hc k) (hγ k)) univ_nonempty)
+  have h_S0 : scSlope γ c K 0 = K / npoleCriticalK γ c := by
+    rw [scSlope_at_zero γ c K hγ]; unfold npoleCriticalK; field_simp
+  have h_sum_Kc : ∑ k, c k / γ k = 2 / npoleCriticalK γ c := by
+    unfold npoleCriticalK; field_simp
+  have h_gap : scSlope γ c K 0 - 1 = (K - npoleCriticalK γ c) / npoleCriticalK γ c := by
+    rw [h_S0]; field_simp [ne_of_gt hKc_pos]
+  have h2gK_pos : 0 < 2 * γ_max + K := by linarith
+  have h_lower := slope_gap_lower_bound γ c K r_star hγ hc hK (le_of_lt hr_pos)
+    (le_of_lt hr_lt) γ_max hγ_max_pos hγ_max
+  rw [hfp, h_gap, h_sum_Kc] at h_lower
+  have h_prod := mul_le_mul_of_nonneg_right h_lower
+    (le_of_lt (mul_pos hKc_pos (pow_pos h2gK_pos 2)))
+  have h_lhs : K ^ 3 * r_star ^ 2 / (2 * γ_max + K) ^ 2 *
+      (2 / npoleCriticalK γ c) / 2 *
+      (npoleCriticalK γ c * (2 * γ_max + K) ^ 2) =
+      K ^ 3 * r_star ^ 2 := by
+    field_simp [ne_of_gt hKc_pos, ne_of_gt h2gK_pos]
+  have h_rhs : (K - npoleCriticalK γ c) / npoleCriticalK γ c *
+      (npoleCriticalK γ c * (2 * γ_max + K) ^ 2) =
+      (K - npoleCriticalK γ c) * (2 * γ_max + K) ^ 2 := by
+    field_simp [ne_of_gt hKc_pos]
+  rw [le_div_iff₀ (pow_pos hK 3)]; linarith
 
 end
