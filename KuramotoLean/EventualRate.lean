@@ -140,4 +140,40 @@ theorem FullChainData.eventual_exponential_pointwise (D : FullChainData n) :
     exact div_le_div_of_nonneg_right hVt (le_of_lt D.hc_min_pos)
   linarith
 
+/-! ## Filter.Tendsto forms -/
+
+theorem FullChainData.tendsto_r (D : FullChainData n) :
+    Tendsto D.toNPoleBarrierData.r atTop
+      (nhds (∑ k, D.c k * D.α_star k)) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  obtain ⟨T, hT⟩ := full_chain_convergence D ε hε
+  exact ⟨T, fun t ht => by rw [Real.dist_eq]; exact hT t ht⟩
+
+theorem FullChainData.tendsto_component (D : FullChainData n) (k : Fin n) :
+    Tendsto (fun t => D.α t k) atTop (nhds (D.α_star k)) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  have hV := D.V_tendsto_zero
+  rw [Metric.tendsto_atTop] at hV
+  obtain ⟨T, hT⟩ := hV (D.c k * ε ^ 2) (mul_pos (D.hc k) (sq_pos_of_pos hε))
+  refine ⟨max T 0, fun t ht => ?_⟩
+  rw [Real.dist_eq]
+  have hT_le : T ≤ t := le_trans (le_max_left _ _) ht
+  have ht_nn : 0 ≤ t := le_trans (le_max_right _ _) ht
+  have hVt := hT t hT_le
+  simp only [Real.dist_eq, sub_zero] at hVt
+  rw [abs_of_nonneg (l2_ext_nonneg D.c D.α D.α_star D.hc t),
+      l2_ext_eq D.c D.α D.α_star t ht_nn] at hVt
+  have h_le : D.c k * (D.α t k - D.α_star k) ^ 2 ≤
+      l2Distance D.c (D.α t) D.α_star := by
+    unfold l2Distance
+    exact Finset.single_le_sum (f := fun j => D.c j * (D.α t j - D.α_star j) ^ 2)
+      (fun j _ => mul_nonneg (le_of_lt (D.hc j)) (sq_nonneg _))
+      (Finset.mem_univ k)
+  have h_sq : (D.α t k - D.α_star k) ^ 2 < ε ^ 2 := by
+    have : D.c k * (D.α t k - D.α_star k) ^ 2 < D.c k * ε ^ 2 := lt_of_le_of_lt h_le hVt
+    exact lt_of_mul_lt_mul_left this (le_of_lt (D.hc k))
+  exact abs_lt_of_sq_lt_sq h_sq (le_of_lt hε)
+
 end
