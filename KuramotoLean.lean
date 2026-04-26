@@ -98,3 +98,4 @@ import KuramotoLean.VolterraTrapping
 import KuramotoLean.WeightedEnergy
 import KuramotoLean.WindowedApproximation
 import KuramotoLean.ZeroActivation
+import KuramotoLean.ExtendedConvergence
