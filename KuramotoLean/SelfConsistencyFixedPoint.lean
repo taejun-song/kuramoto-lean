@@ -231,6 +231,42 @@ theorem sc_fixed_point_unique (γ c : Fin n → ℝ) (K : ℝ)
       (mem_Ici.mpr (le_of_lt hr₂)) (mem_Ici.mpr (le_of_lt hr₁)) h
     linarith
 
+/-! ## Subcritical: no PLS fixed point -/
+
+theorem scSlope_zero_le_one (γ c : Fin n → ℝ) (K : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k) (hn : Nonempty (Fin n))
+    (hK_sub : K ≤ npoleCriticalK γ c) :
+    scSlope γ c K 0 ≤ 1 := by
+  rw [scSlope_at_zero γ c K hγ]
+  have hsum_pos : 0 < ∑ k : Fin n, c k / γ k :=
+    Finset.sum_pos (fun k _ => div_pos (hc k) (hγ k))
+      (Finset.univ_nonempty (α := Fin n))
+  unfold npoleCriticalK at hK_sub
+  rw [le_div_iff₀ hsum_pos] at hK_sub
+  linarith
+
+theorem no_pls_subcritical (γ c : Fin n → ℝ) (K : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k) (hK : 0 < K)
+    (hn : Nonempty (Fin n)) (hK_sub : K ≤ npoleCriticalK γ c) :
+    ∀ r, 0 < r → scMapR γ c K r < r := by
+  intro r hr
+  have hs_lt : scSlope γ c K r < 1 := by
+    have hs0 := scSlope_zero_le_one γ c K hγ hc hn hK_sub
+    have hanti := scSlope_strictAntiOn γ c K hγ hc hK hn
+    calc scSlope γ c K r
+        < scSlope γ c K 0 := hanti (mem_Ici.mpr (le_refl _))
+          (mem_Ici.mpr (le_of_lt hr)) hr
+      _ ≤ 1 := hs0
+  unfold scMapR
+  calc r * scSlope γ c K r < r * 1 := mul_lt_mul_of_pos_left hs_lt hr
+    _ = r := mul_one _
+
+theorem no_pls_fixed_point_subcritical (γ c : Fin n → ℝ) (K : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k) (hK : 0 < K)
+    (hn : Nonempty (Fin n)) (hK_sub : K ≤ npoleCriticalK γ c) :
+    ∀ r, 0 < r → scMapR γ c K r ≠ r :=
+  fun r hr => ne_of_lt (no_pls_subcritical γ c K hγ hc hK hn hK_sub r hr)
+
 /-! ## Attractivity of the fixed point: Φ pushes toward r* -/
 
 theorem sc_map_above_r (γ c : Fin n → ℝ) (K : ℝ)
