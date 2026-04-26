@@ -94,6 +94,7 @@ import KuramotoLean.SelfConsistencyRigidity
 import KuramotoLean.SelfContainedConvergence
 import KuramotoLean.ShiftedBarrier
 import KuramotoLean.StrictLyapunov
+import KuramotoLean.SubcriticalConvergence
 import KuramotoLean.SubcriticalLyapunov
 import KuramotoLean.TailBodySplit
 import KuramotoLean.TrajectoryLyapunov
