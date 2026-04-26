@@ -11,6 +11,7 @@ import KuramotoLean.BarrierDrop
 import KuramotoLean.BifurcationAnalysis
 import KuramotoLean.BifurcationDichotomy
 import KuramotoLean.BifurcationMonotonicity
+import KuramotoLean.BifurcationLimits
 import KuramotoLean.SquareRootLaw
 import KuramotoLean.BarrierLemma
 import KuramotoLean.BoundaryStrictLyapunov
