@@ -8,6 +8,7 @@ import KuramotoLean.ArchimedeanConvergence
 import KuramotoLean.AxiomElimination
 import KuramotoLean.BarbalatLemma
 import KuramotoLean.BarrierDrop
+import KuramotoLean.BifurcationAnalysis
 import KuramotoLean.BarrierLemma
 import KuramotoLean.BoundaryStrictLyapunov
 import KuramotoLean.ChetaevEscape
