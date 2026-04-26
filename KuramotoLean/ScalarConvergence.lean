@@ -83,6 +83,23 @@ theorem scalar_oa_decay_rate (γ K r_star α_star x : ℝ)
   have h_extra : 0 ≤ K / 2 * r_star * (x + α_star) := by positivity
   nlinarith [sq_nonneg (x - α_star)]
 
+/-- **Improved decay rate.** Using x ≥ 0 and α* ≥ 0, the bracket
+    [-γ - (K/2)r*(x+α*)] ≤ -γ - (K/2)r*α*, giving the tighter bound
+    (x - α*) · g(x) ≤ -(γ + (K/2)r*α*) · (x - α*)².
+    The improvement K·r*·α*/2 is significant for locked oscillators. -/
+theorem scalar_oa_improved_rate (γ K r_star α_star x : ℝ)
+    (hK : 0 ≤ K) (hr : 0 ≤ r_star)
+    (hx_pos : 0 ≤ x) (_hα_pos : 0 ≤ α_star)
+    (h_equil : scalarOAVelocity γ K r_star α_star = 0) :
+    (x - α_star) * scalarOAVelocity γ K r_star x ≤
+    -(γ + K / 2 * r_star * α_star) * (x - α_star) ^ 2 := by
+  rw [scalar_oa_factor γ K r_star α_star x h_equil]
+  have h_sq : (x - α_star) * ((x - α_star) * (-γ - K / 2 * r_star * (x + α_star))) =
+    (x - α_star) ^ 2 * (-γ - K / 2 * r_star * (x + α_star)) := by ring
+  rw [h_sq]
+  have hKrx : 0 ≤ K / 2 * r_star * x := by positivity
+  nlinarith [sq_nonneg (x - α_star)]
+
 /-! ## Asymptotic autonomy: non-autonomous perturbation bound
 
 When r(t) → r*, the actual velocity is f(t,x) = -γx + (K/2)r(t)(1-x²).
