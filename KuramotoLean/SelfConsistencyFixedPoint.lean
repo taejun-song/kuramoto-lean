@@ -322,4 +322,31 @@ theorem explicitEquil_mono_gamma (γ₁ γ₂ K r : ℝ)
   · exact le_of_lt (explicitEquil_anti_gamma γ₁ γ₂ K r hγ₁
       (lt_trans hγ₁ hlt) hK hr hlt)
 
+/-! ## Equilibrium monotonicity in K: larger coupling → larger equilibrium -/
+
+theorem explicitEquil_mono_K (γ_k K₁ K₂ r : ℝ) (hγ : 0 < γ_k)
+    (hK₁ : 0 < K₁) (hK₂ : 0 < K₂) (hr : 0 < r) (h : K₁ < K₂) :
+    explicitEquil γ_k K₁ r < explicitEquil γ_k K₂ r := by
+  have hα₁_pos := explicitEquil_pos γ_k K₁ r hγ hK₁ hr
+  have hα₁_lt := explicitEquil_lt_one γ_k K₁ r hγ hK₁ hr
+  have hα₁_sol := explicitEquil_solves γ_k K₁ r hγ hK₁ hr
+  have hα₂_sol := explicitEquil_solves γ_k K₂ r hγ hK₂ hr
+  have h_pos_at_α₁ : 0 < componentEquil γ_k K₂ r (explicitEquil γ_k K₁ r) := by
+    have : componentEquil γ_k K₂ r (explicitEquil γ_k K₁ r) -
+        componentEquil γ_k K₁ r (explicitEquil γ_k K₁ r) =
+        ((K₂ - K₁) / 2) * r * (1 - (explicitEquil γ_k K₁ r) ^ 2) := by
+      unfold componentEquil; ring
+    rw [hα₁_sol, sub_zero] at this
+    rw [this]; apply mul_pos (mul_pos (by linarith) hr); nlinarith [hα₁_lt]
+  have hα₂_pos := explicitEquil_pos γ_k K₂ r hγ hK₂ hr
+  have hα₂_lt := explicitEquil_lt_one γ_k K₂ r hγ hK₂ hr
+  by_contra h_not
+  push_neg at h_not
+  rcases eq_or_lt_of_le h_not with heq | hlt
+  · linarith [heq ▸ hα₂_sol]
+  · have := componentEquil_strictAntiOn γ_k K₂ r hγ hK₂ hr
+      ⟨le_of_lt hα₂_pos, le_of_lt hα₂_lt⟩
+      ⟨le_of_lt hα₁_pos, le_of_lt hα₁_lt⟩ hlt
+    linarith [hα₂_sol]
+
 end
