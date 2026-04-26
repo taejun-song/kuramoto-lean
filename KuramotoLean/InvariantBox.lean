@@ -11,6 +11,7 @@
 -/
 
 import KuramotoLean.GlobalStabilitySupercritical
+import KuramotoLean.CriticalConvergence
 import Mathlib.Topology.Order.IntermediateValue
 
 open Real Set Finset Filter Topology
@@ -229,5 +230,30 @@ theorem parametric_convergence_from_ode (D : NPoleODEData n)
     ∀ ε > 0, ∃ T : ℝ, ∀ t, T ≤ t → |D.toBarrierData.r t - r_star| < ε :=
   parametric_convergence D.toBarrierData hn hc_sum hK_super
     D.hα_init_pos D.hα_init_lt
+
+theorem trifurcation_from_ode (D : NPoleODEData n)
+    (hn : 0 < n) (hc_sum : ∑ k, D.c k = 1) :
+    ∃ r_limit : ℝ, 0 ≤ r_limit ∧ r_limit ≤ 1 ∧
+      Tendsto D.toBarrierData.r atTop (nhds r_limit) ∧
+      (D.K ≤ npoleCriticalK D.γ D.c → r_limit = 0) ∧
+      (npoleCriticalK D.γ D.c < D.K → 0 < r_limit ∧ r_limit < 1) := by
+  rcases lt_trichotomy D.K (npoleCriticalK D.γ D.c) with hlt | heq | hgt
+  · exact ⟨0, le_refl 0, zero_le_one,
+      parametric_subcritical_convergence D.toBarrierData hn hlt,
+      fun _ => rfl,
+      fun h => absurd h (not_lt.mpr (le_of_lt hlt))⟩
+  · exact ⟨0, le_refl 0, zero_le_one,
+      parametric_critical_convergence D.toBarrierData hn heq,
+      fun _ => rfl,
+      fun h => absurd h (by linarith)⟩
+  · obtain ⟨r_star, hr_pos, hr_lt, hr_conv⟩ :=
+      parametric_convergence D.toBarrierData hn hc_sum hgt D.hα_init_pos D.hα_init_lt
+    refine ⟨r_star, le_of_lt hr_pos, le_of_lt hr_lt, ?_, ?_, ?_⟩
+    · rw [Metric.tendsto_atTop]
+      intro ε hε
+      obtain ⟨T, hT⟩ := hr_conv ε hε
+      exact ⟨T, fun t ht => by rw [Real.dist_eq]; exact hT t ht⟩
+    · intro h; linarith
+    · intro _; exact ⟨hr_pos, hr_lt⟩
 
 end
