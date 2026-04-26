@@ -9,6 +9,7 @@ import KuramotoLean.AxiomElimination
 import KuramotoLean.BarbalatLemma
 import KuramotoLean.BarrierDrop
 import KuramotoLean.BifurcationAnalysis
+import KuramotoLean.BifurcationDichotomy
 import KuramotoLean.SquareRootLaw
 import KuramotoLean.BarrierLemma
 import KuramotoLean.BoundaryStrictLyapunov

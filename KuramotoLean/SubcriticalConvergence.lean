@@ -237,4 +237,17 @@ theorem tendsto_component_subcritical (D : NPoleBarrierData n) (hn : Nonempty (F
       (D.hα_nn t (le_trans (le_max_right _ _) ht) k)]
     exact hT t (le_trans (le_max_left _ _) ht)⟩
 
+/-! ## Parametric subcritical convergence (auto-extracting γ_min/γ_max) -/
+
+theorem parametric_subcritical_convergence (D : NPoleBarrierData n)
+    (hn : 0 < n) (hK_lt : D.K < npoleCriticalK D.γ D.c) :
+    Tendsto D.r atTop (nhds 0) := by
+  haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+  obtain ⟨k_min, _, hk_min⟩ := Finset.exists_min_image Finset.univ D.γ Finset.univ_nonempty
+  obtain ⟨k_max, _, hk_max⟩ := Finset.exists_max_image Finset.univ D.γ Finset.univ_nonempty
+  exact tendsto_r_subcritical D ‹_›
+    (D.γ k_min) (D.γ k_max) (D.hγ k_min) (D.hγ k_max)
+    (fun k => hk_min k (Finset.mem_univ k))
+    (fun k => hk_max k (Finset.mem_univ k)) hK_lt
+
 end
