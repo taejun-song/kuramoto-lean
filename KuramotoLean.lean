@@ -18,6 +18,7 @@ import KuramotoLean.ComparisonGrowth
 import KuramotoLean.ComponentBarrier
 import KuramotoLean.ComponentForwardInvariance
 import KuramotoLean.ContinuousLaSalle
+import KuramotoLean.CriticalConvergence
 import KuramotoLean.ContinuousLorentzianInstance
 import KuramotoLean.ContinuousStability
 import KuramotoLean.ContinuumBarbalat

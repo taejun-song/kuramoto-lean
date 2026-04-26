@@ -7,7 +7,7 @@
 
   Together: r* = Θ(√(K - K_c)) near the bifurcation K → K_c+.
 
-  1 sorry (slope_gap_lower_bound).
+  0 sorry.
 -/
 
 import KuramotoLean.BifurcationAnalysis
@@ -132,13 +132,72 @@ theorem order_parameter_sq_lower_bound (γ c : Fin n → ℝ) (K r_star : ℝ)
   gap_k ≥ cK³r²/(2γ(2γ_max+K)²), sum gives ≥ (K³r²/((2γ_max+K)²K_c)),
   equate with (K-K_c)/K_c to get r² ≤ (K-K_c)(2γ_max+K)²/K³. -/
 
+private theorem sqrt_le_sum (a b : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b) :
+    sqrt (a ^ 2 + b ^ 2) ≤ a + b := by
+  have hab : 0 ≤ a + b := by linarith
+  rw [← sqrt_sq hab]
+  exact sqrt_le_sqrt (by nlinarith)
+
+private theorem slope_gap_term_ge (γ_k c_k K r γ_max : ℝ)
+    (hγ : 0 < γ_k) (hc : 0 < c_k) (hK : 0 < K)
+    (hr_nn : 0 ≤ r) (hr_le : r ≤ 1)
+    (hγ_max_pos : 0 < γ_max) (hγ_max : γ_k ≤ γ_max) :
+    c_k * K ^ 3 * r ^ 2 / (2 * γ_k * (2 * γ_max + K) ^ 2) ≤
+    c_k * K / (2 * γ_k) - c_k * K / (γ_k + sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2)) := by
+  set S := sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2) with hS_def
+  have hS_sq : S ^ 2 = γ_k ^ 2 + K ^ 2 * r ^ 2 := sq_sqrt (by positivity)
+  have hS_ge : γ_k ≤ S := sqrt_ge_base γ_k K r hγ
+  have hGS : 0 < γ_k + S := by linarith
+  have h2γ : (0 : ℝ) < 2 * γ_k := by positivity
+  have h2gK_pos : 0 < 2 * γ_max + K := by linarith
+  have h_conj : (γ_k + S) * (S - γ_k) = K ^ 2 * r ^ 2 := by nlinarith [hS_sq]
+  have hS_sub_nn : 0 ≤ S - γ_k := by linarith
+  have hS_le : S ≤ γ_k + K * r := by
+    have h := sqrt_le_sum γ_k (K * r) (le_of_lt hγ) (by positivity)
+    rwa [show γ_k ^ 2 + (K * r) ^ 2 = γ_k ^ 2 + K ^ 2 * r ^ 2 from by ring] at h
+  have hGS_le : γ_k + S ≤ 2 * γ_max + K := by
+    have hKr : K * r ≤ K := by nlinarith [mul_le_mul_of_nonneg_left hr_le (le_of_lt hK)]
+    linarith
+  have hGS_sq_le : (γ_k + S) ^ 2 ≤ (2 * γ_max + K) ^ 2 :=
+    sq_le_sq' (by linarith) hGS_le
+  have h_gap_eq : c_k * K / (2 * γ_k) - c_k * K / (γ_k + S) =
+      c_k * K * (S - γ_k) / (2 * γ_k * (γ_k + S)) := by
+    field_simp [ne_of_gt h2γ, ne_of_gt hGS]; ring
+  have h_gap_eq2 : c_k * K * (S - γ_k) / (2 * γ_k * (γ_k + S)) =
+      c_k * K ^ 3 * r ^ 2 / (2 * γ_k * (γ_k + S) ^ 2) := by
+    have h1 : 2 * γ_k * (γ_k + S) ≠ 0 := ne_of_gt (mul_pos h2γ hGS)
+    have h2 : 2 * γ_k * (γ_k + S) ^ 2 ≠ 0 := by positivity
+    rw [div_eq_div_iff h1 h2]
+    linear_combination c_k * K * (2 * γ_k) * (γ_k + S) * h_conj
+  rw [h_gap_eq, h_gap_eq2]
+  apply div_le_div_of_nonneg_left (by positivity) (by positivity)
+  exact mul_le_mul_of_nonneg_left hGS_sq_le (by positivity)
+
 theorem slope_gap_lower_bound (γ c : Fin n → ℝ) (K r : ℝ)
     (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k) (hK : 0 < K)
     (hr_nn : 0 ≤ r) (hr_le : r ≤ 1)
     (γ_max : ℝ) (hγ_max_pos : 0 < γ_max) (hγ_max : ∀ k, γ k ≤ γ_max) :
     K ^ 3 * r ^ 2 / ((2 * γ_max + K) ^ 2) * (∑ k, c k / γ k) / 2 ≤
     scSlope γ c K 0 - scSlope γ c K r := by
-  sorry
+  unfold scSlope
+  rw [← Finset.sum_sub_distrib]
+  have h0 : ∀ k, sqrt ((γ k) ^ 2 + K ^ 2 * 0 ^ 2) = γ k := fun k => by
+    rw [show (γ k) ^ 2 + K ^ 2 * (0 : ℝ) ^ 2 = (γ k) ^ 2 from by ring]
+    exact sqrt_sq (le_of_lt (hγ k))
+  simp_rw [h0, show ∀ k, γ k + γ k = 2 * γ k from fun _ => by ring]
+  have h2gK_pos : 0 < 2 * γ_max + K := by linarith [hγ_max_pos, hK]
+  have key : ∀ k : Fin n,
+      c k * K ^ 3 * r ^ 2 / (2 * γ k * (2 * γ_max + K) ^ 2) ≤
+      c k * K / (2 * γ k) - c k * K / (γ k + sqrt ((γ k) ^ 2 + K ^ 2 * r ^ 2)) :=
+    fun k => slope_gap_term_ge (γ k) (c k) K r γ_max (hγ k) (hc k) hK hr_nn hr_le
+      hγ_max_pos (hγ_max k)
+  have hsum_eq : K ^ 3 * r ^ 2 / ((2 * γ_max + K) ^ 2) * (∑ k, c k / γ k) / 2 =
+      ∑ k, c k * K ^ 3 * r ^ 2 / (2 * γ k * (2 * γ_max + K) ^ 2) := by
+    rw [Finset.mul_sum, Finset.sum_div]
+    congr 1; ext k
+    field_simp [ne_of_gt (hγ k), ne_of_gt h2gK_pos]
+  rw [hsum_eq]
+  exact Finset.sum_le_sum fun k _ => key k
 
 theorem order_parameter_sq_upper_bound (γ c : Fin n → ℝ) (K r_star : ℝ)
     (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k)
