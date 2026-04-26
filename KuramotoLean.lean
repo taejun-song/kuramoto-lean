@@ -31,6 +31,7 @@ import KuramotoLean.EquilibriumFormula
 import KuramotoLean.EquilibriumUniqueness
 import KuramotoLean.ExcursionContraction
 import KuramotoLean.ExcursionEstimate
+import KuramotoLean.ExplicitRate
 import KuramotoLean.ExponentialContraction
 import KuramotoLean.ExponentialConvergence
 import KuramotoLean.FreeRotAmplification
