@@ -349,4 +349,45 @@ theorem explicitEquil_mono_K (γ_k K₁ K₂ r : ℝ) (hγ : 0 < γ_k)
       ⟨le_of_lt hα₁_pos, le_of_lt hα₁_lt⟩ hlt
     linarith [hα₂_sol]
 
+/-! ## Quantitative bounds on equilibrium -/
+
+theorem explicitEquil_upper (γ_k K r : ℝ) (hγ : 0 < γ_k) (hK : 0 < K) (hr : 0 < r) :
+    explicitEquil γ_k K r ≤ K * r / (2 * γ_k) := by
+  rw [explicitEquil_rationalized γ_k K r hγ hK hr]
+  have hden : 2 * γ_k ≤ γ_k + sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2) := by
+    have : γ_k ≤ sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2) :=
+      calc γ_k = sqrt (γ_k ^ 2) := (sqrt_sq (le_of_lt hγ)).symm
+        _ ≤ sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2) :=
+          sqrt_le_sqrt (by nlinarith [sq_nonneg (K * r)])
+    linarith
+  exact div_le_div_of_nonneg_left (le_of_lt (mul_pos hK hr)) (by positivity) hden
+
+theorem explicitEquil_lower (γ_k K r : ℝ) (hγ : 0 < γ_k) (hK : 0 < K) (hr : 0 < r) :
+    K * r / (2 * γ_k + K * r) ≤ explicitEquil γ_k K r := by
+  rw [explicitEquil_rationalized γ_k K r hγ hK hr]
+  have hKr : 0 < K * r := mul_pos hK hr
+  have hden : γ_k + sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2) ≤ 2 * γ_k + K * r := by
+    have : sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2) ≤ γ_k + K * r := by
+      calc sqrt (γ_k ^ 2 + K ^ 2 * r ^ 2)
+          ≤ sqrt ((γ_k + K * r) ^ 2) :=
+            sqrt_le_sqrt (by nlinarith [mul_pos hγ hKr])
+        _ = γ_k + K * r := sqrt_sq (by linarith)
+    linarith
+  exact div_le_div_of_nonneg_left (le_of_lt (mul_pos hK hr)) (by positivity) hden
+
+theorem explicitEquil_tail_bound (γ_k K r : ℝ) (hγ : 0 < γ_k) (hK : 0 < K) (hr : 0 < r) :
+    K * r / (2 * γ_k + K * r) ≤ explicitEquil γ_k K r ∧
+    explicitEquil γ_k K r ≤ K * r / (2 * γ_k) :=
+  ⟨explicitEquil_lower γ_k K r hγ hK hr, explicitEquil_upper γ_k K r hγ hK hr⟩
+
+theorem explicitEquil_lower_from_gamma_max (γ_k K r γ_max : ℝ)
+    (hγ : 0 < γ_k) (hK : 0 < K) (hr : 0 < r)
+    (hγ_le : γ_k ≤ γ_max) :
+    K * r / (2 * γ_max + K * r) ≤ explicitEquil γ_k K r :=
+  le_trans (by
+    have hKr := le_of_lt (mul_pos hK hr)
+    exact div_le_div_of_nonneg_left (le_of_lt (mul_pos hK hr))
+      (by positivity) (by linarith))
+    (explicitEquil_lower γ_k K r hγ hK hr)
+
 end
