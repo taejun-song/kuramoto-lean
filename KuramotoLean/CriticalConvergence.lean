@@ -206,4 +206,29 @@ theorem critical_r_convergence (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
         mul_lt_mul_of_pos_left (hT t (le_trans (le_max_left T 0) ht)) hγ_max_pos
     _ = ε := mul_div_cancel₀ ε (ne_of_gt hγ_max_pos)
 
+theorem tendsto_r_critical (D : NPoleBarrierData n) (hn : Nonempty (Fin n))
+    (hK_crit : D.K = npoleCriticalK D.γ D.c)
+    (γ_min γ_max : ℝ) (hγ_min_pos : 0 < γ_min) (hγ_max_pos : 0 < γ_max)
+    (hγ_min : ∀ k, γ_min ≤ D.γ k) (hγ_max : ∀ k, D.γ k ≤ γ_max) :
+    Tendsto D.r atTop (nhds 0) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  obtain ⟨T, hT⟩ := critical_r_convergence D hn hK_crit γ_min γ_max hγ_min_pos hγ_max_pos
+    hγ_min hγ_max ε hε
+  exact ⟨max T 0, fun t ht => by
+    simp only [Real.dist_eq, sub_zero, abs_of_nonneg
+      (D.r_nonneg t (le_trans (le_max_right _ _) ht))]
+    exact hT t (le_trans (le_max_left _ _) ht)⟩
+
+theorem parametric_critical_convergence (D : NPoleBarrierData n)
+    (hn : 0 < n) (hK_crit : D.K = npoleCriticalK D.γ D.c) :
+    Tendsto D.r atTop (nhds 0) := by
+  haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+  obtain ⟨k_min, _, hk_min⟩ := Finset.exists_min_image Finset.univ D.γ Finset.univ_nonempty
+  obtain ⟨k_max, _, hk_max⟩ := Finset.exists_max_image Finset.univ D.γ Finset.univ_nonempty
+  exact tendsto_r_critical D ‹_› hK_crit
+    (D.γ k_min) (D.γ k_max) (D.hγ k_min) (D.hγ k_max)
+    (fun k => hk_min k (Finset.mem_univ k))
+    (fun k => hk_max k (Finset.mem_univ k))
+
 end
