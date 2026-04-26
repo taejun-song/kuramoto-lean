@@ -349,4 +349,66 @@ theorem explicitEquil_mono_K (γ_k K₁ K₂ r : ℝ) (hγ : 0 < γ_k)
       ⟨le_of_lt hα₁_pos, le_of_lt hα₁_lt⟩ hlt
     linarith [hα₂_sol]
 
+/-! ## Self-consistency slope monotonicity in K -/
+
+theorem scSlope_mono_K (γ c : Fin n → ℝ) (K₁ K₂ r : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k)
+    (hK₁ : 0 < K₁) (hK₂ : 0 < K₂) (hr : 0 < r)
+    (hn : Nonempty (Fin n)) (h : K₁ < K₂) :
+    scSlope γ c K₁ r < scSlope γ c K₂ r := by
+  unfold scSlope
+  apply Finset.sum_lt_sum
+  · intro k _
+    have hα₁ := explicitEquil_mono_K (γ k) K₁ K₂ r (hγ k) hK₁ hK₂ hr h
+    show c k * K₁ / (γ k + sqrt ((γ k) ^ 2 + K₁ ^ 2 * r ^ 2)) ≤
+        c k * K₂ / (γ k + sqrt ((γ k) ^ 2 + K₂ ^ 2 * r ^ 2))
+    rw [show c k * K₁ / (γ k + sqrt ((γ k) ^ 2 + K₁ ^ 2 * r ^ 2)) =
+        c k * (K₁ * r / (γ k + sqrt ((γ k) ^ 2 + K₁ ^ 2 * r ^ 2))) / r from by
+          field_simp; ring,
+        show c k * K₂ / (γ k + sqrt ((γ k) ^ 2 + K₂ ^ 2 * r ^ 2)) =
+        c k * (K₂ * r / (γ k + sqrt ((γ k) ^ 2 + K₂ ^ 2 * r ^ 2))) / r from by
+          field_simp; ring]
+    apply div_le_div_of_nonneg_right
+    · apply mul_le_mul_of_nonneg_left (le_of_lt hα₁) (le_of_lt (hc k))
+    · hr
+  · obtain ⟨k₀⟩ := hn
+    exact ⟨k₀, Finset.mem_univ k₀, by
+      have hα₁ := explicitEquil_mono_K (γ k₀) K₁ K₂ r (hγ k₀) hK₁ hK₂ hr h
+      show c k₀ * K₁ / (γ k₀ + sqrt ((γ k₀) ^ 2 + K₁ ^ 2 * r ^ 2)) <
+          c k₀ * K₂ / (γ k₀ + sqrt ((γ k₀) ^ 2 + K₂ ^ 2 * r ^ 2))
+      rw [show c k₀ * K₁ / (γ k₀ + sqrt ((γ k₀) ^ 2 + K₁ ^ 2 * r ^ 2)) =
+          c k₀ * (K₁ * r / (γ k₀ + sqrt ((γ k₀) ^ 2 + K₁ ^ 2 * r ^ 2))) / r from by
+            field_simp; ring,
+          show c k₀ * K₂ / (γ k₀ + sqrt ((γ k₀) ^ 2 + K₂ ^ 2 * r ^ 2)) =
+          c k₀ * (K₂ * r / (γ k₀ + sqrt ((γ k₀) ^ 2 + K₂ ^ 2 * r ^ 2))) / r from by
+            field_simp; ring]
+      exact div_lt_div_of_pos_right (mul_lt_mul_of_pos_left hα₁ (hc k₀)) hr⟩
+
+/-! ## Fixed point monotonicity in K: larger coupling → larger r* -/
+
+theorem sc_fixed_point_mono_K (γ c : Fin n → ℝ) (K₁ K₂ : ℝ)
+    (hγ : ∀ k, 0 < γ k) (hc : ∀ k, 0 < c k)
+    (hK₁ : 0 < K₁) (hK₂ : 0 < K₂)
+    (hn : Nonempty (Fin n)) (hc_sum : ∑ k, c k = 1)
+    (hK_super₁ : npoleCriticalK γ c < K₁)
+    (hK_super₂ : npoleCriticalK γ c < K₂)
+    (h : K₁ < K₂) :
+    ∀ r₁ r₂ : ℝ, 0 < r₁ → r₁ < 1 → scMapR γ c K₁ r₁ = r₁ →
+    0 < r₂ → r₂ < 1 → scMapR γ c K₂ r₂ = r₂ → r₁ < r₂ := by
+  intro r₁ r₂ hr₁ hr₁_lt h_fp₁ hr₂ hr₂_lt h_fp₂
+  have hs₁ : scSlope γ c K₁ r₁ = 1 :=
+    mul_left_cancel₀ (ne_of_gt hr₁) (h_fp₁.trans (mul_one r₁).symm)
+  have hs₂ : scSlope γ c K₂ r₂ = 1 :=
+    mul_left_cancel₀ (ne_of_gt hr₂) (h_fp₂.trans (mul_one r₂).symm)
+  have h_slope_gt : 1 < scSlope γ c K₂ r₁ := by
+    rw [← hs₁]
+    exact scSlope_mono_K γ c K₁ K₂ r₁ hγ hc hK₁ hK₂ hr₁ hn h
+  by_contra h_not
+  push_neg at h_not
+  rcases eq_or_lt_of_le h_not with heq | hlt
+  · rw [heq] at hs₁; linarith [scSlope_mono_K γ c K₁ K₂ r₂ hγ hc hK₁ hK₂ hr₂ hn h]
+  · have := scSlope_strictAntiOn γ c K₂ hγ hc hK₂ hn
+      (mem_Ici.mpr (le_of_lt hr₂)) (mem_Ici.mpr (le_of_lt hr₁)) hlt
+    linarith
+
 end
