@@ -1680,4 +1680,25 @@ theorem lorentzian_lyapunov_v_tendsto_zero (K γ r₀ : ℝ)
   simp only [sub_self, zero_pow, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true] at h
   exact h
 
+/-- **V' ODE**: d/dt (r-r*)² = -K·r·(r+r*)·(r-r*)², expressing V' in terms of V itself.
+    Proof: chain rule gives V' = 2(r-r*)·ṙ; lorentzian_ode_factored gives ṙ = (K/2)r(r*²-r²);
+    then 2(r-r*)·(K/2)r(r*²-r²) = -Kr(r+r*)(r-r*)² by ring. -/
+theorem lorentzian_lyapunov_v_deriv_formula (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    HasDerivAt (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (-(K * lorentzian_explicit K γ r₀ t *
+         (lorentzian_explicit K γ r₀ t + Real.sqrt (1 - 2 * γ / K)) *
+         (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2)) t := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hode : lorentzianODE K γ (lorentzian_explicit K γ r₀ t) =
+      K / 2 * lorentzian_explicit K γ r₀ t *
+      (Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2) := by
+    rw [lorentzian_ode_factored K γ (lorentzian_explicit K γ r₀ t) (ne_of_gt hK)]
+    congr 1; linarith [hrstar_sq]
+  convert lorentzian_lyapunov_v_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht using 1
+  rw [hode]; ring
+
 end
