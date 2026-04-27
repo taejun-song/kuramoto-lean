@@ -454,6 +454,24 @@ theorem LorentzianContinuousSolution.eq_explicit
     hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hinit
   exact hEqOn ⟨le_of_lt ht, le_refl t⟩
 
+/-- **ODE uniqueness at t ≥ 0**: extends eq_explicit to include t = 0 (the initial time).
+    For t = 0: S.r 0 = r₀ = lorentzian_explicit ... 0 by init. For t > 0: eq_explicit. -/
+theorem LorentzianContinuousSolution.eq_explicit_of_nonneg
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    S.r t = lorentzian_explicit S.K S.γ (S.r 0) t := by
+  rcases ht.eq_or_lt with rfl | ht_pos
+  · exact (lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos).symm
+  · exact S.eq_explicit t ht_pos
+
+/-- **Uniqueness of ODE solutions**: two `LorentzianContinuousSolution`s with the same
+    parameters and initial condition are equal for all t ≥ 0. Proof: both equal the
+    explicit Bernoulli formula via eq_explicit_of_nonneg. -/
+theorem LorentzianContinuousSolution.unique (S₁ S₂ : LorentzianContinuousSolution)
+    (hK : S₁.K = S₂.K) (hγ : S₁.γ = S₂.γ) (hr₀ : S₁.r 0 = S₂.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S₁.r t = S₂.r t := by
+  rw [S₁.eq_explicit_of_nonneg t ht, S₂.eq_explicit_of_nonneg t ht, hK, hγ, hr₀]
+
 /-- **Two-solution distance bound**: |r(t,r₀) - r(t,r₀')| ≤ (|A_r₀|+|A_r₀'|)·exp(-μt)/r*
     via the triangle inequality through r*. -/
 theorem lorentzian_explicit_dist_bound (K γ r₀ r₀' : ℝ)
