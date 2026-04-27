@@ -3214,4 +3214,20 @@ theorem LorentzianContinuousSolution.rate_initial (S : LorentzianContinuousSolut
   exact lorentzian_explicit_rate_initial S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
     S.hr_init_pos S.hr_init_lt t ht
 
+/-- **Bernoulli two-solution distance bound**: |S.r t - S'.r t| ≤ (|A|+|A'|)·exp(-μt)/r*
+    where A = 1/S.r 0²-K/(K-2γ), A' = 1/S'.r 0²-K/(K-2γ), μ = K-2γ.
+    Tighter than two_traj_dist near r*; uses the Bernoulli formula directly at optimal rate μ. -/
+theorem LorentzianContinuousSolution.dist_bound_explicit
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - S'.r t| ≤
+    (|1 / S.r 0 ^ 2 - S.K / (S.K - 2 * S.γ)| +
+     |1 / S'.r 0 ^ 2 - S.K / (S.K - 2 * S.γ)|) *
+    Real.exp (-(S.K - 2 * S.γ) * t) /
+    Real.sqrt (1 - 2 * S.γ / S.K) := by
+  rw [S.eq_explicit_of_nonneg t ht, S'.eq_explicit_of_nonneg t ht, ← hK_eq, ← hγ_eq]
+  exact lorentzian_explicit_dist_bound S.K S.γ (S.r 0) (S'.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt S'.hr_init_pos S'.hr_init_lt t ht
+
 end
