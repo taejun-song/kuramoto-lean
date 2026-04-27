@@ -1456,4 +1456,80 @@ theorem lorentzian_explicit_semigroup (K γ r₀ : ℝ)
   have h := lorentzian_w_semigroup K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t₁ t₂ ht₁
   simp only [lorentzian_explicit, h]
 
+/-- **One-sided invariance (below)**: when r₀ < r*, the trajectory stays below r* for all t ≥ 0.
+    The sublevel set {r < r*} is forward-invariant under the Lorentzian ODE. -/
+theorem lorentzian_explicit_lt_rstar_of_init (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t < Real.sqrt (1 - 2 * γ / K) := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K :=
+    hrstar_sq ▸ sq_lt_sq' (by linarith) hr₀_lt_rstar
+  have hr_sq_lt := lorentzian_explicit_sq_lt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h := Real.sqrt_lt_sqrt (sq_nonneg (lorentzian_explicit K γ r₀ t)) hr_sq_lt
+  rwa [Real.sqrt_sq hr_pos.le] at h
+
+/-- **One-sided invariance (above)**: when r* < r₀, the trajectory stays above r* for all t ≥ 0.
+    The superlevel set {r > r*} is forward-invariant under the Lorentzian ODE. -/
+theorem lorentzian_explicit_gt_rstar_of_init (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * γ / K) < r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * γ / K) < lorentzian_explicit K γ r₀ t := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_sq_gt : 1 - 2 * γ / K < r₀ ^ 2 :=
+    hrstar_sq ▸ sq_lt_sq' (by linarith) hr₀_gt_rstar
+  have hr_sq_gt := lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_gt t ht
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h := Real.sqrt_lt_sqrt (sq_nonneg (Real.sqrt (1 - 2 * γ / K))) hr_sq_gt
+  rwa [Real.sqrt_sq hrstar_pos.le, Real.sqrt_sq hr_pos.le] at h
+
+/-- **Trajectory above initial value**: when r₀ < r*, r₀ ≤ r(t) for all t ≥ 0.
+    Solution is non-decreasing from r₀ toward r*. -/
+theorem lorentzian_explicit_ge_r0 (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    r₀ ≤ lorentzian_explicit K γ r₀ t := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K :=
+    hrstar_sq ▸ sq_lt_sq' (by linarith) hr₀_lt_rstar
+  have hr_sq_ge := lorentzian_explicit_sq_ge_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h := Real.sqrt_le_sqrt hr_sq_ge
+  rwa [Real.sqrt_sq hr₀_pos.le, Real.sqrt_sq hr_pos.le] at h
+
+/-- **Trajectory below initial value**: when r* < r₀, r(t) ≤ r₀ for all t ≥ 0.
+    Solution is non-increasing from r₀ toward r*. -/
+theorem lorentzian_explicit_le_r0 (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * γ / K) < r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t ≤ r₀ := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_sq_gt : 1 - 2 * γ / K < r₀ ^ 2 :=
+    hrstar_sq ▸ sq_lt_sq' (by linarith) hr₀_gt_rstar
+  have hr_sq_le := lorentzian_explicit_sq_le_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_gt t ht
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h := Real.sqrt_le_sqrt hr_sq_le
+  rwa [Real.sqrt_sq hr_pos.le, Real.sqrt_sq hr₀_pos.le] at h
+
 end
