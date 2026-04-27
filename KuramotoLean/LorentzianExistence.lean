@@ -1429,4 +1429,31 @@ theorem lorentzian_sq_diff_ne_zero (K γ r₀ : ℝ)
   · have hr_gt := lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
     linarith [hrstar_sq ▸ hr_gt]
 
+/-- **Semigroup property for w**: the Bernoulli transform satisfies the semigroup identity.
+    w(t₁+t₂, r₀) = w(t₂, r(t₁, r₀)). The key step: 1/r(t₁)² = w(t₁) (from lorentzian_explicit_sq). -/
+theorem lorentzian_w_semigroup (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t₁ t₂ : ℝ) (ht₁ : 0 ≤ t₁) :
+    w_func K γ r₀ (t₁ + t₂) = w_func K γ (lorentzian_explicit K γ r₀ t₁) t₂ := by
+  have hr₁_sq := lorentzian_explicit_sq K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t₁ ht₁
+  have hkey : 1 / lorentzian_explicit K γ r₀ t₁ ^ 2 - K / (K - 2 * γ) =
+      (1 / r₀ ^ 2 - K / (K - 2 * γ)) * Real.exp (-(K - 2 * γ) * t₁) := by
+    rw [hr₁_sq, one_div, inv_inv]; simp only [w_func]; ring
+  simp only [w_func, hkey]
+  rw [show -(K - 2 * γ) * (t₁ + t₂) = -(K - 2 * γ) * t₁ + -(K - 2 * γ) * t₂ from by ring,
+      Real.exp_add]
+  ring
+
+/-- **Semigroup property for the ODE flow**: the explicit solution satisfies the semigroup law.
+    r(t₁+t₂, r₀) = r(t₂, r(t₁, r₀)). Equivalently, time-shifting is the same as re-initializing. -/
+theorem lorentzian_explicit_semigroup (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t₁ t₂ : ℝ) (ht₁ : 0 ≤ t₁) :
+    lorentzian_explicit K γ r₀ (t₁ + t₂) =
+      lorentzian_explicit K γ (lorentzian_explicit K γ r₀ t₁) t₂ := by
+  have h := lorentzian_w_semigroup K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t₁ t₂ ht₁
+  simp only [lorentzian_explicit, h]
+
 end
