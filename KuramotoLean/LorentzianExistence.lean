@@ -1555,4 +1555,43 @@ theorem lorentzian_explicit_dist_strict_decreasing (K γ r₀ : ℝ)
     rw [abs_of_pos (by linarith), abs_of_pos (by linarith)]
     linarith
 
+/-- **Equilibrium trajectory**: the explicit solution initialized at r* stays at r* for all time.
+    The Bernoulli amplitude A = 1/r*²-B = 0, so w(t) = B = 1/r*² and r(t) = r*. -/
+theorem lorentzian_explicit_rstar_const (K γ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (t : ℝ) :
+    lorentzian_explicit K γ (Real.sqrt (1 - 2 * γ / K)) t =
+      Real.sqrt (1 - 2 * γ / K) := by
+  have hd : (0:ℝ) < K - 2 * γ := by linarith
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have heq : 1 / Real.sqrt (1 - 2 * γ / K) ^ 2 = K / (K - 2 * γ) := by
+    rw [hrstar_sq]; field_simp [hK.ne', hd.ne']
+  have hw : w_func K γ (Real.sqrt (1 - 2 * γ / K)) t = K / (K - 2 * γ) := by
+    simp only [w_func, heq, sub_self, zero_mul, zero_add]
+  simp only [lorentzian_explicit, hw]
+  congr 1; field_simp [hK.ne', hd.ne']
+
+/-- **Lyapunov stability**: r* is Lyapunov stable with δ = ε.
+    For any ε > 0, any trajectory starting within ε of r* stays within ε for all t ≥ 0. -/
+theorem lorentzian_explicit_lyapunov_stable (K γ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ δ > 0, ∀ r₀ : ℝ, 0 < r₀ → r₀ < 1 →
+      |r₀ - Real.sqrt (1 - 2 * γ / K)| < δ →
+      ∀ t : ℝ, 0 ≤ t →
+        |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| < ε := by
+  refine ⟨ε, hε, fun r₀ hr₀_pos hr₀_lt hr₀_near t ht => ?_⟩
+  rcases eq_or_ne r₀ (Real.sqrt (1 - 2 * γ / K)) with rfl | hr₀_ne
+  · rw [lorentzian_explicit_rstar_const K γ hK hγ hKγ t, sub_self, abs_zero]; exact hε
+  · rcases eq_or_lt_of_le ht with rfl | ht_pos
+    · rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_near
+    · calc |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)|
+            < |lorentzian_explicit K γ r₀ 0 - Real.sqrt (1 - 2 * γ / K)| :=
+              lorentzian_explicit_dist_strict_decreasing K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+                hr₀_ne le_rfl ht_pos
+          _ = |r₀ - Real.sqrt (1 - 2 * γ / K)| := by
+              rw [lorentzian_explicit_init K γ r₀ hr₀_pos]
+          _ < ε := hr₀_near
+
 end
