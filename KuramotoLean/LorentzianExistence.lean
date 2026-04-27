@@ -2224,6 +2224,24 @@ theorem lorentzian_lyapunov_r_strict_contraction (K γ r₀ : ℝ)
   have h := Real.sqrt_lt_sqrt (sq_nonneg _) hV_lt
   rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq_eq_abs] at h
 
+/-- **Ball forward invariance**: the open ball B(r*, ε) is forward-invariant — if r₀ is within ε
+    of r*, the solution r(t) remains within ε of r* for all t ≥ 0. This is Lyapunov stability
+    with identity Lyapunov function δ = ε. Follows from r_strict_contraction (t > 0) and
+    lorentzian_explicit_rstar_const (r₀ = r* case) and explicit_init (t = 0 case). -/
+theorem lorentzian_lyapunov_r_ball_fwd_inv (K γ r₀ ε : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hε : |r₀ - Real.sqrt (1 - 2 * γ / K)| < ε)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| < ε := by
+  set rs := Real.sqrt (1 - 2 * γ / K)
+  rcases eq_or_ne r₀ rs with rfl | hne
+  · rw [lorentzian_explicit_rstar_const K γ hK hγ hKγ t]; exact hε
+  · rcases eq_or_lt_of_le ht with rfl | ht_pos
+    · rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hε
+    · exact (lorentzian_lyapunov_r_strict_contraction K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+          hne t ht_pos).trans hε
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
