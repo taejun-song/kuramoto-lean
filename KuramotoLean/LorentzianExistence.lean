@@ -777,4 +777,96 @@ theorem lorentzian_r_from_v_decay (K γ r₀ : ℝ)
     _ = Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2 := by ring
     _ ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * r₀ ^ 2) * t) := hV_decay
 
+
+/-- When r₀² > r*², the solution satisfies r(t)² > r*² for all t ≥ 0.
+    Proof: A < 0 → w(t) < B → w(t)⁻¹ > B⁻¹ = r*². -/
+theorem lorentzian_explicit_sq_gt_rstar (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_gt : 1 - 2 * γ / K < r₀ ^ 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * γ / K) ^ 2 < lorentzian_explicit K γ r₀ t ^ 2 := by
+  rw [lorentzian_explicit_sq K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht]
+  have hd : (0:ℝ) < K - 2 * γ := by linarith
+  have hB_pos : (0:ℝ) < K / (K - 2 * γ) := div_pos hK hd
+  have hw_pos : 0 < w_func K γ r₀ t := w_func_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hB_inv : (K / (K - 2 * γ))⁻¹ = 1 - 2 * γ / K := by field_simp [hK.ne', hd.ne']
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+  rw [hrstar_sq, ← hB_inv]
+  rw [inv_lt_inv₀ hB_pos hw_pos]
+  have hA_neg : 1 / r₀ ^ 2 - K / (K - 2 * γ) < 0 := by
+    rw [sub_neg, div_lt_div_iff₀ (sq_pos_of_pos hr₀_pos) hd]
+    have hmul := mul_lt_mul_of_pos_left hr₀_sq_gt hK
+    have hsimp : K * (1 - 2 * γ / K) = K - 2 * γ := by field_simp [hK.ne']
+    linarith
+  simp only [w_func]
+  linarith [mul_neg_of_neg_of_pos hA_neg (Real.exp_pos (-(K - 2 * γ) * t))]
+
+/-- When r₀² > r*², the solution r(t)² is non-increasing from r₀²: r(t)² ≤ r₀².
+    Proof: A < 0 → exp(-μt) ≤ 1 → w(t) ≥ A+B = 1/r₀² → w(t)⁻¹ ≤ r₀². -/
+theorem lorentzian_explicit_sq_le_init (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_gt : 1 - 2 * γ / K < r₀ ^ 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t ^ 2 ≤ r₀ ^ 2 := by
+  rw [lorentzian_explicit_sq K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht]
+  have hd : (0:ℝ) < K - 2 * γ := by linarith
+  have hw_pos : 0 < w_func K γ r₀ t := w_func_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr0sq_pos : (0:ℝ) < r₀ ^ 2 := sq_pos_of_pos hr₀_pos
+  have hA_neg : 1 / r₀ ^ 2 - K / (K - 2 * γ) < 0 := by
+    rw [sub_neg, div_lt_div_iff₀ (sq_pos_of_pos hr₀_pos) hd]
+    have hmul := mul_lt_mul_of_pos_left hr₀_sq_gt hK
+    have hsimp : K * (1 - 2 * γ / K) = K - 2 * γ := by field_simp [hK.ne']
+    linarith
+  have hexp_le : Real.exp (-(K - 2 * γ) * t) ≤ 1 :=
+    Real.exp_le_one_iff.mpr (by nlinarith)
+  have hw_ge : 1 / r₀ ^ 2 ≤ w_func K γ r₀ t := by
+    simp only [w_func]
+    linarith [mul_le_mul_of_nonpos_left hexp_le (le_of_lt hA_neg)]
+  have hineq := inv_anti₀ (div_pos one_pos hr0sq_pos) hw_ge
+  simp only [one_div, inv_inv] at hineq
+  exact hineq
+
+/-- Above-equilibrium Gronwall V-decay: when r₀² > r*²,
+    r(t)²-r*² ≤ (r₀²-r*²)·exp(-K·r*²·t).
+    Proof: W = r(t)²-r*² ≥ 0 satisfies W' = -K·r²·W ≤ -(K·r*²)·W since r² ≥ r*². -/
+theorem lorentzian_w_exponential_decay (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_gt : 1 - 2 * γ / K < r₀ ^ 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2 ≤
+      (r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2) *
+        Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) := by
+    apply Real.sqrt_pos_of_pos; rw [sub_pos, div_lt_one hK]; linarith
+  -- W = r²-r*², derivative K·r²·(r*²-r²) (from neg of v_hasDerivAt)
+  set W := fun s => lorentzian_explicit K γ r₀ s ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2 with hW_def
+  set W' := fun s => K * lorentzian_explicit K γ r₀ s ^ 2 *
+      (Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ s ^ 2) with hW'_def
+  have hWt := comparison_decay W W' (K * Real.sqrt (1 - 2 * γ / K) ^ 2)
+    (((lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).pow 2).sub continuousOn_const)
+    (fun s hs => by
+      have h := lorentzian_explicit_sq_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt s (le_of_lt hs)
+      have hconst : HasDerivAt (fun _ => Real.sqrt (1 - 2 * γ / K) ^ 2) 0 s := hasDerivAt_const _ _
+      convert h.sub hconst using 1; ring)
+    (fun s hs => by
+      simp only [W, W']
+      have hsq_ge := lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_gt s (le_of_lt hs)
+      nlinarith [sq_nonneg (lorentzian_explicit K γ r₀ s ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2),
+                 mul_pos hK (sq_pos_of_pos hrstar_pos)])
+    t ht
+  have hW0 : W 0 = r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2 := by
+    simp only [hW_def]
+    rw [lorentzian_explicit_init K γ r₀ hr₀_pos]
+  calc lorentzian_explicit K γ r₀ t ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2
+      = W t := rfl
+    _ ≤ W 0 * Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) := hWt
+    _ = (r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2) *
+          Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) := by rw [hW0]
+
 end
