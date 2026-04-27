@@ -1651,4 +1651,33 @@ theorem lorentzian_lyapunov_v_strict_anti (K γ r₀ : ℝ)
   have hanti := strictAntiOn_of_deriv_neg (convex_Icc s t) hcont hderiv_neg
   exact hanti (Set.left_mem_Icc.mpr hst.le) (Set.right_mem_Icc.mpr hst.le) hst
 
+/-- **V(0) = (r₀ - r*)²**: the Lyapunov function equals the initial squared distance. -/
+theorem lorentzian_lyapunov_v_at_zero (K γ r₀ : ℝ) (hr₀_pos : 0 < r₀) :
+    (lorentzian_explicit K γ r₀ 0 - Real.sqrt (1 - 2 * γ / K)) ^ 2 =
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 := by
+  rw [lorentzian_explicit_init K γ r₀ hr₀_pos]
+
+/-- **V bounded by initial value**: for r₀ ≠ r* and t > 0, V(t) < V(0) = (r₀-r*)². -/
+theorem lorentzian_lyapunov_v_lt_init (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 < t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 <
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 := by
+  have h := lorentzian_lyapunov_v_strict_anti K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne
+      le_rfl ht
+  rwa [lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at h
+
+/-- **V → 0 as t → ∞**: the Lyapunov function converges to 0, reflecting r(t) → r*. -/
+theorem lorentzian_lyapunov_v_tendsto_zero (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    Filter.Tendsto (fun t => (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      Filter.atTop (nhds 0) := by
+  have h := (lorentzian_explicit_tendsto K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+      |>.sub_const (Real.sqrt (1 - 2 * γ / K))).pow 2
+  simp only [sub_self, zero_pow, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true] at h
+  exact h
+
 end
