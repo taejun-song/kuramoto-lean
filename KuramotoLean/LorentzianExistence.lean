@@ -2465,6 +2465,37 @@ theorem lorentzian_lyapunov_v_uniform_exp_decay (K γ r₀ δ : ℝ)
     0 t le_rfl ht (fun s hs1 _ => h_persist s hs1)
   rwa [zero_add, lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at h
 
+/-- **V interval decay for any ODE solution**: V(t₀+Δ) ≤ V(t₀)·exp(-K·min(r(t₀),r*)·r*·Δ)
+    for any LorentzianContinuousSolution, with t₀ ≥ 0 and Δ ≥ 0.
+    Lifts v_interval_decay to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.v_interval_decay (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t₀ Δ : ℝ) (ht₀ : 0 ≤ t₀) (hΔ : 0 ≤ Δ) :
+    (S.r (t₀ + Δ) - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r t₀ - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * min (S.r t₀) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+               Real.sqrt (1 - 2 * S.γ / S.K)) * Δ) := by
+  rw [S.eq_explicit_of_nonneg (t₀ + Δ) (by linarith), S.eq_explicit_of_nonneg t₀ ht₀,
+      S.eq_explicit_of_nonneg 0 le_rfl, lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_interval_decay S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne t₀ Δ ht₀ hΔ
+
+/-- **V persistence drop for any ODE solution**: if S.r t ≥ δ for all t ∈ [t₀, t₀+Δ],
+    then V(t₀+Δ) ≤ V(t₀)·exp(-K·δ·r*·Δ).
+    Lifts v_persistence_drop to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.v_persistence_drop (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (t₀ Δ : ℝ) (ht₀ : 0 ≤ t₀) (hΔ : 0 ≤ Δ)
+    (h_persist : ∀ t, t₀ ≤ t → t ≤ t₀ + Δ → δ ≤ S.r t) :
+    (S.r (t₀ + Δ) - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r t₀ - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * δ * Real.sqrt (1 - 2 * S.γ / S.K)) * Δ) := by
+  rw [S.eq_explicit_of_nonneg (t₀ + Δ) (by linarith), S.eq_explicit_of_nonneg t₀ ht₀,
+      S.eq_explicit_of_nonneg 0 le_rfl, lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_persistence_drop S.K S.γ (S.r 0) δ S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hδ_pos t₀ Δ ht₀ hΔ
+    (fun t ht_lo ht_hi => (S.eq_explicit_of_nonneg t (le_trans ht₀ ht_lo)) ▸ h_persist t ht_lo ht_hi)
+
 /-- **Uniform V decay for any ODE solution from persistence**: if S.r t ≥ δ for all t ≥ 0,
     then V(t) ≤ V(0)·exp(-K·δ·r*·t). Lifts v_uniform_exp_decay to LorentzianContinuousSolution. -/
 theorem LorentzianContinuousSolution.v_uniform_exp_decay (S : LorentzianContinuousSolution)
