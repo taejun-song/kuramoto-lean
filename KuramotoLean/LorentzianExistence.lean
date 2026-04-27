@@ -1794,4 +1794,39 @@ theorem lorentzian_lyapunov_v_exp_bound_above (K γ r₀ : ℝ)
       Real.exp (-(2 * K * (1 - 2 * γ / K)) * t) := hVt
   rwa [lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at hVt'
 
+/-- **Unified Lyapunov exponential bound**: V(t) ≤ V(0)·exp(-K·min(r₀,r*)·r*·t) for r₀ ≠ r*.
+    Below r*: min=r₀, rate K·r₀·r* from v_exp_bound_below.
+    Above r*: min=r*, rate K·r*²≤2K·r*² from v_exp_bound_above + exp monotonicity. -/
+theorem lorentzian_lyapunov_v_exp_bound (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+      Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
+        Real.sqrt (1 - 2 * γ / K)) * t) := by
+  have hrs_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  rcases lt_or_gt_of_ne hr₀_ne with h | h
+  · rw [min_eq_left h.le]
+    exact lorentzian_lyapunov_v_exp_bound_below K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
+  · rw [min_eq_right h.le]
+    calc (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2
+        ≤ (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+          Real.exp (-(2 * K * (1 - 2 * γ / K)) * t) :=
+          lorentzian_lyapunov_v_exp_bound_above K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
+      _ ≤ (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+          Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) *
+            Real.sqrt (1 - 2 * γ / K)) * t) := by
+          apply mul_le_mul_of_nonneg_left _ (sq_nonneg _)
+          apply Real.exp_le_exp.mpr
+          have hrs_sq : Real.sqrt (1 - 2 * γ / K) * Real.sqrt (1 - 2 * γ / K) =
+              1 - 2 * γ / K := by rw [← sq]; exact hrstar_sq
+          have hkey_t : K * Real.sqrt (1 - 2 * γ / K) * Real.sqrt (1 - 2 * γ / K) * t =
+              K * (1 - 2 * γ / K) * t := by linear_combination K * t * hrs_sq
+          linarith [mul_nonneg (mul_nonneg hK.le (lorentzian_rstar_pos K γ hK hKγ).le) ht]
+
 end
