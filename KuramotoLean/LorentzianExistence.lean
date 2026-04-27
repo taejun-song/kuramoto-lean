@@ -2182,6 +2182,34 @@ theorem lorentzian_lyapunov_r_trap_above (K γ r₀ : ℝ)
   ⟨lorentzian_lyapunov_r_dist_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
    lorentzian_lyapunov_r_dist_above K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_gt_rstar t ht⟩
 
+/-- **Two-trajectory distance bound**: for r₀, r₀' ∈ (0,1) both ≠ r*, the distance between
+    two Lorentzian solutions satisfies |r(t,r₀) - r(t,r₀')| ≤ |r₀-r*|·exp(-μ·t) + |r₀'-r*|·exp(-μ'·t)
+    where μ = K·min(r₀,r*)·r*/2 and μ' = K·min(r₀',r*)·r*/2.
+    Follows from the triangle inequality |r(t,r₀)-r(t,r₀')| ≤ |r(t,r₀)-r*| + |r(t,r₀')-r*|
+    and the individual unified distance bounds. -/
+theorem lorentzian_lyapunov_two_traj_dist (K γ r₀ r₀' : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀'_pos : 0 < r₀') (hr₀'_lt : r₀' < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (hr₀'_ne : r₀' ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+    Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
+               Real.sqrt (1 - 2 * γ / K)) / 2 * t) +
+    |r₀' - Real.sqrt (1 - 2 * γ / K)| *
+    Real.exp (-(K * min r₀' (Real.sqrt (1 - 2 * γ / K)) *
+                Real.sqrt (1 - 2 * γ / K)) / 2 * t) := by
+  set rs := Real.sqrt (1 - 2 * γ / K)
+  have htri : |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t| ≤
+      |lorentzian_explicit K γ r₀ t - rs| + |lorentzian_explicit K γ r₀' t - rs| := by
+    have := abs_sub_le (lorentzian_explicit K γ r₀ t) rs (lorentzian_explicit K γ r₀' t)
+    linarith [abs_sub_comm (lorentzian_explicit K γ r₀' t) rs]
+  exact htri.trans (add_le_add
+    (lorentzian_lyapunov_r_dist K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht)
+    (lorentzian_lyapunov_r_dist K γ r₀' hK hγ hKγ hr₀'_pos hr₀'_lt hr₀'_ne t ht))
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
