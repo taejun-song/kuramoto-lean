@@ -1109,4 +1109,26 @@ theorem lorentzian_explicit_dist_tendsto (K γ r₀ r₀' : ℝ)
   simp_rw [Real.norm_eq_abs] at h'
   exact h'
 
+/-- **Parameter monotonicity in K**: the Lorentzian equilibrium r* = √(1-2γ/K)
+    is strictly increasing in K. More coupling → larger partially locked state. -/
+theorem lorentzian_rstar_mono_K (K₁ K₂ γ : ℝ)
+    (hγ : 0 < γ) (hKγ₁ : 2 * γ < K₁) (hKγ₂ : 2 * γ < K₂) (hK : K₁ < K₂) :
+    Real.sqrt (1 - 2 * γ / K₁) < Real.sqrt (1 - 2 * γ / K₂) := by
+  apply Real.sqrt_lt_sqrt (le_of_lt (lorentzian_rstar_pos K₁ γ (by linarith) hKγ₁))
+  have hK₁ : (0 : ℝ) < K₁ := by linarith
+  have hK₂ : (0 : ℝ) < K₂ := by linarith
+  have hdiv : 2 * γ / K₂ < 2 * γ / K₁ := by
+    rw [div_lt_div_iff₀ hK₂ hK₁]; nlinarith
+  linarith
+
+/-- **Parameter monotonicity in γ**: the Lorentzian equilibrium r* = √(1-2γ/K)
+    is strictly decreasing in γ. More damping → smaller partially locked state. -/
+theorem lorentzian_rstar_anti_gamma (K γ₁ γ₂ : ℝ)
+    (hK : 0 < K) (hKγ₁ : 2 * γ₁ < K) (hKγ₂ : 2 * γ₂ < K) (hγ : γ₁ < γ₂) :
+    Real.sqrt (1 - 2 * γ₂ / K) < Real.sqrt (1 - 2 * γ₁ / K) := by
+  apply Real.sqrt_lt_sqrt (le_of_lt (lorentzian_rstar_pos K γ₂ hK hKγ₂))
+  have hdiv : 2 * γ₁ / K < 2 * γ₂ / K := by
+    rw [div_lt_div_iff₀ hK hK]; nlinarith
+  linarith
+
 end
