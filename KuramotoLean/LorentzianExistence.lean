@@ -2040,6 +2040,33 @@ theorem lorentzian_lyapunov_v_coeff_le (K γ r₀ : ℝ)
   nlinarith [mul_le_mul h1 h1 hr_pos.le (by linarith : (0:ℝ) ≤ 1),
              mul_le_mul h1 h2 hrs_pos.le (by linarith : (0:ℝ) ≤ 1)]
 
+/-- **V' lower bound**: the HasDerivAt value of V = (r(t)-r*)² satisfies V'(t) ≥ -2K·V(t).
+    Follows from K·r·(r+r*) ≤ 2K (v_coeff_le) and V ≥ 0. Gives V(t) ≥ V(0)·exp(-2Kt). -/
+theorem lorentzian_lyapunov_v_deriv_ge (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 < t) :
+    -(2 * K) * (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    -(K * lorentzian_explicit K γ r₀ t *
+       (lorentzian_explicit K γ r₀ t + Real.sqrt (1 - 2 * γ / K)) *
+       (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2) := by
+  have hcoeff := lorentzian_lyapunov_v_coeff_le K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht.le
+  nlinarith [sq_nonneg (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K))]
+
+/-- **V coefficient positive**: K·r(t)·(r(t)+r*) > 0 for all t ≥ 0.
+    Confirms the Lyapunov coefficient is strictly positive: the factor in V'=-(coeff)·V is positive
+    everywhere, so V' < 0 whenever V > 0. -/
+theorem lorentzian_lyapunov_v_coeff_pos (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    0 < K * lorentzian_explicit K γ r₀ t *
+    (lorentzian_explicit K γ r₀ t + Real.sqrt (1 - 2 * γ / K)) := by
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hrs_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  exact mul_pos (mul_pos hK hr_pos) (by linarith)
+
 /-- **V > 0 when r₀ ≠ r***: the Lyapunov function V = (r(t)-r*)² is strictly positive
     for all t ≥ 0 when r₀ ≠ r*. Follows from lorentzian_explicit_ne_rstar. -/
 theorem lorentzian_lyapunov_v_pos (K γ r₀ : ℝ)
