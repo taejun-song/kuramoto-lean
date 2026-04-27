@@ -1627,4 +1627,28 @@ theorem lorentzian_lyapunov_v_deriv_neg (K γ r₀ : ℝ)
         hK hγ hKγ h hr_lt
     exact mul_neg_of_pos_of_neg (mul_pos two_pos (by linarith)) hneg
 
+/-- **V = (r-r*)² is strictly anti-monotone**: for r₀ ≠ r* and 0 ≤ s < t,
+    (r(t)-r*)² < (r(s)-r*)². The Lyapunov function strictly decreases along all non-equilibrium trajectories. -/
+theorem lorentzian_lyapunov_v_strict_anti (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 <
+    (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2 := by
+  have hcont : ContinuousOn
+      (fun u => (lorentzian_explicit K γ r₀ u - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (Set.Icc s t) :=
+    ((lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).mono
+        (fun x hx => hs.trans hx.1)).sub continuousOn_const |>.pow 2
+  have hderiv_neg :
+      ∀ u ∈ interior (Set.Icc s t),
+        deriv (fun u => (lorentzian_explicit K γ r₀ u - Real.sqrt (1 - 2 * γ / K)) ^ 2) u < 0 := by
+    rw [interior_Icc]
+    intro u ⟨hsu, _⟩
+    exact lorentzian_lyapunov_v_deriv_neg K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne u
+        (hs.trans (le_of_lt hsu))
+  have hanti := strictAntiOn_of_deriv_neg (convex_Icc s t) hcont hderiv_neg
+  exact hanti (Set.left_mem_Icc.mpr hst.le) (Set.right_mem_Icc.mpr hst.le) hst
+
 end
