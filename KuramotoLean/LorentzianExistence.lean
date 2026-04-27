@@ -259,4 +259,55 @@ theorem lorentzian_explicit_convergence (K γ r₀ : ℝ)
       hr_init_pos := by rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_pos,
       hr_init_lt := by rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_lt }
 
+/-- **Continuous-time convergence**: the explicit Bernoulli solution
+    r(t) = √(w(t)⁻¹) converges to r* = √(1 - 2γ/K) as t → ∞ (continuous time). -/
+theorem lorentzian_explicit_tendsto (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    Tendsto (lorentzian_explicit K γ r₀) atTop
+      (nhds (Real.sqrt (1 - 2 * γ / K))) := by
+  have hd : (0 : ℝ) < K - 2 * γ := by linarith
+  have hB_pos : (0 : ℝ) < K / (K - 2 * γ) := div_pos hK hd
+  -- exp(-(K-2γ)t) → 0
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(K - 2 * γ) * t)) atTop (nhds 0) := by
+    have hmul : Tendsto (fun t : ℝ => (K - 2 * γ) * t) atTop atTop := by
+      apply tendsto_atTop_atTop.mpr
+      intro b
+      refine ⟨b / (K - 2 * γ), fun y hy => ?_⟩
+      nlinarith [(div_le_iff₀ hd).mp hy]
+    have hcomp := Real.tendsto_exp_neg_atTop_nhds_zero.comp hmul
+    have heq : ((fun x : ℝ => Real.exp (-x)) ∘ fun t => (K - 2 * γ) * t) =
+        fun t : ℝ => Real.exp (-(K - 2 * γ) * t) := by
+      ext t; simp only [Function.comp]; congr 1; ring
+    rwa [heq] at hcomp
+  -- w(t) → B = K/(K-2γ)
+  have hw : Tendsto (w_func K γ r₀) atTop (nhds (K / (K - 2 * γ))) := by
+    change Tendsto (fun t : ℝ => (1 / r₀ ^ 2 - K / (K - 2 * γ)) *
+        Real.exp (-(K - 2 * γ) * t) + K / (K - 2 * γ)) atTop _
+    have h0 : Tendsto (fun t : ℝ => (1 / r₀ ^ 2 - K / (K - 2 * γ)) *
+        Real.exp (-(K - 2 * γ) * t)) atTop (nhds 0) := by
+      have hc : Tendsto (fun _ : ℝ => 1 / r₀ ^ 2 - K / (K - 2 * γ)) atTop
+          (nhds (1 / r₀ ^ 2 - K / (K - 2 * γ))) := tendsto_const_nhds
+      have h := hc.mul hexp
+      simpa [mul_zero] using h
+    have h1 : Tendsto (fun _ : ℝ => K / (K - 2 * γ)) atTop (nhds (K / (K - 2 * γ))) :=
+      tendsto_const_nhds
+    simpa using h0.add h1
+  -- w⁻¹ → B⁻¹
+  have hinv : Tendsto (fun t => (w_func K γ r₀ t)⁻¹) atTop (nhds (K / (K - 2 * γ))⁻¹) := by
+    have hg : Tendsto (Inv.inv : ℝ → ℝ) (nhds (K / (K - 2 * γ))) (nhds (K / (K - 2 * γ))⁻¹) :=
+      continuousAt_inv₀ hB_pos.ne'
+    exact hg.comp hw
+  -- √(w⁻¹) → √(B⁻¹) = r*
+  have hsqrt : Tendsto (fun t => Real.sqrt ((w_func K γ r₀ t)⁻¹)) atTop
+      (nhds (Real.sqrt (K / (K - 2 * γ))⁻¹)) := by
+    have hg : Tendsto Real.sqrt (nhds (K / (K - 2 * γ))⁻¹)
+        (nhds (Real.sqrt (K / (K - 2 * γ))⁻¹)) :=
+      Real.continuous_sqrt.continuousAt
+    exact hg.comp hinv
+  have hstar : Real.sqrt (K / (K - 2 * γ))⁻¹ = Real.sqrt (1 - 2 * γ / K) := by
+    congr 1; field_simp [hK.ne', hd.ne']
+  change Tendsto (fun t => Real.sqrt ((w_func K γ r₀ t)⁻¹)) atTop _
+  rwa [hstar] at hsqrt
+
 end
