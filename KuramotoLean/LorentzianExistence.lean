@@ -1532,4 +1532,27 @@ theorem lorentzian_explicit_le_r0 (K γ r₀ : ℝ)
   have h := Real.sqrt_le_sqrt hr_sq_le
   rwa [Real.sqrt_sq hr_pos.le, Real.sqrt_sq hr₀_pos.le] at h
 
+/-- **Distance to equilibrium is strictly decreasing**: for r₀ ≠ r* and 0 ≤ s < t,
+    |r(t)-r*| < |r(s)-r*|. The ODE drives all trajectories strictly toward r* in absolute distance. -/
+theorem lorentzian_explicit_dist_strict_decreasing (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| <
+    |lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)| := by
+  rcases lt_or_gt_of_ne hr₀_ne with h | h
+  · have hlt_s := lorentzian_explicit_lt_rstar_of_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h s hs
+    have hlt_t := lorentzian_explicit_lt_rstar_of_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t
+        (hs.trans hst.le)
+    have hinc := lorentzian_explicit_strictly_increasing K γ r₀ hK hγ hKγ hr₀_pos h hs hst
+    rw [abs_of_neg (by linarith), abs_of_neg (by linarith)]
+    linarith
+  · have hgt_s := lorentzian_explicit_gt_rstar_of_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h s hs
+    have hgt_t := lorentzian_explicit_gt_rstar_of_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t
+        (hs.trans hst.le)
+    have hdec := lorentzian_explicit_strictly_decreasing K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h hs hst
+    rw [abs_of_pos (by linarith), abs_of_pos (by linarith)]
+    linarith
+
 end
