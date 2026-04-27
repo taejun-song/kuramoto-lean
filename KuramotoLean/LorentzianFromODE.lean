@@ -488,4 +488,68 @@ theorem lorentzian_noninc_convergence
       |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
   lorentzian_envelope_stability (S.toLorentzianSolution_noninc hr_noninc)
 
+/-! ## Subcritical Lorentzian convergence: K < 2γ → r(t) → 0
+
+  For K < 2γ the ODE ṙ = (K/2-γ)r - (K/2)r³ is purely dissipative.
+  V = r² satisfies V' = 2r·ṙ = -2μr² - Kr⁴ ≤ -2μr² = -2μV (μ = γ-K/2 > 0).
+  The bound holds for ALL r ∈ ℝ: no sign constraint needed. -/
+
+/-- Key algebraic bound: 2r·ṙ ≤ -2(γ-K/2)·r² for K < 2γ, for any r ∈ ℝ. -/
+private lemma lorentzian_sq_deriv_subcritical (K γ r : ℝ)
+    (hK : 0 < K) (hK_sub : K < 2 * γ) :
+    2 * r * lorentzianODE K γ r ≤ -(2 * (γ - K / 2)) * r ^ 2 := by
+  unfold lorentzianODE
+  nlinarith [mul_nonneg hK.le (sq_nonneg (r ^ 2))]
+
+/-- **Subcritical bound**: for K < 2γ, r(t)² ≤ r(0)²·exp(-2(γ-K/2)·t). -/
+theorem lorentzian_subcritical_sq_bound
+    (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ) (hK_sub : K < 2 * γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 ≤ t → HasDerivAt r (lorentzianODE K γ (r t)) t) :
+    ∀ t, 0 ≤ t → r t ^ 2 ≤ r 0 ^ 2 * Real.exp (-(2 * (γ - K / 2)) * t) := by
+  apply comparison_decay (fun t => r t ^ 2) (fun t => 2 * r t * lorentzianODE K γ (r t))
+      (2 * (γ - K / 2)) (hr_cont.pow 2)
+  · intro t ht
+    have hmul := (hr_ode t ht.le).mul (hr_ode t ht.le)
+    convert hmul using 1
+    · funext s; simp [sq, Pi.mul_apply]
+    · ring
+  · intro t _
+    exact lorentzian_sq_deriv_subcritical K γ (r t) hK hK_sub
+
+/-- **Subcritical Lorentzian convergence**: K < 2γ → r(t) → 0 (Filter.Tendsto form). -/
+theorem lorentzian_subcritical_tendsto
+    (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ) (hK_sub : K < 2 * γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 ≤ t → HasDerivAt r (lorentzianODE K γ (r t)) t) :
+    Filter.Tendsto r Filter.atTop (nhds 0) := by
+  have hμ : 0 < 2 * (γ - K / 2) := by linarith
+  have hC : 0 < r 0 ^ 2 + 1 := by linarith [sq_nonneg (r 0)]
+  have hbound := lorentzian_subcritical_sq_bound K γ hK hγ hK_sub r hr_cont hr_ode
+  have hC_exp : Filter.Tendsto
+      (fun t : ℝ => (r 0 ^ 2 + 1) * Real.exp (-(2 * (γ - K / 2)) * t))
+      Filter.atTop (nhds 0) := by
+    have h1 : Filter.Tendsto (fun t : ℝ => -(2 * (γ - K / 2)) * t) Filter.atTop Filter.atBot :=
+      Filter.tendsto_id.const_mul_atTop_of_neg (by linarith)
+    have h2 := Real.tendsto_exp_atBot.comp h1
+    have h3 := h2.const_mul (r 0 ^ 2 + 1)
+    simpa only [mul_zero] using h3
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  rw [Metric.tendsto_atTop] at hC_exp
+  obtain ⟨T, hT⟩ := hC_exp (ε ^ 2) (pow_pos hε 2)
+  exact ⟨max T 0, fun t ht => by
+    have ht_T : T ≤ t := le_trans (le_max_left _ _) ht
+    have ht_nn : (0 : ℝ) ≤ t := le_trans (le_max_right _ _) ht
+    rw [Real.dist_eq, sub_zero]
+    have hC_lt : (r 0 ^ 2 + 1) * Real.exp (-(2 * (γ - K / 2)) * t) < ε ^ 2 := by
+      have := hT t ht_T
+      rwa [Real.dist_eq, sub_zero,
+           abs_of_nonneg (mul_nonneg hC.le (Real.exp_nonneg _))] at this
+    have hrsq : r t ^ 2 ≤ (r 0 ^ 2 + 1) * Real.exp (-(2 * (γ - K / 2)) * t) :=
+      le_trans (hbound t ht_nn)
+        (mul_le_mul_of_nonneg_right (le_add_of_nonneg_right zero_le_one) (Real.exp_nonneg _))
+    have h1 := Real.sqrt_lt_sqrt (sq_nonneg (r t)) (lt_of_le_of_lt hrsq hC_lt)
+    rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq hε.le] at h1⟩
+
 end
