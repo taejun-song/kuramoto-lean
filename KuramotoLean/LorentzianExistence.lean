@@ -2403,6 +2403,25 @@ theorem lorentzian_lyapunov_r_in_ball (K γ r₀ : ℝ)
   rw [abs_le] at h
   exact ⟨by linarith [h.1], by linarith [h.2]⟩
 
+/-- **Distance ≤ initial distance for any ODE solution**: |S.r t - r*| ≤ |S.r 0 - r*| for all t ≥ 0.
+    Corollary of S.v_le_init via Real.sqrt_le_sqrt + sqrt_sq_eq_abs. -/
+theorem LorentzianContinuousSolution.dist_le_init (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  have h := Real.sqrt_le_sqrt (S.v_le_init t ht)
+  rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq_eq_abs] at h
+
+/-- **Ball membership for any ODE solution**: S.r t ∈ [r*-|r₀-r*|, r*+|r₀-r*|] for all t ≥ 0.
+    Corollary of dist_le_init via abs_le. -/
+theorem LorentzianContinuousSolution.r_in_ball (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) - |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| ≤ S.r t ∧
+    S.r t ≤ Real.sqrt (1 - 2 * S.γ / S.K) + |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  have h := S.dist_le_init t ht
+  rw [abs_le] at h
+  exact ⟨by linarith [h.1], by linarith [h.2]⟩
+
 /-- **V interval decay**: for 0 ≤ t₀ ≤ t₀+Δ, V(t₀+Δ) ≤ V(t₀)·exp(-K·min(r(t₀),r*)·r*·Δ).
     Uses the semigroup property to shift the starting time to t₀: the trajectory from r(t₀) satisfies
     the same ODE, so v_exp_bound applies with r₁ = r(t₀) in place of r₀. -/
