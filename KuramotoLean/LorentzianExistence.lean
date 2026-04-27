@@ -1489,6 +1489,17 @@ theorem lorentzian_explicit_semigroup (K γ r₀ : ℝ)
   have h := lorentzian_w_semigroup K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t₁ t₂ ht₁
   simp only [lorentzian_explicit, h]
 
+/-- **Abstract semigroup property**: S.r (t₁ + t₂) = lorentzian_explicit K γ (S.r t₁) t₂
+    for any 0 ≤ t₁. The ODE flow composed with itself equals the flow from the intermediate point.
+    Lifts lorentzian_explicit_semigroup to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.semigroup (S : LorentzianContinuousSolution)
+    (t₁ t₂ : ℝ) (ht₁ : 0 ≤ t₁) (ht₂ : 0 ≤ t₂) :
+    S.r (t₁ + t₂) = lorentzian_explicit S.K S.γ (S.r t₁) t₂ := by
+  rw [S.eq_explicit_of_nonneg (t₁ + t₂) (by linarith),
+      S.eq_explicit_of_nonneg t₁ ht₁,
+      lorentzian_explicit_semigroup S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+        S.hr_init_pos S.hr_init_lt t₁ t₂ ht₁]
+
 /-- **One-sided invariance (below)**: when r₀ < r*, the trajectory stays below r* for all t ≥ 0.
     The sublevel set {r < r*} is forward-invariant under the Lorentzian ODE. -/
 theorem lorentzian_explicit_lt_rstar_of_init (K γ r₀ : ℝ)
