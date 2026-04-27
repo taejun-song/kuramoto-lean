@@ -1250,4 +1250,32 @@ theorem lorentzian_ode_neg_above_one (K γ r : ℝ)
   have hr_sq : (1 : ℝ) < r ^ 2 := by nlinarith
   linarith
 
+/-- **Unique positive fixed point**: for K > 2γ, r* = √(1-2γ/K) is the only positive root
+    of the Lorentzian ODE. Any r > 0 with ṙ = 0 must equal r*. -/
+theorem lorentzian_unique_pos_fixed_point (K γ r : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr_pos : 0 < r) (hfixed : lorentzianODE K γ r = 0) :
+    r = Real.sqrt (1 - 2 * γ / K) := by
+  rw [lorentzian_ode_factored K γ r (ne_of_gt hK)] at hfixed
+  rcases mul_eq_zero.mp hfixed with h | h
+  · rcases mul_eq_zero.mp h with h1 | h2
+    · linarith
+    · linarith
+  · have hr_sq : r ^ 2 = 1 - 2 * γ / K := by linarith
+    rw [← Real.sqrt_sq hr_pos.le, hr_sq]
+
+/-- **Fixed points of the ODE**: for K > 2γ and r ≥ 0, ṙ = 0 if and only if r = 0 or r = r*.
+    This is the complete characterization of equilibria on the non-negative half-line. -/
+theorem lorentzian_fixed_point_iff (K γ r : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K) (hr : 0 ≤ r) :
+    lorentzianODE K γ r = 0 ↔ r = 0 ∨ r = Real.sqrt (1 - 2 * γ / K) := by
+  constructor
+  · intro hfixed
+    rcases eq_or_lt_of_le hr with rfl | hr_pos
+    · exact Or.inl rfl
+    · exact Or.inr (lorentzian_unique_pos_fixed_point K γ r hK hγ hKγ hr_pos hfixed)
+  · rintro (rfl | rfl)
+    · simp [lorentzianODE]
+    · exact lorentzian_rstar_is_fixed_point K γ hK hγ hKγ
+
 end
