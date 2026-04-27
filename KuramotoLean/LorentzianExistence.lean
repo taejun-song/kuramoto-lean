@@ -3230,4 +3230,41 @@ theorem LorentzianContinuousSolution.dist_bound_explicit
   exact lorentzian_explicit_dist_bound S.K S.γ (S.r 0) (S'.r 0) S.hK_pos S.hγ_pos S.hK_gt
     S.hr_init_pos S.hr_init_lt S'.hr_init_pos S'.hr_init_lt t ht
 
+/-- **Lyapunov HasDerivAt (abstract ODE)**: V=(r-r*)² has derivative 2(r-r*)·ṙ
+    for any ODE solution, proved directly from S.hr_ode (not via eq_explicit). -/
+theorem LorentzianContinuousSolution.v_hasDerivAt (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    HasDerivAt (fun s => (S.r s - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      (2 * (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) *
+        lorentzianODE S.K S.γ (S.r t)) t := by
+  have h := (S.hr_ode t ht |>.sub_const (Real.sqrt (1 - 2 * S.γ / S.K))).pow 2
+  convert h using 1
+  push_cast; ring
+
+/-- **Lyapunov derivative formula**: d/dt (r-r*)² = -K·r·(r+r*)·(r-r*)²
+    for any ODE solution. The derivative is -K·r·(r+r*)·V, showing V decays self-similarly. -/
+theorem LorentzianContinuousSolution.v_deriv_formula (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    HasDerivAt (fun s => (S.r s - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      (-(S.K * S.r t * (S.r t + Real.sqrt (1 - 2 * S.γ / S.K)) *
+         (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)) t := by
+  have h := S.v_hasDerivAt t ht
+  have hode : lorentzianODE S.K S.γ (S.r t) =
+      S.K / 2 * S.r t *
+      (Real.sqrt (1 - 2 * S.γ / S.K) ^ 2 - (S.r t) ^ 2) := by
+    rw [lorentzian_ode_factored S.K S.γ (S.r t) (ne_of_gt S.hK_pos)]
+    congr 1; congr 1
+    exact (Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))).symm
+  rw [hode] at h
+  convert h using 1; ring
+
+/-- **V=0 characterizes equilibrium**: (r(t)-r*)²=0 iff r(t)=r* for any ODE solution. -/
+theorem LorentzianContinuousSolution.v_eq_zero_iff (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 = 0 ↔
+    S.r t = Real.sqrt (1 - 2 * S.γ / S.K) := by
+  constructor
+  · intro h; nlinarith [sq_nonneg (S.r t - Real.sqrt (1 - 2 * S.γ / S.K))]
+  · intro h; rw [h, sub_self, sq, zero_mul]
+
 end
