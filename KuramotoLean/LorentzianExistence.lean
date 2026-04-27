@@ -242,4 +242,21 @@ theorem lorentzian_continuous_solution_exists (K γ r₀ : ℝ)
        rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_lt },
    rfl, rfl, lorentzian_explicit_init K γ r₀ hr₀_pos⟩
 
+/-- **End-to-end convergence for the explicit Bernoulli solution**:
+    for K > 2γ and r₀ ∈ (0,1), the explicit solution r(t) = √(w(t)⁻¹)
+    converges to r* = √(1 - 2γ/K) at integer sampling times. -/
+theorem lorentzian_explicit_convergence (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |lorentzian_explicit K γ r₀ n - Real.sqrt (1 - 2 * γ / K)| < ε := by
+  exact lorentzian_convergence_from_ode
+    { K := K, γ := γ, hK_pos := hK, hγ_pos := hγ, hK_gt := hKγ,
+      r := lorentzian_explicit K γ r₀,
+      hr_ode := fun t ht =>
+        lorentzian_explicit_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
+      hr_cont := lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt,
+      hr_init_pos := by rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_pos,
+      hr_init_lt := by rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_lt }
+
 end
