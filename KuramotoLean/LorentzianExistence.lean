@@ -1538,6 +1538,26 @@ theorem lorentzian_explicit_gt_rstar_of_init (K γ r₀ : ℝ)
   have h := Real.sqrt_lt_sqrt (sq_nonneg (Real.sqrt (1 - 2 * γ / K))) hr_sq_gt
   rwa [Real.sqrt_sq hrstar_pos.le, Real.sqrt_sq hr_pos.le] at h
 
+/-- **Sublevel set invariance for any ODE solution**: if S.r 0 < r*, then S.r t < r* for all t ≥ 0.
+    Lifts lt_rstar_of_init to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.lt_rstar_of_init (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t < Real.sqrt (1 - 2 * S.γ / S.K) := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_lt_rstar_of_init S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_lt_rstar t ht
+
+/-- **Superlevel set invariance for any ODE solution**: if r* < S.r 0, then r* < S.r t for all t ≥ 0.
+    Lifts gt_rstar_of_init to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.gt_rstar_of_init (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) < S.r t := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_gt_rstar_of_init S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_gt_rstar t ht
+
 /-- **Trajectory above initial value**: when r₀ < r*, r₀ ≤ r(t) for all t ≥ 0.
     Solution is non-decreasing from r₀ toward r*. -/
 theorem lorentzian_explicit_ge_r0 (K γ r₀ : ℝ)
@@ -1575,6 +1595,28 @@ theorem lorentzian_explicit_le_r0 (K γ r₀ : ℝ)
   have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
   have h := Real.sqrt_le_sqrt hr_sq_le
   rwa [Real.sqrt_sq hr_pos.le, Real.sqrt_sq hr₀_pos.le] at h
+
+/-- **Trajectory non-decreasing for any ODE solution**: if S.r 0 < r*, then S.r 0 ≤ S.r t.
+    Lifts ge_r0 to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.ge_init_of_lt_rstar (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r 0 ≤ S.r t := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_explicit_ge_r0 S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_lt_rstar t ht
+
+/-- **Trajectory non-increasing for any ODE solution**: if r* < S.r 0, then S.r t ≤ S.r 0.
+    Lifts le_r0 to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.le_init_of_gt_rstar (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≤ S.r 0 := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_explicit_le_r0 S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_gt_rstar t ht
 
 /-- **Distance to equilibrium is strictly decreasing**: for r₀ ≠ r* and 0 ≤ s < t,
     |r(t)-r*| < |r(s)-r*|. The ODE drives all trajectories strictly toward r* in absolute distance. -/
