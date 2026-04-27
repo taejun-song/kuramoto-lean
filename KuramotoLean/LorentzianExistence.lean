@@ -599,7 +599,8 @@ theorem lorentzian_local_stability (K γ r₀ : ℝ)
       ≤ |r_star ^ 2 - r₀ ^ 2| * Real.exp (-(K - 2 * γ) * t) / (r₀ ^ 2 * r_star ^ 3) :=
         lorentzian_explicit_rate_initial K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
     _ ≤ 10 * |r₀ - r_star| * Real.exp (-(K - 2 * γ) * t) / r_star ^ 4 := by
-        rw [hfact, div_le_div_iff₀ (mul_pos hr₀_sq_pos hrstar3_pos) hrstar4_pos]
+        rw [hfact]
+        rw [div_le_div_iff₀ (mul_pos hr₀_sq_pos hrstar3_pos) hrstar4_pos]
         -- Goal: |r₀-r*| * (r*+r₀) * exp * r*⁴ ≤ 10 * |r₀-r*| * exp * r₀² * r*³
         -- Step 1: (r*+r₀) ≤ 5r*/2 → LHS ≤ δ*(5r*/2)*exp*r*⁴ = (5/2)δ·exp·r*⁵
         -- Step 2: r₀² ≥ r*²/4 → RHS ≥ 10δ·exp·(r*²/4)·r*³ = (5/2)δ·exp·r*⁵
@@ -616,5 +617,27 @@ theorem lorentzian_local_stability (K γ r₀ : ℝ)
               (mul_nonneg (mul_nonneg (by norm_num) hδ_nn) hexp_nn))
             (le_of_lt hrstar3_pos)
         nlinarith
+
+/-- **Key governing identity**: d(r²)/dt = K·r²·(r*²-r²).
+    This is the algebraic engine behind ALL Lyapunov monotonicity: r² increases
+    when r < r* and decreases when r > r*, with rate proportional to K·r²·|r*²-r²|. -/
+theorem lorentzian_explicit_sq_hasDerivAt (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) (t : ℝ) (ht : 0 ≤ t) :
+    HasDerivAt (fun s => lorentzian_explicit K γ r₀ s ^ 2)
+      (K * lorentzian_explicit K γ r₀ t ^ 2 *
+        (Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2)) t := by
+  have hr : HasDerivAt (lorentzian_explicit K γ r₀)
+      (lorentzianODE K γ (lorentzian_explicit K γ r₀ t)) t :=
+    lorentzian_explicit_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h := hr.pow 2
+  simp only [Nat.cast_ofNat, pow_one] at h
+  convert h using 1
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  rw [hrstar_sq]
+  simp only [lorentzianODE]
+  field_simp [hK.ne']
+  ring
 
 end
