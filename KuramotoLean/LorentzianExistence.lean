@@ -2242,6 +2242,21 @@ theorem lorentzian_lyapunov_r_ball_fwd_inv (K γ r₀ ε : ℝ)
     · exact (lorentzian_lyapunov_r_strict_contraction K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
           hne t ht_pos).trans hε
 
+/-- **Distance tends to zero**: |r(t)-r*| → 0 as t → ∞. Lyapunov form of lorentzian_explicit_tendsto:
+    follows from v_tendsto_zero by applying sqrt and sqrt_sq_eq_abs, using continuity of sqrt at 0. -/
+theorem lorentzian_lyapunov_dist_tendsto_zero (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    Filter.Tendsto (fun t => |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)|)
+      Filter.atTop (nhds 0) := by
+  have hV := lorentzian_lyapunov_v_tendsto_zero K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+  have h := (lorentzian_explicit_tendsto K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+    |>.sub_const (Real.sqrt (1 - 2 * γ / K)))
+  simp only [sub_self] at h
+  have h2 := h.abs
+  simp only [abs_zero] at h2
+  exact h2
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
