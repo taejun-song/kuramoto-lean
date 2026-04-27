@@ -1020,6 +1020,22 @@ theorem LorentzianContinuousSolution.tendsto (S : LorentzianContinuousSolution) 
   filter_upwards [eventually_gt_atTop 0] with t ht
   exact (S.eq_explicit t ht).symm
 
+/-- **Discrete-time Filter.Tendsto for any ODE solution**: r(n) → r* as n → ∞ over ℕ.
+    Follows from the continuous-time tendsto by composition with ℕ → ℝ coercion. -/
+theorem LorentzianContinuousSolution.tendsto_nat (S : LorentzianContinuousSolution) :
+    Tendsto (fun n : ℕ => S.r n) atTop (nhds (Real.sqrt (1 - 2 * S.γ / S.K))) :=
+  S.tendsto.comp tendsto_natCast_atTop_atTop
+
+/-- **Discrete-time convergence for the explicit Bernoulli solution** (Filter.Tendsto form):
+    lorentzian_explicit K γ r₀ n → r* as n : ℕ → ∞. -/
+theorem lorentzian_explicit_tendsto_nat (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    Tendsto (fun n : ℕ => lorentzian_explicit K γ r₀ n) atTop
+      (nhds (Real.sqrt (1 - 2 * γ / K))) :=
+  (lorentzian_explicit_tendsto K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).comp
+    tendsto_natCast_atTop_atTop
+
 /-- **Parameter-only continuous-time convergence**: for any K > 2γ and r₀ ∈ (0,1),
     there exists a solution r : ℝ → ℝ of the Lorentzian ODE with r(0) = r₀ and
     r(t) → r* = √(1-2γ/K) as t → ∞. Proof: existence from explicit Bernoulli formula,
