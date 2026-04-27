@@ -800,4 +800,186 @@ theorem lorentzian_r_stays_below_rstar (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
   have hreq : r 0 = r_star := hEqOn h0
   linarith
 
+/-! ## ODE sign lemmas -/
+
+/-- The Lorentzian ODE is positive when 0 < r < r* = √(1-2γ/K). -/
+theorem lorentzianODE_pos_of_below (K γ r : ℝ) (hK : 0 < K) (hK_gt : K > 2 * γ)
+    (hr_pos : 0 < r) (hr_sq_lt : r ^ 2 < 1 - 2 * γ / K) :
+    0 < lorentzianODE K γ r := by
+  have hK_ne : K ≠ 0 := ne_of_gt hK
+  have h_gap : 0 < 1 - 2 * γ / K - r ^ 2 := by linarith
+  have hfact : lorentzianODE K γ r = K / 2 * r * (1 - 2 * γ / K - r ^ 2) := by
+    unfold lorentzianODE; field_simp [hK_ne]
+  rw [hfact]
+  exact mul_pos (mul_pos (by linarith) hr_pos) h_gap
+
+/-- The Lorentzian ODE is negative when r > r* (and r > 0). -/
+theorem lorentzianODE_neg_of_above (K γ r : ℝ) (hK : 0 < K) (hK_gt : K > 2 * γ)
+    (hr_pos : 0 < r) (hr_sq_gt : 1 - 2 * γ / K < r ^ 2) :
+    lorentzianODE K γ r < 0 := by
+  have hK_ne : K ≠ 0 := ne_of_gt hK
+  have h_gap : 1 - 2 * γ / K - r ^ 2 < 0 := by linarith
+  have hfact : lorentzianODE K γ r = K / 2 * r * (1 - 2 * γ / K - r ^ 2) := by
+    unfold lorentzianODE; field_simp [hK_ne]
+  rw [hfact]
+  exact mul_neg_of_pos_of_neg (mul_pos (by linarith) hr_pos) h_gap
+
+/-- If 0 < r < r* then r² < 1-2γ/K (i.e. r² < r*²). -/
+private theorem r_sq_lt_of_lt_rstar (K γ r : ℝ) (hK : 0 < K) (hK_gt : K > 2 * γ)
+    (hr_pos : 0 < r) (hr_lt : r < Real.sqrt (1 - 2 * γ / K)) :
+    r ^ 2 < 1 - 2 * γ / K := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hK_gt))
+  have : r ^ 2 < Real.sqrt (1 - 2 * γ / K) ^ 2 :=
+    pow_lt_pow_left₀ hr_lt (le_of_lt hr_pos) (by norm_num)
+  linarith
+
+/-- If r > r* > 0 then r² > 1-2γ/K (i.e. r² > r*²). -/
+private theorem r_sq_gt_of_gt_rstar (K γ r : ℝ) (hK : 0 < K) (hK_gt : K > 2 * γ)
+    (hr_pos : 0 < r) (hr_gt : Real.sqrt (1 - 2 * γ / K) < r) :
+    1 - 2 * γ / K < r ^ 2 := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hK_gt))
+  have h_rstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hK_gt)
+  have : Real.sqrt (1 - 2 * γ / K) ^ 2 < r ^ 2 :=
+    pow_lt_pow_left₀ hr_gt (le_of_lt h_rstar_pos) (by norm_num)
+  linarith
+
+/-! ## Monotonicity from ODE sign -/
+
+/-- r is non-decreasing when r(0) < r* (ODE is positive below r*). -/
+theorem LorentzianContinuousSolution.r_nondecreasing_of_below
+    (S : LorentzianContinuousSolution)
+    (hr_init_below : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K)) :
+    ∀ s t : ℝ, 0 ≤ s → s ≤ t → S.r s ≤ S.r t := by
+  have hdiff : DifferentiableOn ℝ S.r (interior (Set.Ici 0)) := by
+    rw [interior_Ici]
+    intro t ht
+    exact (S.hr_ode t (le_of_lt ht)).differentiableAt.differentiableWithinAt
+  have hmono := monotoneOn_of_deriv_nonneg (convex_Ici (𝕜 := ℝ) 0) S.hr_cont hdiff (by
+    rw [interior_Ici]
+    intro t ht
+    have ht_nn : 0 ≤ t := le_of_lt ht
+    have hd : deriv S.r t = lorentzianODE S.K S.γ (S.r t) := (S.hr_ode t ht_nn).deriv
+    have hr_pos := S.r_pos t ht_nn
+    have hr_below := lorentzian_r_stays_below_rstar S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+      S.r S.hr_cont (fun t ht => S.hr_ode t (le_of_lt ht))
+      (fun t ht => S.r_bdd t ht) hr_init_below t ht_nn
+    have hr_sq_lt := r_sq_lt_of_lt_rstar S.K S.γ (S.r t) S.hK_pos S.hK_gt hr_pos hr_below
+    linarith [lorentzianODE_pos_of_below S.K S.γ (S.r t) S.hK_pos S.hK_gt hr_pos hr_sq_lt])
+  intro s t hs hst
+  exact hmono (Set.mem_Ici.mpr hs) (Set.mem_Ici.mpr (le_trans hs hst)) hst
+
+/-- r stays above r* when r(0) > r* (backward uniqueness argument). -/
+private theorem lorentzian_r_stays_above_rstar (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (hK_gt : K > 2 * γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 < t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_bdd : ∀ t, 0 ≤ t → 0 ≤ r t ∧ r t ≤ 1)
+    (hr_init : Real.sqrt (1 - 2 * γ / K) < r 0) :
+    ∀ t, 0 ≤ t → Real.sqrt (1 - 2 * γ / K) < r t := by
+  set r_star := Real.sqrt (1 - 2 * γ / K) with hr_star_def
+  intro t ht
+  by_contra h_le
+  push_neg at h_le
+  have hr_cont_Icc : ContinuousOn r (Set.Icc 0 t) := hr_cont.mono Set.Icc_subset_Ici_self
+  -- r(t) ≤ r* < r(0), so by IVT there exists t₁ ∈ [0,t] with r(t₁) = r*
+  have h_ivt : r_star ∈ r '' Set.Icc 0 t :=
+    intermediate_value_Icc' ht hr_cont_Icc ⟨h_le, le_of_lt hr_init⟩
+  obtain ⟨t₁, ht₁_icc, hrt₁⟩ := h_ivt
+  have ht₁_nn : 0 ≤ t₁ := ht₁_icc.1
+  rcases eq_or_lt_of_le ht₁_nn with ht₁_zero | ht₁_pos
+  · exfalso; rw [← ht₁_zero] at hrt₁; linarith [hrt₁.le, hr_init]
+  set lipK : NNReal := ⟨2 * K, by linarith⟩
+  have hLip : ∀ s ∈ Set.Ioc 0 t₁,
+      LipschitzOnWith lipK (lorentzianODE K γ) (Set.Icc 0 1) :=
+    fun s _ => lorentzianODE_lipschitzOnWith K γ hK hK_gt (le_of_lt hγ)
+  have hf_cont : ContinuousOn r (Set.Icc 0 t₁) := hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ioc 0 t₁,
+      HasDerivWithinAt r (lorentzianODE K γ (r s)) (Set.Iic s) s :=
+    fun s hs => (hr_ode s hs.1).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ioc 0 t₁, r s ∈ Set.Icc 0 1 :=
+    fun s hs => ⟨(hr_bdd s (le_of_lt hs.1)).1, (hr_bdd s (le_of_lt hs.1)).2⟩
+  have hg_cont : ContinuousOn (fun _ => r_star) (Set.Icc 0 t₁) := continuousOn_const
+  have hg_deriv : ∀ s ∈ Set.Ioc 0 t₁,
+      HasDerivWithinAt (fun _ => r_star) (lorentzianODE K γ r_star) (Set.Iic s) s := by
+    intro s _
+    rw [lorentzianODE_at_rstar K γ hK hK_gt]
+    simpa using (hasDerivAt_const s r_star).hasDerivWithinAt (s := Set.Iic s)
+  have hg_bdd : ∀ s ∈ Set.Ioc 0 t₁, r_star ∈ Set.Icc 0 1 := by
+    intro s _
+    have hrstar_pos : 0 < r_star := Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hK_gt)
+    have hrstar_lt : r_star < 1 := by
+      rw [hr_star_def]
+      have h_nn : 0 ≤ 1 - 2 * γ / K := le_of_lt (lorentzian_rstar_pos K γ hK hK_gt)
+      have h_lt : 1 - 2 * γ / K < 1 := by
+        have : 0 < 2 * γ / K := by positivity
+        linarith
+      calc Real.sqrt (1 - 2 * γ / K) < Real.sqrt 1 := Real.sqrt_lt_sqrt h_nn h_lt
+        _ = 1 := Real.sqrt_one
+    exact ⟨le_of_lt hrstar_pos, le_of_lt hrstar_lt⟩
+  have hb : r t₁ = (fun _ => r_star) t₁ := hrt₁
+  have hEqOn := ODE_solution_unique_of_mem_Icc_left
+    (v := fun _ => lorentzianODE K γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := r) (g := fun _ => r_star)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hb
+  have h0 : (0 : ℝ) ∈ Set.Icc 0 t₁ := ⟨le_refl 0, le_of_lt ht₁_pos⟩
+  linarith [hEqOn h0]
+
+/-- r is non-increasing when r(0) > r* (ODE is negative above r*). -/
+theorem LorentzianContinuousSolution.r_nonincreasing_of_above
+    (S : LorentzianContinuousSolution)
+    (hr_init_above : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0) :
+    ∀ s t : ℝ, 0 ≤ s → s ≤ t → S.r t ≤ S.r s := by
+  have hdiff : DifferentiableOn ℝ S.r (interior (Set.Ici 0)) := by
+    rw [interior_Ici]
+    intro t ht
+    exact (S.hr_ode t (le_of_lt ht)).differentiableAt.differentiableWithinAt
+  have hanti := antitoneOn_of_deriv_nonpos (convex_Ici (𝕜 := ℝ) 0) S.hr_cont hdiff (by
+    rw [interior_Ici]
+    intro t ht
+    have ht_nn : 0 ≤ t := le_of_lt ht
+    have hd : deriv S.r t = lorentzianODE S.K S.γ (S.r t) := (S.hr_ode t ht_nn).deriv
+    have hr_pos := S.r_pos t ht_nn
+    have hr_above := lorentzian_r_stays_above_rstar S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+      S.r S.hr_cont (fun t ht => S.hr_ode t (le_of_lt ht))
+      (fun t ht => S.r_bdd t ht) hr_init_above t ht_nn
+    have hr_sq_gt := r_sq_gt_of_gt_rstar S.K S.γ (S.r t) S.hK_pos S.hK_gt hr_pos hr_above
+    linarith [lorentzianODE_neg_of_above S.K S.γ (S.r t) S.hK_pos S.hK_gt hr_pos hr_sq_gt])
+  intro s t hs hst
+  exact hanti (Set.mem_Ici.mpr hs) (Set.mem_Ici.mpr (le_trans hs hst)) hst
+
+/-! ## Constructors from initial condition -/
+
+/-- Construct LorentzianSolution from ODE when r(0) < r* (0 assumed fields). -/
+def LorentzianContinuousSolution.toLorentzianSolution_from_below
+    (S : LorentzianContinuousSolution)
+    (hr_init_below : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K)) :
+    LorentzianSolution :=
+  S.toLorentzianSolution_nondec (S.r_nondecreasing_of_below hr_init_below)
+
+/-- Construct LorentzianSolution from ODE when r(0) > r* (0 assumed fields). -/
+def LorentzianContinuousSolution.toLorentzianSolution_from_above
+    (S : LorentzianContinuousSolution)
+    (hr_init_above : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0) :
+    LorentzianSolution :=
+  S.toLorentzianSolution_noninc (S.r_nonincreasing_of_above hr_init_above)
+
+/-- Global stability when r(0) < r* (no monotonicity assumption, pure ODE). -/
+theorem lorentzian_below_rstar_convergence
+    (S : LorentzianContinuousSolution)
+    (hr_init_below : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K)) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
+  lorentzian_envelope_stability (S.toLorentzianSolution_from_below hr_init_below)
+
+/-- Global stability when r(0) > r* (no monotonicity assumption, pure ODE). -/
+theorem lorentzian_above_rstar_convergence
+    (S : LorentzianContinuousSolution)
+    (hr_init_above : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
+  lorentzian_envelope_stability (S.toLorentzianSolution_from_above hr_init_above)
+
 end
