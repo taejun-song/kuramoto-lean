@@ -1955,6 +1955,48 @@ theorem lorentzian_lyapunov_convergence_time_above (K γ r₀ : ℝ)
       (fun s => le_refl _)
       t ht htime
 
+/-- **V is antitone**: for r₀ ≠ r* and 0 ≤ s ≤ t, V(t) ≤ V(s). Weak version of v_strict_anti,
+    useful for monotonicity arguments without strict inequalities. -/
+theorem lorentzian_lyapunov_v_antitone (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s ≤ t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2 := by
+  rcases lt_or_eq_of_le hst with h | h
+  · exact le_of_lt (lorentzian_lyapunov_v_strict_anti K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+        hr₀_ne hs h)
+  · rw [h]
+
+/-- **Unified convergence time**: for r₀ ≠ r*, t > log(V₀/ε²)/(K·min(r₀,r*)·r*)
+    implies |r(t)-r*| < ε. Covers both subcritical and supercritical regimes. -/
+theorem lorentzian_lyapunov_convergence_time (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (ε : ℝ) (hε : 0 < ε)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 / ε ^ 2) /
+             (K * min r₀ (Real.sqrt (1 - 2 * γ / K)) * Real.sqrt (1 - 2 * γ / K)) < t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| < ε := by
+  have hrs_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hV₀_pos : 0 < (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 :=
+    sq_pos_of_ne_zero (sub_ne_zero.mpr hr₀_ne)
+  have hμ_pos : 0 < K * min r₀ (Real.sqrt (1 - 2 * γ / K)) * Real.sqrt (1 - 2 * γ / K) :=
+    mul_pos (mul_pos hK (lt_min hr₀_pos hrs_pos)) hrs_pos
+  exact explicit_convergence_time
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (lorentzian_explicit K γ r₀)
+      (Real.sqrt (1 - 2 * γ / K))
+      ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (K * min r₀ (Real.sqrt (1 - 2 * γ / K)) * Real.sqrt (1 - 2 * γ / K))
+      ε hμ_pos hV₀_pos hε
+      (fun s hs => lorentzian_lyapunov_v_exp_bound K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne s hs)
+      (fun s => le_refl _)
+      t ht htime
+
 /-- **V > 0 when r₀ ≠ r***: the Lyapunov function V = (r(t)-r*)² is strictly positive
     for all t ≥ 0 when r₀ ≠ r*. Follows from lorentzian_explicit_ne_rstar. -/
 theorem lorentzian_lyapunov_v_pos (K γ r₀ : ℝ)
