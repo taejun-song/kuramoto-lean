@@ -3415,6 +3415,23 @@ theorem LorentzianContinuousSolution.dist_le_init_from_ode
   rw [← Real.sqrt_sq_eq_abs, ← Real.sqrt_sq_eq_abs]
   exact Real.sqrt_le_sqrt hV
 
+/-- **V deriv strictly negative at non-equilibrium** (no eq_explicit): when S.r t ≠ r*,
+    V'(t) = -(K·r·(r+r*)·V) < 0 strictly — V = (r-r*)² > 0 so the product is positive.
+    Enables strict monotonicity of V off the equilibrium. -/
+theorem LorentzianContinuousSolution.v_deriv_neg_at_nonequil
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) (hr_ne : S.r t ≠ Real.sqrt (1 - 2 * S.γ / S.K)) :
+    -(S.K * S.r t * (S.r t + Real.sqrt (1 - 2 * S.γ / S.K)) *
+      (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2) < 0 := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hrs_pos : 0 < rs :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hr_pos := S.r_pos t ht
+  have h_sum : 0 < S.r t + rs := by linarith
+  have hV_pos : 0 < (S.r t - rs) ^ 2 := by
+    apply sq_pos_of_ne_zero; exact sub_ne_zero.mpr hr_ne
+  nlinarith [mul_pos (mul_pos (mul_pos S.hK_pos hr_pos) h_sum) hV_pos]
+
 /-- **Dist bound below r***: when S.r 0 < r*, monotonicity gives S.r t ≥ S.r 0 globally,
     so δ = S.r 0 works in dist_from_gronwall. Rate K·r₀·(r₀+r*)/2 strictly exceeds the
     explicit-formula rate K·r₀·r*/2 from dist_bound_below. NO eq_explicit used. -/
