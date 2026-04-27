@@ -2549,6 +2549,26 @@ theorem lorentzian_lyapunov_convergence_time_from_persist (K γ r₀ δ ε : ℝ
     (fun _ => le_refl _)
     t ht htime
 
+/-- **Convergence time from persistence for ODE solution**: if S.r t ≥ δ for all t ≥ 0
+    and S.r 0 ≠ r*, then t > log(V₀/ε²)/(K·δ·r*) implies |S.r t - r*| < ε.
+    Lifts convergence_time_from_persist to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.convergence_time_from_persist
+    (S : LorentzianContinuousSolution)
+    (δ ε : ℝ)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (hδ_pos : 0 < δ) (hε : 0 < ε)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 / ε ^ 2) /
+             (S.K * δ * Real.sqrt (1 - 2 * S.γ / S.K)) < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_convergence_time_from_persist S.K S.γ (S.r 0) δ ε
+    S.hK_pos S.hγ_pos S.hK_gt S.hr_init_pos S.hr_init_lt hr₀_ne hδ_pos hε
+    (fun s hs => (S.eq_explicit_of_nonneg s hs) ▸ h_persist s hs)
+    t ht htime
+
 /-- **Two-trajectory synchronization from persistence**: if both r(t,r₀) and r(t,r₀') stay ≥ δ,
     then |r(t,r₀) - r(t,r₀')| ≤ (|r₀-r*| + |r₀'-r*|)·exp(-K·δ·r*/2·t).
     Triangle inequality through r* + two applications of r_dist_from_persist. -/
