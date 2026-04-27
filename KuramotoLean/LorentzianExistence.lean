@@ -2353,6 +2353,17 @@ theorem lorentzian_lyapunov_dist_tendsto_zero (K γ r₀ : ℝ)
   simp only [abs_zero] at h2
   exact h2
 
+/-- **Distance tends to zero for any ODE solution**: |S.r t - r*| → 0 as t → ∞.
+    Lifts dist_tendsto_zero to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.dist_tendsto_zero (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)|)
+      Filter.atTop (nhds 0) := by
+  have h := S.tendsto.sub_const (Real.sqrt (1 - 2 * S.γ / S.K))
+  simp only [sub_self] at h
+  have h2 := h.abs
+  simp only [abs_zero] at h2
+  exact h2
+
 /-- **V/V(0) two-sided ratio bound**: when r₀ ≠ r*, the ratio V(t)/V(0) satisfies
     exp(-2K·t) ≤ V(t)/V(0) ≤ exp(-K·min(r₀,r*)·r*·t).
     Packages v_lb (lower) and v_exp_bound (upper) into a single division statement. -/
@@ -2480,6 +2491,15 @@ theorem LorentzianContinuousSolution.r_in_ball (S : LorentzianContinuousSolution
   have h := S.dist_le_init t ht
   rw [abs_le] at h
   exact ⟨by linarith [h.1], by linarith [h.2]⟩
+
+/-- **Lyapunov stability for any ODE solution**: if |S.r 0 - r*| < ε, then |S.r t - r*| < ε
+    for all t ≥ 0. The open ε-ball around r* is forward-invariant.
+    Follows immediately from dist_le_init: |S.r t - r*| ≤ |S.r 0 - r*| < ε. -/
+theorem LorentzianContinuousSolution.lyapunov_stable (S : LorentzianContinuousSolution)
+    (ε : ℝ) (hε : |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| < ε)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
+  (S.dist_le_init t ht).trans_lt hε
 
 /-- **V interval decay**: for 0 ≤ t₀ ≤ t₀+Δ, V(t₀+Δ) ≤ V(t₀)·exp(-K·min(r(t₀),r*)·r*·Δ).
     Uses the semigroup property to shift the starting time to t₀: the trajectory from r(t₀) satisfies
