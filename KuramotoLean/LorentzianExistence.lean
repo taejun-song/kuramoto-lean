@@ -934,4 +934,35 @@ theorem lorentzian_unified_rate (K γ r₀ : ℝ)
     simp only [hrstar_sq] at hbound ⊢
     linarith
 
+/-- The above-equilibrium Gronwall rate K·r*² equals the linearized rate K-2γ.
+    This confirms the W-decay rate is optimal at r* (matches linear stability). -/
+theorem lorentzian_rate_eq_linearized (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K) :
+    K * Real.sqrt (1 - 2 * γ / K) ^ 2 = K - 2 * γ := by
+  rw [Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)]
+  field_simp [hK.ne']
+
+/-- Uniform V-decay: for r₀ ≥ δ > 0 (below r*), the V-bound holds with rate K·δ².
+    Enables uniform-in-r₀ convergence on any interval [δ, r*). -/
+theorem lorentzian_v_decay_uniform (K γ r₀ δ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K)
+    (hδ_pos : 0 < δ) (hδ_le : δ ≤ r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2 ≤
+      (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * δ ^ 2) * t) := by
+  have hV := lorentzian_v_exponential_decay K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  have hV_nn : 0 ≤ Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2 := by
+    have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+      Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+    rw [hrstar_sq]; linarith
+  have hexp_mono : Real.exp (-(K * r₀ ^ 2) * t) ≤ Real.exp (-(K * δ ^ 2) * t) := by
+    apply Real.exp_le_exp.mpr
+    have hδsq : δ ^ 2 ≤ r₀ ^ 2 := pow_le_pow_left₀ (le_of_lt hδ_pos) hδ_le 2
+    nlinarith [mul_nonneg (le_of_lt hK) ht]
+  calc Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2
+      ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * r₀ ^ 2) * t) := hV
+    _ ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * δ ^ 2) * t) :=
+        mul_le_mul_of_nonneg_left hexp_mono hV_nn
+
 end
