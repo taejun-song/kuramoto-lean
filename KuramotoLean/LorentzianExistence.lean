@@ -2150,6 +2150,38 @@ theorem lorentzian_lyapunov_r_trap (K γ r₀ : ℝ)
   ⟨lorentzian_lyapunov_r_dist_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
    lorentzian_lyapunov_r_dist K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht⟩
 
+/-- **Below-r* two-sided trap**: for r₀ < r*, the distance |r(t)-r*| satisfies
+    |r₀-r*|·exp(-K·t) ≤ |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t).
+    Specializes r_trap using the sharper below-r* upper bound (rate K·r₀·r*/2). -/
+theorem lorentzian_lyapunov_r_trap_below (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-K * t) ≤
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ∧
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+    Real.exp (-(K * r₀ * Real.sqrt (1 - 2 * γ / K)) / 2 * t) :=
+  ⟨lorentzian_lyapunov_r_dist_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
+   lorentzian_lyapunov_r_dist_below' K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_lt_rstar t ht⟩
+
+/-- **Above-r* two-sided trap**: for r* < r₀, the distance |r(t)-r*| satisfies
+    |r₀-r*|·exp(-K·t) ≤ |r(t)-r*| ≤ |r₀-r*|·exp(-K·r*²·t).
+    Specializes r_trap using the above-r* upper bound (rate K·r*²). -/
+theorem lorentzian_lyapunov_r_trap_above (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * γ / K) < r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-K * t) ≤
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ∧
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+    Real.exp (-(K * (1 - 2 * γ / K)) * t) :=
+  ⟨lorentzian_lyapunov_r_dist_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
+   lorentzian_lyapunov_r_dist_above K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_gt_rstar t ht⟩
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
