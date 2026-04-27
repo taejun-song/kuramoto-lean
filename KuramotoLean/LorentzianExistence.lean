@@ -1854,4 +1854,48 @@ theorem lorentzian_lyapunov_r_dist_below (K γ r₀ : ℝ)
       t ht
   linarith [h]
 
+/-- **Cleaner form of the below-r* distance bound**: |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t).
+    Simplifies v_exp_bound_below via √((r₀-r*)²) = |r₀-r*|. -/
+theorem lorentzian_lyapunov_r_dist_below' (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+      Real.exp (-(K * r₀ * Real.sqrt (1 - 2 * γ / K)) / 2 * t) := by
+  have h := lorentzian_lyapunov_r_dist_below K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+      hr₀_lt_rstar t ht
+  rwa [Real.sqrt_sq_eq_abs] at h
+
+/-- **Above-r* distance bound**: |r(t)-r*| ≤ |r₀-r*|·exp(-K·r*²·t) for r* < r₀.
+    Uses v_exp_bound_above (rate 2K·r*²) + order_parameter_exp_decay, then drops factor 2 via
+    exp(-2K·r*²·t/2) = exp(-K·r*²·t) and simplifies √((r₀-r*)²) = |r₀-r*|. -/
+theorem lorentzian_lyapunov_r_dist_above (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * γ / K) < r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+      Real.exp (-(K * (1 - 2 * γ / K)) * t) := by
+  have hrstar_nn : 0 ≤ 1 - 2 * γ / K := le_of_lt (lorentzian_rstar_pos K γ hK hKγ)
+  have h := order_parameter_exp_decay
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (lorentzian_explicit K γ r₀)
+      (Real.sqrt (1 - 2 * γ / K))
+      ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (2 * K * (1 - 2 * γ / K))
+      (sq_nonneg _)
+      (fun s hs => lorentzian_lyapunov_v_exp_bound_above K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+          hr₀_gt_rstar s hs)
+      (fun s => le_refl _)
+      t ht
+  simp only [Real.sqrt_sq_eq_abs] at h
+  calc |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)|
+      ≤ |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+        Real.exp (-(2 * K * (1 - 2 * γ / K)) / 2 * t) := h
+    _ = |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-(K * (1 - 2 * γ / K)) * t) := by
+        ring_nf
+
 end
