@@ -2210,6 +2210,20 @@ theorem lorentzian_lyapunov_two_traj_dist (K γ r₀ r₀' : ℝ)
     (lorentzian_lyapunov_r_dist K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht)
     (lorentzian_lyapunov_r_dist K γ r₀' hK hγ hKγ hr₀'_pos hr₀'_lt hr₀'_ne t ht))
 
+/-- **Strict contraction of distance**: for r₀ ≠ r* and t > 0, the distance to equilibrium
+    is strictly smaller than the initial distance: |r(t)-r*| < |r₀-r*|.
+    Follows from v_lt_init by taking square roots via Real.sqrt_lt_sqrt + sqrt_sq_eq_abs. -/
+theorem lorentzian_lyapunov_r_strict_contraction (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 < t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| <
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| := by
+  have hV_lt := lorentzian_lyapunov_v_lt_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht
+  have h := Real.sqrt_lt_sqrt (sq_nonneg _) hV_lt
+  rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq_eq_abs] at h
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
