@@ -2168,6 +2168,28 @@ theorem lorentzian_lyapunov_r_dist_lb (K γ r₀ : ℝ)
     _ = |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| :=
           Real.sqrt_sq_eq_abs _
 
+/-- **V lower exponential bound for any ODE solution**: V(t) ≥ V(0)·exp(-2K·t) for all t ≥ 0.
+    Lifts v_lb to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.v_lb (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 * Real.exp (-(2 * S.K) * t) ≤
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_lb S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt t ht
+
+/-- **Distance lower bound for any ODE solution**: |S.r t - r*| ≥ |S.r 0 - r*|·exp(-K·t).
+    Lifts r_dist_lb to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.dist_lb (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| * Real.exp (-S.K * t) ≤
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_r_dist_lb S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt t ht
+
 /-- **Two-sided exponential trap**: for r₀ ≠ r*, the distance |r(t)-r*| is sandwiched between
     two explicit exponential rates for all t ≥ 0:
       |r₀-r*|·exp(-K·t) ≤ |r(t)-r*| ≤ |r₀-r*|·exp(-K·min(r₀,r*)·r*/2·t).
