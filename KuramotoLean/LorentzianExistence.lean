@@ -2368,6 +2368,51 @@ theorem lorentzian_lyapunov_v_interval_decay (K γ r₀ : ℝ)
   rw [hsemi]
   exact lorentzian_lyapunov_v_exp_bound K γ r₁ hK hγ hKγ hr₁_pos hr₁_lt hr₁_ne Δ hΔ
 
+/-- **V persistence drop**: if r(t) ≥ δ for all t ∈ [t₀, t₀+Δ], then
+    V(t₀+Δ) ≤ V(t₀)·exp(-K·δ·r*·Δ). Uses comparison_decay_interval with the V' ODE
+    and the lower rate bound K·r·(r+r*) ≥ K·δ·r* (from r ≥ δ and r+r* ≥ r*). -/
+theorem lorentzian_lyapunov_v_persistence_drop (K γ r₀ δ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hδ_pos : 0 < δ)
+    (t₀ Δ : ℝ) (ht₀ : 0 ≤ t₀) (hΔ : 0 ≤ Δ)
+    (h_persist : ∀ t, t₀ ≤ t → t ≤ t₀ + Δ → δ ≤ lorentzian_explicit K γ r₀ t) :
+    (lorentzian_explicit K γ r₀ (t₀ + Δ) - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    (lorentzian_explicit K γ r₀ t₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+    Real.exp (-(K * δ * Real.sqrt (1 - 2 * γ / K)) * Δ) := by
+  set rs := Real.sqrt (1 - 2 * γ / K)
+  have hrs_pos : 0 < rs := Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hV_cont : ContinuousOn (fun s => (lorentzian_explicit K γ r₀ s - rs) ^ 2)
+      (Set.Icc t₀ (t₀ + Δ)) :=
+    ((lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).mono
+      (fun t ht => le_trans ht₀ (Set.mem_Icc.mp ht).1) |>.sub continuousOn_const).pow 2
+  exact comparison_decay_interval
+    (fun s => (lorentzian_explicit K γ r₀ s - rs) ^ 2)
+    (fun s => -(K * lorentzian_explicit K γ r₀ s *
+        (lorentzian_explicit K γ r₀ s + rs) *
+        (lorentzian_explicit K γ r₀ s - rs) ^ 2))
+    (K * δ * rs) t₀ Δ hΔ
+    hV_cont
+    (fun t ht_lo _ =>
+      lorentzian_lyapunov_v_deriv_formula K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t
+        (le_trans ht₀ (le_of_lt ht_lo)))
+    (fun t ht_lo ht_hi => by
+      simp only []
+      have hrt_ge : δ ≤ lorentzian_explicit K γ r₀ t :=
+        h_persist t (le_of_lt ht_lo) (le_of_lt ht_hi)
+      have hrt_pos : 0 < lorentzian_explicit K γ r₀ t :=
+        lt_of_lt_of_le hδ_pos hrt_ge
+      have hcoeff : K * δ * rs ≤ K * lorentzian_explicit K γ r₀ t *
+          (lorentzian_explicit K γ r₀ t + rs) :=
+        calc K * δ * rs
+            ≤ K * lorentzian_explicit K γ r₀ t * rs :=
+              mul_le_mul_of_nonneg_right
+                (mul_le_mul_of_nonneg_left hrt_ge hK.le) hrs_pos.le
+          _ ≤ K * lorentzian_explicit K γ r₀ t * (lorentzian_explicit K γ r₀ t + rs) :=
+              mul_le_mul_of_nonneg_left (le_add_of_nonneg_left hrt_pos.le)
+                (mul_pos hK hrt_pos).le
+      nlinarith [sq_nonneg (lorentzian_explicit K γ r₀ t - rs)])
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
