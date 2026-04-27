@@ -2452,6 +2452,33 @@ theorem lorentzian_lyapunov_r_dist_from_persist (K γ r₀ δ : ℝ)
       t ht
   rwa [Real.sqrt_sq_eq_abs] at h
 
+/-- **Convergence time from global persistence**: if r(t) ≥ δ for all t ≥ 0 and r₀ ≠ r*,
+    then t > log(V₀/ε²)/(K·δ·r*) implies |r(t)-r*| < ε.
+    Explicit T = log((r₀-r*)²/ε²)/(K·δ·r*). -/
+theorem lorentzian_lyapunov_convergence_time_from_persist (K γ r₀ δ ε : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (hδ_pos : 0 < δ) (hε : 0 < ε)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ lorentzian_explicit K γ r₀ t)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 / ε ^ 2) /
+             (K * δ * Real.sqrt (1 - 2 * γ / K)) < t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| < ε :=
+  explicit_convergence_time
+    (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+    (lorentzian_explicit K γ r₀)
+    (Real.sqrt (1 - 2 * γ / K))
+    ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+    (K * δ * Real.sqrt (1 - 2 * γ / K))
+    ε
+    (mul_pos (mul_pos hK hδ_pos) (Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)))
+    (sq_pos_of_ne_zero (sub_ne_zero.mpr hr₀_ne))
+    hε
+    (lorentzian_lyapunov_v_uniform_exp_decay K γ r₀ δ hK hγ hKγ hr₀_pos hr₀_lt hδ_pos h_persist)
+    (fun _ => le_refl _)
+    t ht htime
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
