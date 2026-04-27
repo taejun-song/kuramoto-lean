@@ -1594,4 +1594,37 @@ theorem lorentzian_explicit_lyapunov_stable (K γ : ℝ)
               rw [lorentzian_explicit_init K γ r₀ hr₀_pos]
           _ < ε := hr₀_near
 
+/-- **Lyapunov function HasDerivAt**: d/dt (r(t)-r*)² = 2(r(t)-r*)·ṙ(t). -/
+theorem lorentzian_lyapunov_v_hasDerivAt (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    HasDerivAt (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (2 * (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) *
+        lorentzianODE K γ (lorentzian_explicit K γ r₀ t)) t := by
+  have h := (lorentzian_explicit_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+      |>.sub_const (Real.sqrt (1 - 2 * γ / K))).pow 2
+  convert h using 1
+  push_cast; ring
+
+/-- **Lyapunov derivative is negative**: for r₀ ≠ r*, d/dt (r(t)-r*)² < 0 for all t ≥ 0.
+    The squared distance to equilibrium is a strict Lyapunov function. -/
+theorem lorentzian_lyapunov_v_deriv_neg (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    deriv (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2) t < 0 := by
+  rw [(lorentzian_lyapunov_v_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht).deriv]
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_lt := lorentzian_explicit_lt_one K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_ne := lorentzian_explicit_ne_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht
+  rcases lt_or_gt_of_ne hr_ne with h | h
+  · have hpos := lorentzian_ode_pos_below_rstar K γ (lorentzian_explicit K γ r₀ t)
+        hK hγ hKγ hr_pos h
+    exact mul_neg_of_neg_of_pos (mul_neg_of_pos_of_neg two_pos (by linarith)) hpos
+  · have hneg := lorentzian_ode_neg_above_rstar K γ (lorentzian_explicit K γ r₀ t)
+        hK hγ hKγ h hr_lt
+    exact mul_neg_of_pos_of_neg (mul_pos two_pos (by linarith)) hneg
+
 end
