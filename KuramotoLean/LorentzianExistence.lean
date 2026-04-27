@@ -1846,6 +1846,28 @@ theorem LorentzianContinuousSolution.v_exp_bound (S : LorentzianContinuousSoluti
   exact lorentzian_lyapunov_v_exp_bound S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
     S.hr_init_pos S.hr_init_lt hr₀_ne t ht
 
+/-- **Distance bound for any ODE solution**: for any LorentzianContinuousSolution S with
+    S.r 0 ≠ r*, |S.r t - r*| ≤ |S.r 0 - r*|·exp(-K·min(S.r 0, r*)·r*/2·t).
+    Uses Solution.v_exp_bound + order_parameter_exp_decay. -/
+theorem LorentzianContinuousSolution.r_dist_bound (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+               Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) := by
+  have h := order_parameter_exp_decay
+      (fun s => (S.r s - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      S.r
+      (Real.sqrt (1 - 2 * S.γ / S.K))
+      ((S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      (S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) * Real.sqrt (1 - 2 * S.γ / S.K))
+      (sq_nonneg _)
+      (fun s hs => S.v_exp_bound hr₀_ne s hs)
+      (fun _ => le_refl _)
+      t ht
+  rwa [Real.sqrt_sq_eq_abs] at h
+
 /-- **Below-r* distance bound**: |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t) for r₀ < r*.
     Applies order_parameter_exp_decay with V = (r-r*)² and v_exp_bound_below. -/
 theorem lorentzian_lyapunov_r_dist_below (K γ r₀ : ℝ)
