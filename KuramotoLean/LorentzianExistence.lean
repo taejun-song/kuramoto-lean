@@ -2105,6 +2105,32 @@ theorem lorentzian_lyapunov_v_lb (K γ r₀ : ℝ)
   simp only [] at hVt
   rwa [lorentzian_explicit_init K γ r₀ hr₀_pos] at hVt
 
+/-- **Distance lower bound**: |r(t)-r*| ≥ |r₀-r*|·exp(-K·t) for all t ≥ 0.
+    Follows from v_lb by taking square roots: sqrt(V(t)) ≥ sqrt(V(0)·exp(-2Kt)) = |r₀-r*|·exp(-Kt).
+    Together with lorentzian_lyapunov_r_dist (upper bound), gives exponential trapping of the
+    distance: it decays no slower than exp(-Kt) and no faster than exp(-K·min r₀ r*·r*·t/2). -/
+theorem lorentzian_lyapunov_r_dist_lb (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-K * t) ≤
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| := by
+  have hvlb := lorentzian_lyapunov_v_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hsqrt_exp : Real.sqrt (Real.exp (-(2 * K) * t)) = Real.exp (-K * t) := by
+    have h1 : Real.exp (-(2 * K) * t) = Real.exp (-K * t) ^ 2 := by
+      rw [sq, ← Real.exp_add]; congr 1; ring
+    rw [h1, Real.sqrt_sq (le_of_lt (Real.exp_pos _))]
+  calc |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-K * t)
+      = Real.sqrt ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2) *
+          Real.sqrt (Real.exp (-(2 * K) * t)) := by
+          rw [Real.sqrt_sq_eq_abs, hsqrt_exp]
+    _ = Real.sqrt ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 * Real.exp (-(2 * K) * t)) :=
+          (Real.sqrt_mul (sq_nonneg _) _).symm
+    _ ≤ Real.sqrt ((lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2) :=
+          Real.sqrt_le_sqrt hvlb
+    _ = |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| :=
+          Real.sqrt_sq_eq_abs _
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
