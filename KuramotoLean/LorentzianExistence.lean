@@ -3093,4 +3093,70 @@ theorem LorentzianContinuousSolution.dist_tendsto
   · filter_upwards with t; exact abs_nonneg _
   · filter_upwards with t; exact htri t
 
+/-- **r² sublevel set forward-invariant (below r*)**: r₀² < r*² → r(t)² < r*² for all t ≥ 0.
+    The Lorentzian flow preserves the region {r² < r*²}. -/
+theorem LorentzianContinuousSolution.sq_lt_rstar (S : LorentzianContinuousSolution)
+    (hr₀_sq_lt : S.r 0 ^ 2 < 1 - 2 * S.γ / S.K)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ^ 2 < 1 - 2 * S.γ / S.K := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_sq_lt_rstar S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_sq_lt t ht
+
+/-- **r² superlevel set forward-invariant (above r*)**: r*² < r₀² → r*² < r(t)² for all t ≥ 0.
+    The Lorentzian flow preserves the region {r² > r*²}. -/
+theorem LorentzianContinuousSolution.sq_gt_rstar (S : LorentzianContinuousSolution)
+    (hr₀_sq_gt : 1 - 2 * S.γ / S.K < S.r 0 ^ 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) ^ 2 < S.r t ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_sq_gt_rstar S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_sq_gt t ht
+
+/-- **r² non-decreasing from r₀² (below r*)**: r₀² < r*² → r₀² ≤ r(t)² for all t ≥ 0.
+    The square of the order parameter grows monotonically when below the equilibrium. -/
+theorem LorentzianContinuousSolution.sq_ge_init (S : LorentzianContinuousSolution)
+    (hr₀_sq_lt : S.r 0 ^ 2 < 1 - 2 * S.γ / S.K)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r 0 ^ 2 ≤ S.r t ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_sq_ge_init S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_sq_lt t ht
+
+/-- **r² non-increasing from r₀² (above r*)**: r*² < r₀² → r(t)² ≤ r₀² for all t ≥ 0.
+    The square of the order parameter decreases monotonically when above the equilibrium. -/
+theorem LorentzianContinuousSolution.sq_le_init (S : LorentzianContinuousSolution)
+    (hr₀_sq_gt : 1 - 2 * S.γ / S.K < S.r 0 ^ 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ^ 2 ≤ S.r 0 ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_sq_le_init S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_sq_gt t ht
+
+/-- **Sharper V bound (below r*)**: for S.r 0 < r*, V(t) ≤ V(0)·exp(-K·S.r 0·r*·t).
+    Tighter than v_exp_bound which uses min(r₀, r*) = r₀; here the coefficient is K·r₀·r* directly. -/
+theorem LorentzianContinuousSolution.v_exp_bound_below (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * S.r 0 * Real.sqrt (1 - 2 * S.γ / S.K)) * t) := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_exp_bound_below S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_lt_rstar t ht
+
+/-- **Sharper V bound (above r*)**: for r* < S.r 0, V(t) ≤ V(0)·exp(-2K·(1-2γ/K)·t).
+    Rate 2K·r*² = 2(K-2γ) is the linearized rate at r*. Tighter than v_exp_bound for r₀ > r*. -/
+theorem LorentzianContinuousSolution.v_exp_bound_above (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(2 * S.K * (1 - 2 * S.γ / S.K)) * t) := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_exp_bound_above S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_gt_rstar t ht
+
 end
