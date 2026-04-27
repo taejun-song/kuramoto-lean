@@ -3371,4 +3371,32 @@ theorem LorentzianContinuousSolution.two_traj_from_gronwall
     _ = (|S.r 0 - rs| + |S'.r 0 - rs|) *
         Real.exp (-(S.K * δ * (δ + rs) / 2) * t) := by ring
 
+/-- **Dist bound below r***: when S.r 0 < r*, monotonicity gives S.r t ≥ S.r 0 globally,
+    so δ = S.r 0 works in dist_from_gronwall. Rate K·r₀·(r₀+r*)/2 strictly exceeds the
+    explicit-formula rate K·r₀·r*/2 from dist_bound_below. NO eq_explicit used. -/
+theorem LorentzianContinuousSolution.dist_from_gronwall_below
+    (S : LorentzianContinuousSolution)
+    (h_below : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * S.r 0 * (S.r 0 + Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) :=
+  S.dist_from_gronwall (S.r 0) S.hr_init_pos
+    (fun u hu => S.ge_init_of_lt_rstar h_below u hu) t ht
+
+/-- **Dist bound above r***: when r* < S.r 0, gt_rstar_of_init gives S.r t > r* globally,
+    so δ = r* works in dist_from_gronwall. Rate K·r*·(r*+r*)/2 = K·r*² = K-2γ matches
+    the explicit-formula rate from dist_bound_above. NO eq_explicit used. -/
+theorem LorentzianContinuousSolution.dist_from_gronwall_above
+    (S : LorentzianContinuousSolution)
+    (h_above : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * Real.sqrt (1 - 2 * S.γ / S.K) *
+      (Real.sqrt (1 - 2 * S.γ / S.K) + Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) :=
+  S.dist_from_gronwall (Real.sqrt (1 - 2 * S.γ / S.K))
+    (Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))
+    (fun u hu => le_of_lt (S.gt_rstar_of_init h_above u hu)) t ht
+
 end
