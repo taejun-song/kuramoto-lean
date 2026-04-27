@@ -1295,6 +1295,31 @@ theorem lorentzian_explicit_strictly_increasing (K γ r₀ : ℝ)
   have hmono := strictMonoOn_of_deriv_pos (convex_Icc s t) hcont hderiv_pos
   exact hmono (Set.left_mem_Icc.mpr (le_of_lt hst)) (Set.right_mem_Icc.mpr (le_of_lt hst)) hst
 
+/-- **Order-preserving flow**: the Lorentzian ODE flow is order-preserving in the initial condition.
+    If r₀ < r₀' then r(t, r₀) < r(t, r₀') for all t ≥ 0. Proof via Bernoulli w_func_diff:
+    r₀ < r₀' → 1/r₀²>1/r₀'² → w(r₀)>w(r₀') → 1/w(r₀)<1/w(r₀') → r(r₀)<r(r₀'). -/
+theorem lorentzian_explicit_order_preserving (K γ r₀ r₀' : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀'_pos : 0 < r₀') (hr₀'_lt : r₀' < 1)
+    (h : r₀ < r₀') (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t < lorentzian_explicit K γ r₀' t := by
+  simp only [lorentzian_explicit]
+  have hr₀_sq_pos : (0 : ℝ) < r₀ ^ 2 := sq_pos_of_pos hr₀_pos
+  have hr₀'_sq_pos : (0 : ℝ) < r₀' ^ 2 := sq_pos_of_pos hr₀'_pos
+  have hr_sq : r₀ ^ 2 < r₀' ^ 2 := sq_lt_sq' (by linarith [hr₀'_pos]) h
+  have h_coeff : 0 < 1 / r₀ ^ 2 - 1 / r₀' ^ 2 := by
+    rw [sub_pos, div_lt_div_iff₀ hr₀'_sq_pos hr₀_sq_pos]; nlinarith
+  have hdiff := w_func_diff K γ r₀ r₀' t
+  have hw_gt : w_func K γ r₀' t < w_func K γ r₀ t := by
+    linarith [mul_pos h_coeff (Real.exp_pos (-(K - 2 * γ) * t))]
+  have hw_pos : 0 < w_func K γ r₀ t :=
+    w_func_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hw'_pos : 0 < w_func K γ r₀' t :=
+    w_func_pos K γ r₀' hK hγ hKγ hr₀'_pos hr₀'_lt t ht
+  apply Real.sqrt_lt_sqrt (inv_nonneg.mpr hw_pos.le)
+  exact (inv_lt_inv₀ hw_pos hw'_pos).mpr hw_gt
+
 /-- **Negative derivative above r***: for r₀ ∈ (r*, 1) and t ≥ 0, the Lorentzian solution
     has negative derivative: d/dt r(t) < 0. Hence r is strictly decreasing along the trajectory. -/
 theorem lorentzian_explicit_neg_deriv (K γ r₀ : ℝ)
