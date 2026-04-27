@@ -1220,4 +1220,34 @@ theorem lorentzian_rstar_tendsto_one (γ : ℝ) (hγ : 0 < γ) :
     simpa using hc.sub h0
   simpa [Real.sqrt_one] using continuous_sqrt.continuousAt.tendsto.comp h1
 
+/-- **Linearized rate at origin**: the derivative of the Lorentzian ODE vector field at r=0
+    is K/2-γ. For K > 2γ this is positive, confirming the origin is linearly unstable. -/
+theorem lorentzian_ode_hasDerivAt_zero (K γ : ℝ) :
+    HasDerivAt (lorentzianODE K γ) (K / 2 - γ) 0 := by
+  have hderiv : HasDerivAt (fun r => (K / 2 - γ) * r - K / 2 * r ^ 3)
+      ((K / 2 - γ) - K / 2 * (3 * (0 : ℝ) ^ 2)) 0 := by
+    have h1 : HasDerivAt (fun r => (K / 2 - γ) * r) (K / 2 - γ) 0 := by
+      have h := (hasDerivAt_id (0 : ℝ)).const_mul (K / 2 - γ)
+      simp only [mul_one, id] at h; exact h
+    have h2 : HasDerivAt (fun r => K / 2 * r ^ 3) (K / 2 * (3 * (0 : ℝ) ^ 2)) 0 := by
+      have h := (hasDerivAt_pow 3 (0 : ℝ)).const_mul (K / 2)
+      simp only [Nat.cast_ofNat] at h; convert h using 1
+    exact h1.sub h2
+  have hconv : lorentzianODE K γ = fun r => (K / 2 - γ) * r - K / 2 * r ^ 3 := by
+    ext r; simp [lorentzianODE]
+  rw [hconv]; convert hderiv using 1; ring
+
+/-- **ODE negative above 1**: for r > 1, the Lorentzian velocity ṙ < 0.
+    Combined with ode_neg_above_rstar, this shows ṙ < 0 for ALL r > r*, not just r ∈ (r*,1).
+    In particular, the region r ≤ 1 is forward-invariant under the ODE. -/
+theorem lorentzian_ode_neg_above_one (K γ r : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K) (hr : 1 < r) :
+    lorentzianODE K γ r < 0 := by
+  rw [lorentzian_ode_factored K γ r (ne_of_gt hK)]
+  have hr_pos : 0 < r := lt_trans one_pos hr
+  apply mul_neg_of_pos_of_neg (mul_pos (by linarith) hr_pos)
+  have hlt : 1 - 2 * γ / K < 1 := by linarith [div_pos (by linarith : 0 < 2 * γ) hK]
+  have hr_sq : (1 : ℝ) < r ^ 2 := by nlinarith
+  linarith
+
 end
