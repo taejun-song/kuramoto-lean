@@ -1413,6 +1413,17 @@ theorem lorentzian_explicit_ne_rstar (K γ r₀ : ℝ)
   · have hr_gt := lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
     intro heq; rw [heq, hrstar_sq] at hr_gt; exact lt_irrefl _ hr_gt
 
+/-- **Orbit never reaches r* for any ODE solution**: if S.r 0 ≠ r*, then S.r t ≠ r* for all t ≥ 0.
+    The trajectory stays permanently away from the equilibrium until t → ∞.
+    Lifts lorentzian_explicit_ne_rstar to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.ne_rstar (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≠ Real.sqrt (1 - 2 * S.γ / S.K) := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_ne_rstar S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne t ht
+
 /-- **Square difference stays positive**: if r₀ ≠ r*, then (r(t)²-r*²) ≠ 0 for all t ≥ 0.
     Equivalently, the Lyapunov function V(t) = (r²-r*²)² > 0 until r → r*. -/
 theorem lorentzian_sq_diff_ne_zero (K γ r₀ : ℝ)
