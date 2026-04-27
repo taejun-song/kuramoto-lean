@@ -1052,4 +1052,22 @@ theorem lorentzian_ode_continuous_convergence (K γ r₀ : ℝ)
   rw [hSK, hSγ] at htend
   exact htend
 
+/-- **Exponential synchronization**: any two Lorentzian ODE solutions merge as t → ∞.
+    |r(t,r₀) - r(t,r₀')| → 0. Proof: triangle through r* — both solutions tend to r*,
+    so their difference tends to r* - r* = 0. -/
+theorem lorentzian_explicit_dist_tendsto (K γ r₀ r₀' : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀'_pos : 0 < r₀') (hr₀'_lt : r₀' < 1) :
+    Tendsto (fun t => |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t|)
+      atTop (nhds 0) := by
+  have h1 := lorentzian_explicit_tendsto K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+  have h2 := lorentzian_explicit_tendsto K γ r₀' hK hγ hKγ hr₀'_pos hr₀'_lt
+  have h := h1.sub h2
+  simp only [sub_self] at h
+  have h' := h.norm
+  simp only [norm_zero] at h'
+  simp_rw [Real.norm_eq_abs] at h'
+  exact h'
+
 end
