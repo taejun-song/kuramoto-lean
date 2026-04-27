@@ -1010,4 +1010,30 @@ theorem lorentzian_uniform_r_decay (K γ r₀ δ : ℝ)
     _ = Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2 := by ring
     _ ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - δ ^ 2) * Real.exp (-(K * δ ^ 2) * t) := hVub
 
+/-- **Continuous-time convergence for any ODE solution**: any `LorentzianContinuousSolution`
+    converges to r* = √(1-2γ/K) as t → ∞. Combines ODE uniqueness (eq_explicit) with
+    the explicit Bernoulli convergence (lorentzian_explicit_tendsto). -/
+theorem LorentzianContinuousSolution.tendsto (S : LorentzianContinuousSolution) :
+    Tendsto S.r atTop (nhds (Real.sqrt (1 - 2 * S.γ / S.K))) := by
+  apply (lorentzian_explicit_tendsto S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt).congr'
+  filter_upwards [eventually_gt_atTop 0] with t ht
+  exact (S.eq_explicit t ht).symm
+
+/-- **Parameter-only continuous-time convergence**: for any K > 2γ and r₀ ∈ (0,1),
+    there exists a solution r : ℝ → ℝ of the Lorentzian ODE with r(0) = r₀ and
+    r(t) → r* = √(1-2γ/K) as t → ∞. Proof: existence from explicit Bernoulli formula,
+    convergence from LorentzianContinuousSolution.tendsto. Zero external hypotheses. -/
+theorem lorentzian_ode_continuous_convergence (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    ∃ r : ℝ → ℝ, r 0 = r₀ ∧
+      Tendsto r atTop (nhds (Real.sqrt (1 - 2 * γ / K))) := by
+  obtain ⟨S, hSK, hSγ, hSr₀⟩ :=
+    lorentzian_continuous_solution_exists K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+  refine ⟨S.r, hSr₀, ?_⟩
+  have htend := S.tendsto
+  rw [hSK, hSγ] at htend
+  exact htend
+
 end
