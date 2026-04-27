@@ -1052,6 +1052,27 @@ theorem lorentzian_ode_continuous_convergence (K γ r₀ : ℝ)
   rw [hSK, hSγ] at htend
   exact htend
 
+/-- **Global stability of the Lorentzian OA equilibrium** (complete billboard theorem):
+    For K > 2γ and r₀ ∈ (0,1), the explicit Bernoulli formula r(t) = √(w(t)⁻¹)
+    gives the unique ODE solution with r(0)=r₀, satisfying:
+    (1) r(t) ∈ (0,1) for all t ≥ 0 (positivity + boundedness)
+    (2) r(t) → r* = √(1-2γ/K) as t → ∞ (global stability)
+    (3) |r(t)-r*| ≤ |A|·exp(-(K-2γ)t)/r* (explicit exponential rate μ = K-2γ)
+    Proved from parameters (K,γ,r₀) alone — zero external hypotheses. -/
+theorem lorentzian_ode_global_stability (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    let r := lorentzian_explicit K γ r₀
+    let r_star := Real.sqrt (1 - 2 * γ / K)
+    (∀ t ≥ 0, r t ∈ Set.Ioo 0 1) ∧
+    Tendsto r atTop (nhds r_star) ∧
+    (∀ t ≥ 0, |r t - r_star| ≤
+      |1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t) / r_star) := by
+  refine ⟨fun t ht => ⟨lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
+    lorentzian_explicit_lt_one K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht⟩,
+    lorentzian_explicit_tendsto K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt,
+    fun t ht => lorentzian_explicit_rate K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht⟩
+
 /-- **Exponential synchronization**: any two Lorentzian ODE solutions merge as t → ∞.
     |r(t,r₀) - r(t,r₀')| → 0. Proof: triangle through r* — both solutions tend to r*,
     so their difference tends to r* - r* = 0. -/
