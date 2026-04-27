@@ -1927,4 +1927,27 @@ theorem lorentzian_lyapunov_convergence_time_below (K γ r₀ : ℝ)
       (fun s => le_refl _)
       t ht htime
 
+/-- **V > 0 when r₀ ≠ r***: the Lyapunov function V = (r(t)-r*)² is strictly positive
+    for all t ≥ 0 when r₀ ≠ r*. Follows from lorentzian_explicit_ne_rstar. -/
+theorem lorentzian_lyapunov_v_pos (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    0 < (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 :=
+  sq_pos_of_ne_zero (sub_ne_zero.mpr
+    (lorentzian_explicit_ne_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht))
+
+/-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
+    Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
+theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 = 0 ↔
+    lorentzian_explicit K γ r₀ t = Real.sqrt (1 - 2 * γ / K) := by
+  constructor
+  · intro h; nlinarith [sq_nonneg (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K))]
+  · intro h; rw [h, sub_self, sq, zero_mul]
+
 end
