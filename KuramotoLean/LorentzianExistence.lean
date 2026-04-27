@@ -2479,6 +2479,33 @@ theorem lorentzian_lyapunov_convergence_time_from_persist (K γ r₀ δ ε : ℝ
     (fun _ => le_refl _)
     t ht htime
 
+/-- **Two-trajectory synchronization from persistence**: if both r(t,r₀) and r(t,r₀') stay ≥ δ,
+    then |r(t,r₀) - r(t,r₀')| ≤ (|r₀-r*| + |r₀'-r*|)·exp(-K·δ·r*/2·t).
+    Triangle inequality through r* + two applications of r_dist_from_persist. -/
+theorem lorentzian_lyapunov_two_traj_sync_from_persist (K γ r₀ r₀' δ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀'_pos : 0 < r₀') (hr₀'_lt : r₀' < 1)
+    (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ lorentzian_explicit K γ r₀ t)
+    (h_persist' : ∀ t, 0 ≤ t → δ ≤ lorentzian_explicit K γ r₀' t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t| ≤
+    (|r₀ - Real.sqrt (1 - 2 * γ / K)| + |r₀' - Real.sqrt (1 - 2 * γ / K)|) *
+    Real.exp (-(K * δ * Real.sqrt (1 - 2 * γ / K)) / 2 * t) := by
+  set rs := Real.sqrt (1 - 2 * γ / K)
+  have htri : |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t| ≤
+      |lorentzian_explicit K γ r₀ t - rs| + |lorentzian_explicit K γ r₀' t - rs| := by
+    have := abs_sub_le (lorentzian_explicit K γ r₀ t) rs (lorentzian_explicit K γ r₀' t)
+    linarith [abs_sub_comm (lorentzian_explicit K γ r₀' t) rs]
+  have hd := lorentzian_lyapunov_r_dist_from_persist K γ r₀ δ hK hγ hKγ hr₀_pos hr₀_lt hδ_pos h_persist t ht
+  have hd' := lorentzian_lyapunov_r_dist_from_persist K γ r₀' δ hK hγ hKγ hr₀'_pos hr₀'_lt hδ_pos h_persist' t ht
+  calc |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t|
+      ≤ |lorentzian_explicit K γ r₀ t - rs| + |lorentzian_explicit K γ r₀' t - rs| := htri
+    _ ≤ |r₀ - rs| * Real.exp (-(K * δ * rs) / 2 * t) +
+        |r₀' - rs| * Real.exp (-(K * δ * rs) / 2 * t) := add_le_add hd hd'
+    _ = (|r₀ - rs| + |r₀' - rs|) * Real.exp (-(K * δ * rs) / 2 * t) := by ring
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
