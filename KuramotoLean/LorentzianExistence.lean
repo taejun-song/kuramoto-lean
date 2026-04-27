@@ -20,6 +20,7 @@
 
 import KuramotoLean.LorentzianFromODE
 import KuramotoLean.ExplicitRate
+import KuramotoLean.ComparisonGrowth
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Calculus.Deriv.Inv
@@ -2077,6 +2078,32 @@ theorem lorentzian_lyapunov_v_pos (K γ r₀ : ℝ)
     0 < (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 :=
   sq_pos_of_ne_zero (sub_ne_zero.mpr
     (lorentzian_explicit_ne_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht))
+
+/-- **V lower exponential bound**: V(t) ≥ V(0)·exp(-2K·t) for all t ≥ 0.
+    Dual of the upper bound: since V'≥-2K·V (v_deriv_ge), comparison_growth gives the lower bound.
+    Establishes that the Lyapunov function cannot vanish faster than exp(-2Kt). -/
+theorem lorentzian_lyapunov_v_lb (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 * Real.exp (-(2 * K) * t) ≤
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 := by
+  have hV_cont : ContinuousOn
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2) (Ici 0) :=
+    ((lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).sub
+       continuousOn_const).pow 2
+  have hVt := comparison_growth
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (fun s => -(K * lorentzian_explicit K γ r₀ s *
+               (lorentzian_explicit K γ r₀ s + Real.sqrt (1 - 2 * γ / K)) *
+               (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2))
+      (-(2 * K))
+      hV_cont
+      (fun s hs => lorentzian_lyapunov_v_deriv_formula K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt s hs.le)
+      (fun s hs => by linarith [lorentzian_lyapunov_v_deriv_ge K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt s hs])
+      t ht
+  simp only [] at hVt
+  rwa [lorentzian_explicit_init K γ r₀ hr₀_pos] at hVt
 
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
