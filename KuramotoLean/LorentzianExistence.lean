@@ -2465,6 +2465,22 @@ theorem lorentzian_lyapunov_v_uniform_exp_decay (K γ r₀ δ : ℝ)
     0 t le_rfl ht (fun s hs1 _ => h_persist s hs1)
   rwa [zero_add, lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at h
 
+/-- **Uniform V decay for any ODE solution from persistence**: if S.r t ≥ δ for all t ≥ 0,
+    then V(t) ≤ V(0)·exp(-K·δ·r*·t). Lifts v_uniform_exp_decay to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.v_uniform_exp_decay (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * δ * Real.sqrt (1 - 2 * S.γ / S.K)) * t) := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_uniform_exp_decay S.K S.γ (S.r 0) δ S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hδ_pos
+    (fun s hs => (S.eq_explicit_of_nonneg s hs) ▸ h_persist s hs)
+    t ht
+
 /-- **Distance decay from global persistence**: if r(t) ≥ δ for all t ≥ 0,
     then |r(t)-r*| ≤ |r₀-r*|·exp(-K·δ·r*/2·t). Derives from v_uniform_exp_decay
     via order_parameter_exp_decay (sqrt of V bound + sqrt_sq_eq_abs). -/
