@@ -1997,6 +1997,49 @@ theorem lorentzian_lyapunov_convergence_time (K γ r₀ : ℝ)
       (fun s => le_refl _)
       t ht htime
 
+/-- **Unified distance bound**: |r(t)-r*| ≤ |r₀-r*|·exp(-K·min(r₀,r*)·r*/2·t).
+    Combines r_dist_below (min=r₀, rate K·r₀·r*/2) and r_dist_above (min=r*, rate K·r*²/2)
+    into a single statement covering all r₀ ≠ r*. -/
+theorem lorentzian_lyapunov_r_dist (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+      Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
+                  Real.sqrt (1 - 2 * γ / K)) / 2 * t) := by
+  have h := order_parameter_exp_decay
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (lorentzian_explicit K γ r₀)
+      (Real.sqrt (1 - 2 * γ / K))
+      ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (K * min r₀ (Real.sqrt (1 - 2 * γ / K)) * Real.sqrt (1 - 2 * γ / K))
+      (sq_nonneg _)
+      (fun s hs => lorentzian_lyapunov_v_exp_bound K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne s hs)
+      (fun s => le_refl _)
+      t ht
+  rwa [Real.sqrt_sq_eq_abs] at h
+
+/-- **V coefficient upper bound**: K·r(t)·(r(t)+r*) ≤ 2·K for all t ≥ 0.
+    Since r(t) ∈ (0,1) and r* ∈ (0,1), r(t)·(r(t)+r*) ≤ 1·2 = 2.
+    Gives a lower bound on V': V'(t) ≥ -2K·V(t) (V cannot decay faster than exp(-2Kt)). -/
+theorem lorentzian_lyapunov_v_coeff_le (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    K * lorentzian_explicit K γ r₀ t *
+    (lorentzian_explicit K γ r₀ t + Real.sqrt (1 - 2 * γ / K)) ≤ 2 * K := by
+  have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_lt1 := lorentzian_explicit_lt_one K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hrs_lt1 := lorentzian_rstar_lt_one K γ hK hγ hKγ
+  have hrs_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have h1 : lorentzian_explicit K γ r₀ t ≤ 1 := le_of_lt hr_lt1
+  have h2 : Real.sqrt (1 - 2 * γ / K) ≤ 1 := le_of_lt hrs_lt1
+  nlinarith [mul_le_mul h1 h1 hr_pos.le (by linarith : (0:ℝ) ≤ 1),
+             mul_le_mul h1 h2 hrs_pos.le (by linarith : (0:ℝ) ≤ 1)]
+
 /-- **V > 0 when r₀ ≠ r***: the Lyapunov function V = (r(t)-r*)² is strictly positive
     for all t ≥ 0 when r₀ ≠ r*. Follows from lorentzian_explicit_ne_rstar. -/
 theorem lorentzian_lyapunov_v_pos (K γ r₀ : ℝ)
