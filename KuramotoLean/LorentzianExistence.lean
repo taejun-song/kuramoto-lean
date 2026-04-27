@@ -116,6 +116,26 @@ lemma w_func_hasDerivAt (K γ r₀ : ℝ) (hKγ : 2 * γ < K) (t : ℝ) :
 def lorentzian_explicit (K γ r₀ : ℝ) (t : ℝ) : ℝ :=
   Real.sqrt ((w_func K γ r₀ t)⁻¹)
 
+/-- **Exact initial-data separation**: the w-function difference is proportional to exp(-μt).
+    The B = K/(K-2γ) terms cancel exactly; only the initial-data difference 1/r₀²-1/r₀'² survives. -/
+theorem w_func_diff (K γ r₀ r₀' : ℝ) (t : ℝ) :
+    w_func K γ r₀ t - w_func K γ r₀' t =
+      (1 / r₀ ^ 2 - 1 / r₀' ^ 2) * Real.exp (-(K - 2 * γ) * t) := by
+  simp only [w_func]; ring
+
+/-- **w-function convergence**: |w(t,r₀) - w(t,r₀')| → 0 as t → ∞. -/
+theorem w_func_diff_tendsto (K γ r₀ r₀' : ℝ) (hKγ : 2 * γ < K) :
+    Tendsto (fun t => |w_func K γ r₀ t - w_func K γ r₀' t|) atTop (nhds 0) := by
+  simp_rw [w_func_diff, abs_mul, abs_of_pos (Real.exp_pos _)]
+  have hmu : 0 < K - 2 * γ := by linarith
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(K - 2 * γ) * t)) atTop (nhds 0) := by
+    have h1 := tendsto_id.const_mul_atTop hmu
+    exact (Real.tendsto_exp_neg_atTop_nhds_zero.comp h1).congr (fun t => by
+      simp only [Function.comp, id]; congr 1; ring)
+  have hmul := hexp.const_mul |1 / r₀ ^ 2 - 1 / r₀' ^ 2|
+  simp only [mul_zero] at hmul
+  exact hmul
+
 /-- r(0) = r₀. -/
 lemma lorentzian_explicit_init (K γ r₀ : ℝ) (hr₀ : 0 < r₀) :
     lorentzian_explicit K γ r₀ 0 = r₀ := by
