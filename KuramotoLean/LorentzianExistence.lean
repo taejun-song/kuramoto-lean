@@ -499,4 +499,41 @@ theorem LorentzianContinuousSolution.rate_bound
   exact lorentzian_explicit_rate S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
     S.hr_init_pos S.hr_init_lt t (le_of_lt ht)
 
+/-- **Rate in terms of initial displacement**: B = 1/r*², so |A| = |r*²-r₀²|/(r₀²r*²).
+    The rate bound becomes |r(t)-r*| ≤ |r*²-r₀²|·exp(-μt)/(r₀²·r*³). -/
+theorem lorentzian_explicit_rate_initial (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      |Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2| * Real.exp (-(K - 2 * γ) * t) /
+        (r₀ ^ 2 * Real.sqrt (1 - 2 * γ / K) ^ 3) := by
+  have hd : (0 : ℝ) < K - 2 * γ := by linarith
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_sq : (0 : ℝ) < r₀ ^ 2 := sq_pos_of_pos hr₀_pos
+  -- Key: B = 1/r*², so |1/r₀²-B| = |r*²-r₀²|/(r₀²·r*²)
+  have hrsq_pos : 0 < Real.sqrt (1 - 2 * γ / K) ^ 2 := sq_pos_of_pos hrstar_pos
+  have hA_eq : |1 / r₀ ^ 2 - K / (K - 2 * γ)| =
+      |Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2| / (r₀ ^ 2 * Real.sqrt (1 - 2 * γ / K) ^ 2) := by
+    have h_num_eq : 1 / r₀ ^ 2 - K / (K - 2 * γ) =
+        (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) / (r₀ ^ 2 * Real.sqrt (1 - 2 * γ / K) ^ 2) := by
+      rw [hrstar_sq]; field_simp [hK.ne', hd.ne', hr₀_sq.ne']
+    rw [h_num_eq, abs_div]
+    congr 1
+    exact abs_of_pos (mul_pos hr₀_sq hrsq_pos)
+  -- Use lorentzian_explicit_rate and substitute hA_eq
+  have hrate := lorentzian_explicit_rate K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  rw [hA_eq] at hrate
+  have hrstar3 : Real.sqrt (1 - 2 * γ / K) ^ 3 =
+      Real.sqrt (1 - 2 * γ / K) ^ 2 * Real.sqrt (1 - 2 * γ / K) := by ring
+  calc |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)|
+      ≤ |Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2| /
+          (r₀ ^ 2 * Real.sqrt (1 - 2 * γ / K) ^ 2) *
+          Real.exp (-(K - 2 * γ) * t) / Real.sqrt (1 - 2 * γ / K) := hrate
+    _ = |Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2| * Real.exp (-(K - 2 * γ) * t) /
+          (r₀ ^ 2 * Real.sqrt (1 - 2 * γ / K) ^ 3) := by
+            rw [hrstar3]; field_simp [hr₀_sq.ne', hrsq_pos.ne', hrstar_pos.ne']
+
 end
