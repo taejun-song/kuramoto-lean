@@ -454,6 +454,39 @@ theorem LorentzianContinuousSolution.eq_explicit
     hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hinit
   exact hEqOn ⟨le_of_lt ht, le_refl t⟩
 
+/-- **Two-solution distance bound**: |r(t,r₀) - r(t,r₀')| ≤ (|A_r₀|+|A_r₀'|)·exp(-μt)/r*
+    via the triangle inequality through r*. -/
+theorem lorentzian_explicit_dist_bound (K γ r₀ r₀' : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀'_pos : 0 < r₀') (hr₀'_lt : r₀' < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t| ≤
+      (|1 / r₀ ^ 2 - K / (K - 2 * γ)| + |1 / r₀' ^ 2 - K / (K - 2 * γ)|) *
+        Real.exp (-(K - 2 * γ) * t) / Real.sqrt (1 - 2 * γ / K) := by
+  have h1 := lorentzian_explicit_rate K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h2 := lorentzian_explicit_rate K γ r₀' hK hγ hKγ hr₀'_pos hr₀'_lt t ht
+  set r_star := Real.sqrt (1 - 2 * γ / K)
+  have hrstar_pos : 0 < r_star :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  -- Triangle through r*: |r - r'| ≤ |r - r*| + |r' - r*|
+  have htri : |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t| ≤
+      |lorentzian_explicit K γ r₀ t - r_star| +
+        |lorentzian_explicit K γ r₀' t - r_star| := by
+    have h := dist_triangle (lorentzian_explicit K γ r₀ t) r_star
+                (lorentzian_explicit K γ r₀' t)
+    rw [Real.dist_eq, Real.dist_eq, Real.dist_eq] at h
+    linarith [abs_sub_comm r_star (lorentzian_explicit K γ r₀' t)]
+  -- Chain with rate bounds
+  calc |lorentzian_explicit K γ r₀ t - lorentzian_explicit K γ r₀' t|
+      ≤ |lorentzian_explicit K γ r₀ t - r_star| +
+          |lorentzian_explicit K γ r₀' t - r_star| := htri
+    _ ≤ |1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t) / r_star +
+          |1 / r₀' ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t) / r_star :=
+          add_le_add h1 h2
+    _ = (|1 / r₀ ^ 2 - K / (K - 2 * γ)| + |1 / r₀' ^ 2 - K / (K - 2 * γ)|) *
+          Real.exp (-(K - 2 * γ) * t) / r_star := by ring
+
 /-- **Universal rate bound**: any LorentzianContinuousSolution satisfies
     |r(t) - r*| ≤ |A|·exp(-μt)/r* for t > 0.
     Follows from ODE uniqueness (eq_explicit) + lorentzian_explicit_rate. -/
