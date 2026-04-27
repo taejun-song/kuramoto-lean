@@ -129,6 +129,38 @@ theorem lorentzian_rstar_is_fixed_point (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
   rw [hcube]
   field_simp [ne_of_gt hK]; ring
 
+/-- **ODE positive below r***: for r ∈ (0, r*), the Lorentzian velocity ṙ > 0.
+    ṙ = (K/2)·r·(r*²-r²) > 0 because r > 0 and r² < r*². -/
+theorem lorentzian_ode_pos_below_rstar (K γ r : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr_pos : 0 < r) (hr_lt : r < Real.sqrt (1 - 2 * γ / K)) :
+    0 < lorentzianODE K γ r := by
+  rw [lorentzian_ode_factored K γ r (ne_of_gt hK)]
+  apply mul_pos (mul_pos (by linarith) hr_pos)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr_sq_lt : r ^ 2 < Real.sqrt (1 - 2 * γ / K) ^ 2 := by
+    nlinarith [mul_pos (by linarith : 0 < Real.sqrt (1 - 2*γ/K) - r)
+                       (by linarith : 0 < Real.sqrt (1 - 2*γ/K) + r)]
+  linarith [hrstar_sq ▸ hr_sq_lt]
+
+/-- **ODE negative above r***: for r ∈ (r*, 1), the Lorentzian velocity ṙ < 0.
+    ṙ = (K/2)·r·(r*²-r²) < 0 because r > r* > 0 and r² > r*². -/
+theorem lorentzian_ode_neg_above_rstar (K γ r : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr_gt : Real.sqrt (1 - 2 * γ / K) < r) (hr_lt : r < 1) :
+    lorentzianODE K γ r < 0 := by
+  rw [lorentzian_ode_factored K γ r (ne_of_gt hK)]
+  have hrstar_pos := Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hr_pos : 0 < r := hrstar_pos.trans hr_gt
+  apply mul_neg_of_pos_of_neg (mul_pos (by linarith) hr_pos)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr_sq_gt : Real.sqrt (1 - 2 * γ / K) ^ 2 < r ^ 2 := by
+    nlinarith [mul_pos (by linarith : 0 < r - Real.sqrt (1 - 2*γ/K))
+                       (by linarith : 0 < r + Real.sqrt (1 - 2*γ/K))]
+  linarith [hrstar_sq ▸ hr_sq_gt]
+
 /-- **Exact initial-data separation**: the w-function difference is proportional to exp(-μt).
     The B = K/(K-2γ) terms cancel exactly; only the initial-data difference 1/r₀²-1/r₀'² survives. -/
 theorem w_func_diff (K γ r₀ r₀' : ℝ) (t : ℝ) :
