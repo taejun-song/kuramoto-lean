@@ -905,4 +905,33 @@ theorem lorentzian_r_from_w_decay (K γ r₀ : ℝ)
     _ ≤ (r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2) *
           Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) := hW_decay
 
+
+/-- Unified exponential rate: for all r₀ ∈ (0,1) with r₀² ≠ r*²,
+    |r(t)-r*| ≤ |r₀²-r*²|·exp(-K·min(r₀²,r*²)·t)/r*.
+    Combines V-decay (r₀<r*, rate K·r₀²) and W-decay (r₀>r*, rate K·r*²). -/
+theorem lorentzian_unified_rate (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ^ 2 ≠ 1 - 2 * γ / K)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      |r₀ ^ 2 - (1 - 2 * γ / K)| *
+        Real.exp (-(K * min (r₀ ^ 2) (1 - 2 * γ / K)) * t) /
+        Real.sqrt (1 - 2 * γ / K) := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+  rcases lt_or_gt_of_ne hr₀_ne with h | h
+  · -- Case r₀² < r*²
+    have hlt : r₀ ^ 2 < 1 - 2 * γ / K := h
+    have hbound := lorentzian_r_from_v_decay K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hlt t ht
+    rw [abs_of_neg (sub_neg.mpr hlt), min_eq_left (le_of_lt hlt)]
+    simp only [neg_sub, hrstar_sq] at hbound ⊢
+    linarith
+  · -- Case r₀² > r*²
+    have hgt : 1 - 2 * γ / K < r₀ ^ 2 := h
+    have hbound := lorentzian_r_from_w_decay K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hgt t ht
+    rw [abs_of_pos (sub_pos.mpr hgt), min_eq_right (le_of_lt hgt)]
+    simp only [hrstar_sq] at hbound ⊢
+    linarith
+
 end
