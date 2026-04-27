@@ -965,4 +965,49 @@ theorem lorentzian_v_decay_uniform (K γ r₀ δ : ℝ)
     _ ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * δ ^ 2) * t) :=
         mul_le_mul_of_nonneg_left hexp_mono hV_nn
 
+/-- Uniform |r(t)-r*| bound on compact below-r* interval [δ, r*-ε]:
+    |r(t)-r*| ≤ (r*²-δ²)·exp(-K·δ²·t)/r*.
+    Rate K·δ² is uniform across r₀ ∈ [δ, r*). -/
+theorem lorentzian_uniform_r_decay (K γ r₀ δ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K)
+    (hδ_pos : 0 < δ) (hδ_le : δ ≤ r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      (Real.sqrt (1 - 2 * γ / K) ^ 2 - δ ^ 2) * Real.exp (-(K * δ ^ 2) * t) /
+        Real.sqrt (1 - 2 * γ / K) := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) := by
+    apply Real.sqrt_pos_of_pos; rw [sub_pos, div_lt_one hK]; linarith
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+  have hr_pos : 0 < lorentzian_explicit K γ r₀ t :=
+    lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_lt_rstar : lorentzian_explicit K γ r₀ t < Real.sqrt (1 - 2 * γ / K) := by
+    rw [← Real.sqrt_sq (le_of_lt hr_pos)]
+    apply Real.sqrt_lt_sqrt (sq_nonneg _)
+    exact lorentzian_explicit_sq_lt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  have hVu := lorentzian_v_decay_uniform K γ r₀ δ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt
+                hδ_pos hδ_le t ht
+  -- (r*²-δ²)·exp ≥ (r*²-r₀²)·exp ≥ V(t) = r*²-r(t)²
+  have hδsq_le : r₀ ^ 2 ≥ δ ^ 2 := pow_le_pow_left₀ (le_of_lt hδ_pos) hδ_le 2
+  have hcoeff : Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2 ≤
+      Real.sqrt (1 - 2 * γ / K) ^ 2 - δ ^ 2 := by linarith
+  have hcoeff_nn : 0 ≤ Real.sqrt (1 - 2 * γ / K) ^ 2 - δ ^ 2 := by
+    rw [hrstar_sq]; nlinarith [pow_le_pow_left₀ (le_of_lt hδ_pos) hδ_le 2, hr₀_sq_lt]
+  have hVub : Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2 ≤
+      (Real.sqrt (1 - 2 * γ / K) ^ 2 - δ ^ 2) * Real.exp (-(K * δ ^ 2) * t) :=
+    le_trans hVu (mul_le_mul_of_nonneg_right hcoeff (Real.exp_nonneg _))
+  have habs : |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| =
+      Real.sqrt (1 - 2 * γ / K) - lorentzian_explicit K γ r₀ t := by
+    rw [abs_of_neg (sub_neg.mpr hr_lt_rstar)]; ring
+  rw [habs, le_div_iff₀ hrstar_pos]
+  calc (Real.sqrt (1 - 2 * γ / K) - lorentzian_explicit K γ r₀ t) * Real.sqrt (1 - 2 * γ / K)
+      ≤ (Real.sqrt (1 - 2 * γ / K) - lorentzian_explicit K γ r₀ t) *
+        (Real.sqrt (1 - 2 * γ / K) + lorentzian_explicit K γ r₀ t) :=
+        mul_le_mul_of_nonneg_left (by linarith [le_of_lt hr_pos])
+          (sub_nonneg.mpr (le_of_lt hr_lt_rstar))
+    _ = Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2 := by ring
+    _ ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - δ ^ 2) * Real.exp (-(K * δ ^ 2) * t) := hVub
+
 end
