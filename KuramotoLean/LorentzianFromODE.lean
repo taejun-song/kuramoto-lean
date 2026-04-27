@@ -9,6 +9,8 @@
   For non-decreasing r, persistence is trivial: r(n) ≥ r(0) > 0 for all n.
 
   toLorentzianSolution_nondec: full constructor (0 assumed fields) for r(0) ≤ r*.
+  toLorentzianSolution_noninc: full constructor (0 assumed fields) for r(0) ≥ r*.
+  hpersist for noninc derived via hpersist_from_convergence (ODE → parametric_convergence).
 
   0 sorry.
 -/
@@ -258,6 +260,148 @@ theorem LorentzianContinuousSolution.hlyap_from_nondecreasing
             Real.exp (-2 * ((range m).sum (fun k => S.K * S.r ↑k ^ 2) + S.K * S.r ↑m ^ 2)) := by
           rw [mul_assoc, ← Real.exp_add]; congr 1; ring
 
+/-! ## Lyapunov: W(n) ≤ W(0)·exp(2K)·exp(-2Ψ(n)) for non-increasing r -/
+
+/-- Right Riemann sum shift: Σₖ₌₀ⁿ⁻¹ K·r(k+1)² = Σₖ₌₀ⁿ⁻¹ K·r(k)² + K·(r(n)² - r(0)²). -/
+private theorem lorentzian_sum_right_eq (S : LorentzianContinuousSolution) (n : ℕ) :
+    (Finset.range n).sum (fun k => S.K * S.r ↑(k + 1) ^ 2) =
+    (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2) + S.K * (S.r n ^ 2 - S.r 0 ^ 2) := by
+  induction n with
+  | zero => simp
+  | succ m ih =>
+    rw [sum_range_succ, sum_range_succ, ih]
+    push_cast; ring
+
+/-- One-step Lyapunov drop (non-increasing r): W(m+1) ≤ W(m)·exp(-2K·r(m+1)²). -/
+private theorem lorentzian_lyap_step_noninc
+    (S : LorentzianContinuousSolution)
+    (r_star_sq : ℝ) (hr_star_sq : r_star_sq = 1 - 2 * S.γ / S.K)
+    (hr_noninc : ∀ s t, 0 ≤ s → s ≤ t → S.r t ≤ S.r s)
+    (m : ℕ) :
+    (S.r (↑(m + 1)) ^ 2 - r_star_sq) ^ 2 ≤
+    (S.r (↑m) ^ 2 - r_star_sq) ^ 2 *
+      Real.exp (-(2 * S.K * S.r (↑(m + 1)) ^ 2) * 1) := by
+  set V : ℝ → ℝ := fun t => (S.r t ^ 2 - r_star_sq) ^ 2 with hV_def
+  have hV_cont : ContinuousOn V (Icc (m : ℝ) (↑m + 1)) := by
+    apply ContinuousOn.pow
+    apply ContinuousOn.sub _ continuousOn_const
+    exact (S.hr_cont.mono (fun t ht => le_trans (Nat.cast_nonneg m) ht.1)).pow 2
+  have hV_deriv : ∀ t, (m : ℝ) < t → t < (m : ℝ) + 1 →
+      HasDerivAt V (-2 * S.K * S.r t ^ 2 * V t) t := by
+    intro t ht_lo _
+    have ht_nn : 0 ≤ t := le_trans (Nat.cast_nonneg m) (le_of_lt ht_lo)
+    have h_r := S.hr_ode t ht_nn
+    have h_f : HasDerivAt (fun s => S.r s ^ 2 - r_star_sq)
+        (2 * S.r t * lorentzianODE S.K S.γ (S.r t)) t := by
+      have hmul := h_r.mul h_r
+      have h_sq : HasDerivAt (fun s => S.r s ^ 2)
+          (2 * S.r t * lorentzianODE S.K S.γ (S.r t)) t := by
+        convert hmul using 1
+        · funext; simp [Pi.mul_apply, sq]
+        · ring
+      exact h_sq.sub_const r_star_sq
+    have hmul2 := h_f.mul h_f
+    have h_W : HasDerivAt V (-2 * S.K * S.r t ^ 2 * V t) t := by
+      convert hmul2 using 1
+      · funext; simp [hV_def, sq]
+      · simp only [hV_def, sq]
+        unfold lorentzianODE; rw [hr_star_sq]
+        field_simp [ne_of_gt S.hK_pos]; ring
+    exact h_W
+  have hV_bound : ∀ t, (m : ℝ) < t → t < (m : ℝ) + 1 →
+      -2 * S.K * S.r t ^ 2 * V t ≤ -(2 * S.K * S.r (↑(m + 1)) ^ 2) * V t := by
+    intro t ht_lo ht_hi
+    have ht_nn : 0 ≤ t := le_trans (Nat.cast_nonneg m) (le_of_lt ht_lo)
+    have hrt_nn : 0 ≤ S.r t := le_of_lt (S.r_pos t ht_nn)
+    have hrm1_nn : 0 ≤ S.r (↑(m + 1)) := le_of_lt (S.r_pos _ (Nat.cast_nonneg _))
+    have hrm1_le : S.r t ≥ S.r (↑(m + 1)) := by
+      apply hr_noninc t (↑(m + 1)) ht_nn
+      push_cast; linarith
+    have hVt_nn : 0 ≤ V t := sq_nonneg _
+    nlinarith [sq_nonneg (S.r t - S.r (↑(m + 1))),
+              mul_nonneg hrt_nn (add_nonneg hrt_nn hrm1_nn),
+              mul_nonneg (mul_nonneg (by linarith [S.hK_pos] : (0:ℝ) ≤ 2 * S.K)
+                (mul_nonneg (add_nonneg hrt_nn hrm1_nn)
+                  (by linarith : 0 ≤ S.r t - S.r (↑(m + 1)))))
+                hVt_nn]
+  have h_cast : (m : ℝ) + 1 = ↑(m + 1) := by push_cast; ring
+  simp only [← h_cast] at hV_bound
+  rw [← h_cast]
+  exact comparison_decay_interval V _ (2 * S.K * S.r ((m : ℝ) + 1) ^ 2) (m : ℝ) 1
+    (by linarith) hV_cont hV_deriv hV_bound
+
+/-- Discrete Lyapunov (non-increasing r): W(n) ≤ W(0)·exp(-2·Σₖ₌₀ⁿ⁻¹ K·r(k+1)²). -/
+private theorem lorentzian_hlyap_noninc_raw
+    (S : LorentzianContinuousSolution)
+    (r_star_sq : ℝ) (hr_star_sq : r_star_sq = 1 - 2 * S.γ / S.K)
+    (hr_noninc : ∀ s t, 0 ≤ s → s ≤ t → S.r t ≤ S.r s) :
+    ∀ n : ℕ, (S.r n ^ 2 - r_star_sq) ^ 2 ≤
+      (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+        Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑(k + 1) ^ 2)) := by
+  intro n
+  induction n with
+  | zero => simp
+  | succ m ih =>
+    have h_step := lorentzian_lyap_step_noninc S r_star_sq hr_star_sq hr_noninc m
+    simp only [mul_one] at h_step
+    push_cast at h_step ih ⊢
+    rw [sum_range_succ]
+    push_cast
+    calc (S.r (↑m + 1) ^ 2 - r_star_sq) ^ 2
+        ≤ (S.r ↑m ^ 2 - r_star_sq) ^ 2 * Real.exp (-(2 * S.K * S.r (↑m + 1) ^ 2)) :=
+          h_step
+      _ ≤ ((S.r 0 ^ 2 - r_star_sq) ^ 2 *
+              Real.exp (-2 * (range m).sum (fun k => S.K * S.r (↑k + 1) ^ 2))) *
+            Real.exp (-(2 * S.K * S.r (↑m + 1) ^ 2)) :=
+          mul_le_mul_of_nonneg_right ih (Real.exp_nonneg _)
+      _ = (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+            Real.exp (-2 * ((range m).sum (fun k => S.K * S.r (↑k + 1) ^ 2) +
+              S.K * S.r (↑m + 1) ^ 2)) := by
+          rw [mul_assoc, ← Real.exp_add]; congr 1; ring
+
+/-- Lyapunov bound for non-increasing r: W(n) ≤ W(0)·exp(2K)·exp(-2Ψ(n)).
+    Uses: right Riemann sum + Σ_right = Ψ - K·(r(0)²-r(n)²) ≥ Ψ - K. -/
+theorem LorentzianContinuousSolution.hlyap_from_nonincreasing
+    (S : LorentzianContinuousSolution)
+    (r_star_sq : ℝ) (hr_star_sq : r_star_sq = 1 - 2 * S.γ / S.K)
+    (hr_noninc : ∀ s t, 0 ≤ s → s ≤ t → S.r t ≤ S.r s) :
+    ∀ n : ℕ, (S.r n ^ 2 - r_star_sq) ^ 2 ≤
+      (S.r 0 ^ 2 - r_star_sq) ^ 2 * Real.exp (2 * S.K) *
+        Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r k ^ 2)) := by
+  intro n
+  have hraw := lorentzian_hlyap_noninc_raw S r_star_sq hr_star_sq hr_noninc n
+  have hid : (Finset.range n).sum (fun k => S.K * S.r ↑(k + 1) ^ 2) =
+      (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2) +
+        S.K * (S.r n ^ 2 - S.r 0 ^ 2) := by
+    have := lorentzian_sum_right_eq S n
+    push_cast at this ⊢; linarith
+  rw [hid] at hraw
+  have hr0_le : S.r 0 ^ 2 ≤ 1 := by
+    have : S.r 0 < 1 := S.hr_init_lt
+    nlinarith [S.hr_init_pos.le]
+  have hrn_nn : 0 ≤ S.r n ^ 2 := sq_nonneg _
+  have hK_pos := S.hK_pos
+  calc (S.r n ^ 2 - r_star_sq) ^ 2
+      ≤ (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+          Real.exp (-2 * ((Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2) +
+            S.K * (S.r n ^ 2 - S.r 0 ^ 2))) := hraw
+    _ = (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+          (Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2) +
+            (-2 * S.K * (S.r n ^ 2 - S.r 0 ^ 2)))) := by
+          congr 2; ring
+    _ = (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+          Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2)) *
+          Real.exp (-2 * S.K * (S.r n ^ 2 - S.r 0 ^ 2)) := by
+          rw [Real.exp_add]; ring
+    _ ≤ (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+          Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2)) *
+          Real.exp (2 * S.K) := by
+          apply mul_le_mul_of_nonneg_left _ (mul_nonneg (sq_nonneg _) (Real.exp_nonneg _))
+          apply Real.exp_le_exp.mpr
+          nlinarith
+    _ = (S.r 0 ^ 2 - r_star_sq) ^ 2 * Real.exp (2 * S.K) *
+          Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2)) := by ring
+
 /-! ## Constructor: LorentzianContinuousSolution → LorentzianSolution (non-decreasing r) -/
 
 /-- Constructs a `LorentzianSolution` from a continuous ODE solution when r is non-decreasing.
@@ -282,10 +426,15 @@ def LorentzianContinuousSolution.toLorentzianSolution_nondec
   hpersist := fun N => ⟨N, le_refl N, by
     have h : S.r 0 ≤ S.r N := hr_nondec 0 N (le_refl 0) (Nat.cast_nonneg N)
     linarith [S.hr_init_pos]⟩
+  hlyap_coeff := (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 + 1
+  hlyap_coeff_pos := by linarith [sq_nonneg (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K))]
   hlyap := fun n => by
     have h := S.hlyap_from_nondecreasing (1 - 2 * S.γ / S.K) rfl hr_nondec n
     simp only [Nat.cast_zero] at h ⊢
-    exact h
+    set e := Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2))
+    set W := (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2
+    exact le_trans h (mul_le_mul_of_nonneg_right (le_add_of_nonneg_right zero_le_one)
+      (Real.exp_nonneg _))
 
 /-- Lorentzian global stability from a continuous ODE solution with non-decreasing r.
     All `LorentzianSolution` fields are proved from the ODE — 0 assumed. -/
@@ -295,5 +444,48 @@ theorem lorentzian_nondec_convergence
     ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
       |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
   lorentzian_envelope_stability (S.toLorentzianSolution_nondec hr_nondec)
+
+/-! ## Constructor: LorentzianContinuousSolution → LorentzianSolution (non-increasing r) -/
+
+/-- Constructs a `LorentzianSolution` from a continuous ODE solution when r is non-increasing.
+    For non-increasing r (r(0) ≥ r*): every field is proved from the ODE — 0 assumed.
+    - hpersist: derived from hpersist_from_convergence (ODE → n-pole → convergence → persistence)
+    - hlyap: right Riemann sum gives W(n) ≤ W(0)·exp(2K)·exp(-2Ψ(n)) -/
+def LorentzianContinuousSolution.toLorentzianSolution_noninc
+    (S : LorentzianContinuousSolution)
+    (hr_noninc : ∀ s t : ℝ, 0 ≤ s → s ≤ t → S.r t ≤ S.r s) :
+    LorentzianSolution where
+  K := S.K
+  γ := S.γ
+  hK_pos := S.hK_pos
+  hK_gt := S.hK_gt
+  r := fun n => S.r n
+  hr_bdd := S.hr_bdd_discrete
+  hr_lip := S.hr_lip_discrete
+  δ := S.hpersist_from_convergence.choose
+  hδ := S.hpersist_from_convergence.choose_spec.1
+  hpersist := S.hpersist_from_convergence.choose_spec.2
+  hlyap_coeff := (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 * Real.exp (2 * S.K) + 1
+  hlyap_coeff_pos := by
+    have := mul_nonneg (sq_nonneg (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K))) (Real.exp_nonneg (2 * S.K))
+    linarith
+  hlyap := fun n => by
+    have h := S.hlyap_from_nonincreasing (1 - 2 * S.γ / S.K) rfl hr_noninc n
+    simp only [Nat.cast_zero] at h ⊢
+    set e := Real.exp (-2 * (Finset.range n).sum (fun k => S.K * S.r ↑k ^ 2))
+    set W := (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2
+    calc (S.r n ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2
+        ≤ W * Real.exp (2 * S.K) * e := h
+      _ ≤ (W * Real.exp (2 * S.K) + 1) * e :=
+          mul_le_mul_of_nonneg_right (le_add_of_nonneg_right zero_le_one) (Real.exp_nonneg _)
+
+/-- Lorentzian global stability from a continuous ODE solution with non-increasing r.
+    All `LorentzianSolution` fields are proved from the ODE — 0 assumed. -/
+theorem lorentzian_noninc_convergence
+    (S : LorentzianContinuousSolution)
+    (hr_noninc : ∀ s t : ℝ, 0 ≤ s → s ≤ t → S.r t ≤ S.r s) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
+  lorentzian_envelope_stability (S.toLorentzianSolution_noninc hr_noninc)
 
 end
