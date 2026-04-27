@@ -3460,4 +3460,36 @@ theorem LorentzianContinuousSolution.dist_from_gronwall_above
     (Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))
     (fun u hu => le_of_lt (S.gt_rstar_of_init h_above u hu)) t ht
 
+/-- **V strictly antitone from abstract ODE** (uses ne_rstar): when S.r 0 ≠ r*,
+    V = (S.r t - r*)² is StrictAntiOn [0, ∞). Proof via strictAntiOn_of_hasDerivWithinAt_neg:
+    HasDerivWithinAt from v_deriv_formula; strict negativity from v_deriv_neg_at_nonequil + ne_rstar.
+    A StrictAntiOn reformulation of v_strict_anti via the derivative path. -/
+theorem LorentzianContinuousSolution.v_strict_anti_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K)) :
+    StrictAntiOn (fun t => (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      (Set.Ici (0 : ℝ)) := by
+  apply strictAntiOn_of_hasDerivWithinAt_neg (convex_Ici _)
+    ((S.hr_cont.sub continuousOn_const).pow 2)
+  · intro t ht
+    simp only [interior_Ici, Set.mem_Ioi] at ht
+    exact (S.v_deriv_formula t ht.le).hasDerivWithinAt
+  · intro t ht
+    simp only [interior_Ici, Set.mem_Ioi] at ht
+    exact S.v_deriv_neg_at_nonequil t ht.le (S.ne_rstar h0_ne t ht.le)
+
+/-- **Strict distance decrease from abstract ODE**: when S.r 0 ≠ r* and t > 0,
+    |S.r t - r*| < |S.r 0 - r*| strictly. Corollary of v_strict_anti_from_ode via
+    sqrt strict monotonicity: V(t) < V(0) implies √V(t) < √V(0). -/
+theorem LorentzianContinuousSolution.dist_strict_lt_init_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| <
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  have hV := S.v_strict_anti_from_ode h0_ne
+    (Set.mem_Ici.mpr le_rfl) (Set.mem_Ici.mpr ht.le) ht
+  rw [← Real.sqrt_sq_eq_abs, ← Real.sqrt_sq_eq_abs]
+  exact Real.sqrt_lt_sqrt (sq_nonneg _) hV
+
 end
