@@ -1297,6 +1297,16 @@ theorem lorentzian_explicit_strictly_increasing (K γ r₀ : ℝ)
   have hmono := strictMonoOn_of_deriv_pos (convex_Icc s t) hcont hderiv_pos
   exact hmono (Set.left_mem_Icc.mpr (le_of_lt hst)) (Set.right_mem_Icc.mpr (le_of_lt hst)) hst
 
+/-- **Strictly increasing trajectory for any ODE solution**: if S.r 0 < r*, then S.r s < S.r t
+    for any 0 ≤ s < t. Lifts strictly_increasing to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.strictly_increasing (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    S.r s < S.r t := by
+  rw [S.eq_explicit_of_nonneg s hs, S.eq_explicit_of_nonneg t (hs.trans hst.le)]
+  exact lorentzian_explicit_strictly_increasing S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos hr₀_lt_rstar hs hst
+
 /-- **Order-preserving flow**: the Lorentzian ODE flow is order-preserving in the initial condition.
     If r₀ < r₀' then r(t, r₀) < r(t, r₀') for all t ≥ 0. Proof via Bernoulli w_func_diff:
     r₀ < r₀' → 1/r₀²>1/r₀'² → w(r₀)>w(r₀') → 1/w(r₀)<1/w(r₀') → r(r₀)<r(r₀'). -/
@@ -1365,6 +1375,16 @@ theorem lorentzian_explicit_strictly_decreasing (K γ r₀ : ℝ)
         (le_trans hs (le_of_lt hs_u))
   have hanti := strictAntiOn_of_deriv_neg (convex_Icc s t) hcont hderiv_neg
   exact hanti (Set.left_mem_Icc.mpr (le_of_lt hst)) (Set.right_mem_Icc.mpr (le_of_lt hst)) hst
+
+/-- **Strictly decreasing trajectory for any ODE solution**: if S.r 0 > r*, then S.r t < S.r s
+    for any 0 ≤ s < t. Lifts strictly_decreasing to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.strictly_decreasing (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    S.r t < S.r s := by
+  rw [S.eq_explicit_of_nonneg s hs, S.eq_explicit_of_nonneg t (hs.trans hst.le)]
+  exact lorentzian_explicit_strictly_decreasing S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_gt_rstar hs hst
 
 /-- **Unique positive fixed point**: for K > 2γ, r* = √(1-2γ/K) is the only positive root
     of the Lorentzian ODE. Any r > 0 with ṙ = 0 must equal r*. -/
