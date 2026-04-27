@@ -3159,4 +3159,59 @@ theorem LorentzianContinuousSolution.v_exp_bound_above (S : LorentzianContinuous
   exact lorentzian_lyapunov_v_exp_bound_above S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
     S.hr_init_pos S.hr_init_lt hr₀_gt_rstar t ht
 
+/-- **Weak V antitone**: for 0 ≤ s ≤ t, V(t) ≤ V(s). Weak version of v_strict_anti (no hr₀_ne).
+    Holds trivially at r₀ = r* (V ≡ 0) and by v_strict_anti for r₀ ≠ r*. -/
+theorem LorentzianContinuousSolution.v_antitone (S : LorentzianContinuousSolution)
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r s - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 :=
+  S.v_nonincreasing (Set.mem_Ici.mpr hs) (Set.mem_Ici.mpr (hs.trans hst)) hst
+
+/-- **Below-r* distance bound**: for r₀ < r*, |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t).
+    Sharper than r_dist_bound when r₀ < r*: rate K·r₀·r*/2 instead of K·min(r₀,r*)·r*/2. -/
+theorem LorentzianContinuousSolution.dist_bound_below (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * S.r 0 * Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_r_dist_below' S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_lt_rstar t ht
+
+/-- **Above-r* distance bound**: for r* < r₀, |r(t)-r*| ≤ |r₀-r*|·exp(-K·(1-2γ/K)·t).
+    Rate K·r*² = K-2γ is the linearized decay rate. Sharper than r_dist_bound for r₀ > r*. -/
+theorem LorentzianContinuousSolution.dist_bound_above (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * (1 - 2 * S.γ / S.K)) * t) := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_r_dist_above S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_gt_rstar t ht
+
+/-- **Bernoulli amplitude square bound**: (r(t)²-r*²)² ≤ A²·exp(-2μt) where A = 1/r₀²-B.
+    The square difference decays like the Bernoulli linearization amplitude squared. -/
+theorem LorentzianContinuousSolution.sq_diff_bound (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (1 / S.r 0 ^ 2 - S.K / (S.K - 2 * S.γ)) ^ 2 *
+    Real.exp (-2 * (S.K - 2 * S.γ) * t) := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_sq_diff_bound S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt t ht
+
+/-- **Rate in terms of initial displacement**: |r(t)-r*| ≤ |r*²-r₀²|·exp(-μt)/(r₀²·r*³).
+    Expresses the rate bound via the physical displacement r*²-r₀² rather than the amplitude A. -/
+theorem LorentzianContinuousSolution.rate_initial (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |Real.sqrt (1 - 2 * S.γ / S.K) ^ 2 - S.r 0 ^ 2| *
+    Real.exp (-(S.K - 2 * S.γ) * t) /
+    (S.r 0 ^ 2 * Real.sqrt (1 - 2 * S.γ / S.K) ^ 3) := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_explicit_rate_initial S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt t ht
+
 end
