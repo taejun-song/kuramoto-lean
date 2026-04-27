@@ -640,4 +640,18 @@ theorem lorentzian_explicit_sq_hasDerivAt (K γ r₀ : ℝ)
   field_simp [hK.ne']
   ring
 
+/-- V(t) = r*² - r(t)² satisfies V' = -K·r²·V.
+    Combined with r² > 0, this gives V monotone decreasing when V > 0 (r < r*)
+    and monotone increasing when V < 0 (r > r*), confirming r(t) → r* from both sides. -/
+theorem lorentzian_explicit_v_hasDerivAt (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) (t : ℝ) (ht : 0 ≤ t) :
+    HasDerivAt (fun s => Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ s ^ 2)
+      (-(K * lorentzian_explicit K γ r₀ t ^ 2 *
+        (Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2))) t := by
+  have h := lorentzian_explicit_sq_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hconst : HasDerivAt (fun _ => Real.sqrt (1 - 2 * γ / K) ^ 2) 0 t :=
+    hasDerivAt_const t _
+  convert hconst.sub h using 1; ring
+
 end
