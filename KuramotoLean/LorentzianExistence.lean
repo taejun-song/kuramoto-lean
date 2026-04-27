@@ -536,4 +536,32 @@ theorem lorentzian_explicit_rate_initial (K γ r₀ : ℝ)
           (r₀ ^ 2 * Real.sqrt (1 - 2 * γ / K) ^ 3) := by
             rw [hrstar3]; field_simp [hr₀_sq.ne', hrsq_pos.ne', hrstar_pos.ne']
 
+/-- The derivative of the Lorentzian ODE vector field at r* is -(K-2γ).
+    This confirms that the Bernoulli rate μ = K-2γ equals the linearized rate:
+    the explicit formula achieves the optimal exponential rate. -/
+theorem lorentzian_ode_hasDerivAt_rstar (K γ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K) :
+    HasDerivAt (lorentzianODE K γ) (-(K - 2 * γ)) (Real.sqrt (1 - 2 * γ / K)) := by
+  set r_star := Real.sqrt (1 - 2 * γ / K)
+  have hrstar_sq : r_star ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hderiv : HasDerivAt (fun r => (K / 2 - γ) * r - K / 2 * r ^ 3)
+      ((K / 2 - γ) - K / 2 * (3 * r_star ^ 2)) r_star := by
+    have h1 : HasDerivAt (fun r => (K / 2 - γ) * r) (K / 2 - γ) r_star := by
+      have h := (hasDerivAt_id r_star).const_mul (K / 2 - γ)
+      simp only [mul_one, id] at h
+      exact h
+    have h2 : HasDerivAt (fun r => K / 2 * r ^ 3) (K / 2 * (3 * r_star ^ 2)) r_star := by
+      have h := (hasDerivAt_pow 3 r_star).const_mul (K / 2)
+      simp only [Nat.cast_ofNat] at h
+      convert h using 1
+    exact h1.sub h2
+  have hconv : lorentzianODE K γ = fun r => (K / 2 - γ) * r - K / 2 * r ^ 3 := by
+    ext r; simp [lorentzianODE]
+  rw [hconv]
+  convert hderiv using 1
+  rw [hrstar_sq]
+  field_simp [ne_of_gt hK]
+  ring
+
 end
