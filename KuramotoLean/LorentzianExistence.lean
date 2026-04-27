@@ -564,4 +564,57 @@ theorem lorentzian_ode_hasDerivAt_rstar (K γ : ℝ)
   field_simp [ne_of_gt hK]
   ring
 
+/-- **Local stability with explicit Lyapunov constant**: for r₀ within r*/2 of r*,
+    |r(t)-r*| ≤ 10·|r₀-r*|·exp(-μt)/r*⁴. The constant 10/r*⁴ comes from:
+    |r*²-r₀²| ≤ (5r*/2)·|r₀-r*| and r₀² ≥ r*²/4 (both from nearness). -/
+theorem lorentzian_local_stability (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_near : |r₀ - Real.sqrt (1 - 2 * γ / K)| < Real.sqrt (1 - 2 * γ / K) / 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      10 * |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-(K - 2 * γ) * t) /
+        Real.sqrt (1 - 2 * γ / K) ^ 4 := by
+  set r_star := Real.sqrt (1 - 2 * γ / K)
+  have hrstar_pos : 0 < r_star := Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hr₀_lb : r_star / 2 < r₀ := by
+    have h := abs_lt.mp hr₀_near; linarith [h.1]
+  have hr₀_ub : r₀ < 3 * r_star / 2 := by
+    have h := abs_lt.mp hr₀_near; linarith [h.2]
+  have hr₀_sq_pos : (0 : ℝ) < r₀ ^ 2 := sq_pos_of_pos hr₀_pos
+  have hrstar3_pos : (0 : ℝ) < r_star ^ 3 := by positivity
+  have hrstar4_pos : (0 : ℝ) < r_star ^ 4 := by positivity
+  have hexp_nn : (0 : ℝ) ≤ Real.exp (-(K - 2 * γ) * t) := Real.exp_nonneg _
+  have hδ_nn : (0 : ℝ) ≤ |r₀ - r_star| := abs_nonneg _
+  -- |r*+r₀| ≤ 5r*/2 from r₀ < 3r*/2
+  have hsum_bound : r_star + r₀ ≤ 5 * r_star / 2 := by linarith
+  have hsum_pos : 0 < r_star + r₀ := by linarith
+  -- r₀² ≥ r*²/4 from r₀ > r*/2
+  have hr₀_sq_lb : r_star ^ 2 / 4 ≤ r₀ ^ 2 := by nlinarith [sq_nonneg (r₀ - r_star / 2)]
+  -- |r*²-r₀²| = |r*-r₀|·(r*+r₀)
+  have hfact : |r_star ^ 2 - r₀ ^ 2| = |r₀ - r_star| * (r_star + r₀) := by
+    rw [show r_star ^ 2 - r₀ ^ 2 = -(r₀ - r_star) * (r_star + r₀) from by ring,
+        abs_mul, abs_neg, abs_of_pos hsum_pos]
+  calc |lorentzian_explicit K γ r₀ t - r_star|
+      ≤ |r_star ^ 2 - r₀ ^ 2| * Real.exp (-(K - 2 * γ) * t) / (r₀ ^ 2 * r_star ^ 3) :=
+        lorentzian_explicit_rate_initial K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+    _ ≤ 10 * |r₀ - r_star| * Real.exp (-(K - 2 * γ) * t) / r_star ^ 4 := by
+        rw [hfact, div_le_div_iff₀ (mul_pos hr₀_sq_pos hrstar3_pos) hrstar4_pos]
+        -- Goal: |r₀-r*| * (r*+r₀) * exp * r*⁴ ≤ 10 * |r₀-r*| * exp * r₀² * r*³
+        -- Step 1: (r*+r₀) ≤ 5r*/2 → LHS ≤ δ*(5r*/2)*exp*r*⁴ = (5/2)δ·exp·r*⁵
+        -- Step 2: r₀² ≥ r*²/4 → RHS ≥ 10δ·exp·(r*²/4)·r*³ = (5/2)δ·exp·r*⁵
+        have h1 : |r₀ - r_star| * (r_star + r₀) * Real.exp (-(K - 2 * γ) * t) * r_star ^ 4 ≤
+            |r₀ - r_star| * (5 * r_star / 2) * Real.exp (-(K - 2 * γ) * t) * r_star ^ 4 :=
+          mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_right
+              (mul_le_mul_of_nonneg_left hsum_bound hδ_nn) hexp_nn)
+            (le_of_lt hrstar4_pos)
+        have h2 : 10 * |r₀ - r_star| * Real.exp (-(K - 2 * γ) * t) * (r_star ^ 2 / 4) * r_star ^ 3 ≤
+            10 * |r₀ - r_star| * Real.exp (-(K - 2 * γ) * t) * r₀ ^ 2 * r_star ^ 3 :=
+          mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_left hr₀_sq_lb
+              (mul_nonneg (mul_nonneg (by norm_num) hδ_nn) hexp_nn))
+            (le_of_lt hrstar3_pos)
+        nlinarith
+
 end
