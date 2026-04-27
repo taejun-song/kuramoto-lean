@@ -118,3 +118,4 @@ import KuramotoLean.EventualRate
 import KuramotoLean.NPoleContinuumBridge
 import KuramotoLean.FullChainContinuumBridge
 import KuramotoLean.LorentzianContinuumBridge
+import KuramotoLean.LorentzianExistence
