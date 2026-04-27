@@ -19,6 +19,7 @@
 -/
 
 import KuramotoLean.LorentzianFromODE
+import KuramotoLean.ExplicitRate
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Calculus.Deriv.Inv
@@ -1828,5 +1829,29 @@ theorem lorentzian_lyapunov_v_exp_bound (K γ r₀ : ℝ)
           have hkey_t : K * Real.sqrt (1 - 2 * γ / K) * Real.sqrt (1 - 2 * γ / K) * t =
               K * (1 - 2 * γ / K) * t := by linear_combination K * t * hrs_sq
           linarith [mul_nonneg (mul_nonneg hK.le (lorentzian_rstar_pos K γ hK hKγ).le) ht]
+
+/-- **Below-r* distance bound**: |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t) for r₀ < r*.
+    Applies order_parameter_exp_decay with V = (r-r*)² and v_exp_bound_below. -/
+theorem lorentzian_lyapunov_r_dist_below (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    Real.sqrt ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2) *
+      Real.exp (-(K * r₀ * Real.sqrt (1 - 2 * γ / K)) / 2 * t) := by
+  have hV₀_nn : 0 ≤ (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 := sq_nonneg _
+  have h := order_parameter_exp_decay
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (lorentzian_explicit K γ r₀)
+      (Real.sqrt (1 - 2 * γ / K))
+      ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (K * r₀ * Real.sqrt (1 - 2 * γ / K))
+      hV₀_nn
+      (fun s hs => lorentzian_lyapunov_v_exp_bound_below K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+          hr₀_lt_rstar s hs)
+      (fun s => le_refl _)
+      t ht
+  linarith [h]
 
 end
