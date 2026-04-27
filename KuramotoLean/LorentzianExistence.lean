@@ -2428,6 +2428,30 @@ theorem lorentzian_lyapunov_v_uniform_exp_decay (K γ r₀ δ : ℝ)
     0 t le_rfl ht (fun s hs1 _ => h_persist s hs1)
   rwa [zero_add, lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at h
 
+/-- **Distance decay from global persistence**: if r(t) ≥ δ for all t ≥ 0,
+    then |r(t)-r*| ≤ |r₀-r*|·exp(-K·δ·r*/2·t). Derives from v_uniform_exp_decay
+    via order_parameter_exp_decay (sqrt of V bound + sqrt_sq_eq_abs). -/
+theorem lorentzian_lyapunov_r_dist_from_persist (K γ r₀ δ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ lorentzian_explicit K γ r₀ t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+    Real.exp (-(K * δ * Real.sqrt (1 - 2 * γ / K)) / 2 * t) := by
+  have h := order_parameter_exp_decay
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (lorentzian_explicit K γ r₀)
+      (Real.sqrt (1 - 2 * γ / K))
+      ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (K * δ * Real.sqrt (1 - 2 * γ / K))
+      (sq_nonneg _)
+      (lorentzian_lyapunov_v_uniform_exp_decay K γ r₀ δ hK hγ hKγ hr₀_pos hr₀_lt hδ_pos h_persist)
+      (fun _ => le_refl _)
+      t ht
+  rwa [Real.sqrt_sq_eq_abs] at h
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
