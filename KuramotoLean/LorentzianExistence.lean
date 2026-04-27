@@ -2209,6 +2209,20 @@ theorem lorentzian_lyapunov_r_trap (K γ r₀ : ℝ)
   ⟨lorentzian_lyapunov_r_dist_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
    lorentzian_lyapunov_r_dist K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht⟩
 
+/-- **Two-sided exponential trap for any ODE solution**: for S.r 0 ≠ r*, the distance
+    |S.r t - r*| satisfies |S.r 0-r*|·exp(-K·t) ≤ |S.r t-r*| ≤ |S.r 0-r*|·exp(-K·min(r₀,r*)·r*/2·t).
+    Combines dist_lb (lower) and r_dist_bound (upper). -/
+theorem LorentzianContinuousSolution.dist_trap (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| * Real.exp (-S.K * t) ≤
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ∧
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+               Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) :=
+  ⟨S.dist_lb t ht, S.r_dist_bound hr₀_ne t ht⟩
+
 /-- **Below-r* two-sided trap**: for r₀ < r*, the distance |r(t)-r*| satisfies
     |r₀-r*|·exp(-K·t) ≤ |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t).
     Specializes r_trap using the sharper below-r* upper bound (rate K·r₀·r*/2). -/
