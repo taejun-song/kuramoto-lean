@@ -2116,6 +2116,16 @@ theorem lorentzian_lyapunov_v_pos (K γ r₀ : ℝ)
   sq_pos_of_ne_zero (sub_ne_zero.mpr
     (lorentzian_explicit_ne_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht))
 
+/-- **V positivity for any ODE solution**: V(t) = (S.r t - r*)² > 0 for all t ≥ 0 when S.r 0 ≠ r*.
+    The orbit never reaches r* in finite time. Lifts v_pos to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.v_pos (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    0 < (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_v_pos S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne t ht
+
 /-- **V lower exponential bound**: V(t) ≥ V(0)·exp(-2K·t) for all t ≥ 0.
     Dual of the upper bound: since V'≥-2K·V (v_deriv_ge), comparison_growth gives the lower bound.
     Establishes that the Lyapunov function cannot vanish faster than exp(-2Kt). -/
@@ -2296,6 +2306,19 @@ theorem lorentzian_lyapunov_r_strict_contraction (K γ r₀ : ℝ)
   have hV_lt := lorentzian_lyapunov_v_lt_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht
   have h := Real.sqrt_lt_sqrt (sq_nonneg _) hV_lt
   rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq_eq_abs] at h
+
+/-- **Strict distance contraction for any ODE solution**: |S.r t - r*| < |S.r 0 - r*| for t > 0
+    when S.r 0 ≠ r*. The orbit moves strictly closer to r* at every positive time.
+    Lifts r_strict_contraction to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.r_strict_contraction (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| <
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  rw [S.eq_explicit_of_nonneg t ht.le, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_r_strict_contraction S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne t ht
 
 /-- **Ball forward invariance**: the open ball B(r*, ε) is forward-invariant — if r₀ is within ε
     of r*, the solution r(t) remains within ε of r* for all t ≥ 0. This is Lyapunov stability
