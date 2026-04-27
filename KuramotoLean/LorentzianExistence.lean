@@ -1131,4 +1131,28 @@ theorem lorentzian_rstar_anti_gamma (K γ₁ γ₂ : ℝ)
     rw [div_lt_div_iff₀ hK hK]; nlinarith
   linarith
 
+/-- **r* < 1 always**: the Lorentzian equilibrium r* = √(1-2γ/K) is strictly below 1
+    for all supercritical (K,γ). The PLS is never full synchronization in the Lorentzian case. -/
+theorem lorentzian_rstar_lt_one (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K) :
+    Real.sqrt (1 - 2 * γ / K) < 1 := by
+  calc Real.sqrt (1 - 2 * γ / K)
+      < Real.sqrt 1 := Real.sqrt_lt_sqrt
+          (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+          (by linarith [div_pos (by linarith : 0 < 2 * γ) hK])
+    _ = 1 := Real.sqrt_one
+
+/-- **Strong coupling limit**: r*(K,γ) → 1 as K → ∞ (γ fixed). In the limit of
+    infinite coupling the PLS approaches full synchronization. -/
+theorem lorentzian_rstar_tendsto_one (γ : ℝ) (hγ : 0 < γ) :
+    Tendsto (fun K => Real.sqrt (1 - 2 * γ / K)) atTop (nhds 1) := by
+  have h0 : Tendsto (fun K : ℝ => 2 * γ / K) atTop (nhds 0) := by
+    have hinv : Tendsto (fun K : ℝ => K⁻¹) atTop (nhds 0) := tendsto_inv_atTop_zero
+    have hmul := hinv.const_mul (2 * γ)
+    simp only [mul_zero] at hmul
+    exact hmul.congr (fun K => by ring)
+  have h1 : Tendsto (fun K : ℝ => 1 - 2 * γ / K) atTop (nhds 1) := by
+    have hc : Tendsto (fun _ : ℝ => (1:ℝ)) atTop (nhds 1) := tendsto_const_nhds
+    simpa using hc.sub h0
+  simpa [Real.sqrt_one] using continuous_sqrt.continuousAt.tendsto.comp h1
+
 end
