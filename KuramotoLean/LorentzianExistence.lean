@@ -2413,6 +2413,21 @@ theorem lorentzian_lyapunov_v_persistence_drop (K γ r₀ δ : ℝ)
                 (mul_pos hK hrt_pos).le
       nlinarith [sq_nonneg (lorentzian_explicit K γ r₀ t - rs)])
 
+/-- **V uniform exponential decay from global persistence**: if r(t) ≥ δ for all t ≥ 0,
+    then V(t) ≤ V(0)·exp(-K·δ·r*·t). Global form of v_persistence_drop at t₀=0. -/
+theorem lorentzian_lyapunov_v_uniform_exp_decay (K γ r₀ δ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ lorentzian_explicit K γ r₀ t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+    Real.exp (-(K * δ * Real.sqrt (1 - 2 * γ / K)) * t) := by
+  have h := lorentzian_lyapunov_v_persistence_drop K γ r₀ δ hK hγ hKγ hr₀_pos hr₀_lt hδ_pos
+    0 t le_rfl ht (fun s hs1 _ => h_persist s hs1)
+  rwa [zero_add, lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at h
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
