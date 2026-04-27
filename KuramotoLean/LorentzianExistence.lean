@@ -3371,6 +3371,23 @@ theorem LorentzianContinuousSolution.two_traj_from_gronwall
     _ = (|S.r 0 - rs| + |S'.r 0 - rs|) *
         Real.exp (-(S.K * δ * (δ + rs) / 2) * t) := by ring
 
+/-- **V deriv nonpos from abstract ODE** (no eq_explicit): V' = -(K·r·(r+r*)·V) ≤ 0 at any t ≥ 0.
+    Direct consequence of v_deriv_formula + r > 0 + r+r* > 0 + V ≥ 0.
+    Used to establish V monotonicity without going through antitoneOn machinery. -/
+theorem LorentzianContinuousSolution.v_deriv_nonpos
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    -(S.K * S.r t * (S.r t + Real.sqrt (1 - 2 * S.γ / S.K)) *
+      (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2) ≤ 0 := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hrs_pos : 0 < rs :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hr_pos := S.r_pos t ht
+  have h_sum : 0 < S.r t + rs := by linarith
+  have h1 : 0 ≤ S.K * S.r t * (S.r t + rs) * (S.r t - rs) ^ 2 :=
+    mul_nonneg (mul_nonneg (mul_nonneg S.hK_pos.le hr_pos.le) h_sum.le) (sq_nonneg _)
+  linarith
+
 /-- **Dist bound below r***: when S.r 0 < r*, monotonicity gives S.r t ≥ S.r 0 globally,
     so δ = S.r 0 works in dist_from_gronwall. Rate K·r₀·(r₀+r*)/2 strictly exceeds the
     explicit-formula rate K·r₀·r*/2 from dist_bound_below. NO eq_explicit used. -/
