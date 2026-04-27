@@ -1250,6 +1250,51 @@ theorem lorentzian_ode_neg_above_one (K γ r : ℝ)
   have hr_sq : (1 : ℝ) < r ^ 2 := by nlinarith
   linarith
 
+/-- **Positive derivative below r***: for r₀ < r* and t ≥ 0, the Lorentzian explicit solution
+    has positive derivative: d/dt r(t) > 0. Hence r is strictly increasing along the trajectory. -/
+theorem lorentzian_explicit_pos_deriv (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    0 < deriv (lorentzian_explicit K γ r₀) t := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_lt : r₀ < 1 := hr₀_lt_rstar.trans (lorentzian_rstar_lt_one K γ hK hγ hKγ)
+  have hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K :=
+    calc r₀ ^ 2 < Real.sqrt (1 - 2 * γ / K) ^ 2 :=
+          sq_lt_sq' (by linarith [hrstar_pos]) hr₀_lt_rstar
+      _ = 1 - 2 * γ / K := hrstar_sq
+  have hr_pos : 0 < lorentzian_explicit K γ r₀ t :=
+    lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_lt_rstar : lorentzian_explicit K γ r₀ t < Real.sqrt (1 - 2 * γ / K) := by
+    rw [← Real.sqrt_sq (le_of_lt hr_pos)]
+    apply Real.sqrt_lt_sqrt (sq_nonneg _)
+    exact lorentzian_explicit_sq_lt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  rw [(lorentzian_explicit_hasDerivAt K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht).deriv]
+  exact lorentzian_ode_pos_below_rstar K γ (lorentzian_explicit K γ r₀ t)
+      hK hγ hKγ hr_pos hr_lt_rstar
+
+/-- **Strict monotone increase below r***: for r₀ < r*, the explicit solution is strictly
+    increasing: r(s) < r(t) for 0 ≤ s < t. Follows from positive derivative everywhere. -/
+theorem lorentzian_explicit_strictly_increasing (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    lorentzian_explicit K γ r₀ s < lorentzian_explicit K γ r₀ t := by
+  have hr₀_lt : r₀ < 1 := hr₀_lt_rstar.trans (lorentzian_rstar_lt_one K γ hK hγ hKγ)
+  have hcont : ContinuousOn (lorentzian_explicit K γ r₀) (Set.Icc s t) :=
+    (lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).mono
+      (fun x hx => le_trans hs hx.1)
+  have hderiv_pos : ∀ u ∈ interior (Set.Icc s t), 0 < deriv (lorentzian_explicit K γ r₀) u := by
+    rw [interior_Icc]
+    intro u ⟨hs_u, _⟩
+    exact lorentzian_explicit_pos_deriv K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt_rstar u
+        (le_trans hs (le_of_lt hs_u))
+  have hmono := strictMonoOn_of_deriv_pos (convex_Icc s t) hcont hderiv_pos
+  exact hmono (Set.left_mem_Icc.mpr (le_of_lt hst)) (Set.right_mem_Icc.mpr (le_of_lt hst)) hst
+
 /-- **Unique positive fixed point**: for K > 2γ, r* = √(1-2γ/K) is the only positive root
     of the Lorentzian ODE. Any r > 0 with ṙ = 0 must equal r*. -/
 theorem lorentzian_unique_pos_fixed_point (K γ r : ℝ)
