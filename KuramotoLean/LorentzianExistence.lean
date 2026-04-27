@@ -1831,6 +1831,21 @@ theorem lorentzian_lyapunov_v_exp_bound (K γ r₀ : ℝ)
               K * (1 - 2 * γ / K) * t := by linear_combination K * t * hrs_sq
           linarith [mul_nonneg (mul_nonneg hK.le (lorentzian_rstar_pos K γ hK hKγ).le) ht]
 
+/-- **V exponential bound for any ODE solution**: for any LorentzianContinuousSolution S,
+    (S.r t - r*)² ≤ (S.r 0 - r*)²·exp(-K·min(S.r 0, r*)·r*·t) when S.r 0 ≠ r*.
+    Uses eq_explicit_of_nonneg to reduce to the explicit formula, then v_exp_bound. -/
+theorem LorentzianContinuousSolution.v_exp_bound (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+               Real.sqrt (1 - 2 * S.γ / S.K)) * t) := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_exp_bound S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne t ht
+
 /-- **Below-r* distance bound**: |r(t)-r*| ≤ |r₀-r*|·exp(-K·r₀·r*/2·t) for r₀ < r*.
     Applies order_parameter_exp_decay with V = (r-r*)² and v_exp_bound_below. -/
 theorem lorentzian_lyapunov_r_dist_below (K γ r₀ : ℝ)
