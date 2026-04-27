@@ -2925,6 +2925,100 @@ theorem LorentzianContinuousSolution.r_ball_fwd_inv (S : LorentzianContinuousSol
   exact lorentzian_lyapunov_r_ball_fwd_inv S.K S.γ (S.r 0) ε S.hK_pos S.hγ_pos S.hK_gt
     S.hr_init_pos S.hr_init_lt hε t ht
 
+/-- **Sublevel set forward invariance**: once V(t₀) ≤ c, then V(t) ≤ c for all t ≥ t₀ ≥ 0.
+    Direct corollary of v_nonincreasing (V is AntitoneOn [0,∞)). -/
+theorem LorentzianContinuousSolution.sublevel_fwd_inv (S : LorentzianContinuousSolution)
+    (c : ℝ) (t₀ t : ℝ) (ht₀ : 0 ≤ t₀) (ht : t₀ ≤ t)
+    (hV : (S.r t₀ - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤ c) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤ c :=
+  (S.v_nonincreasing (Set.mem_Ici.mpr ht₀) (Set.mem_Ici.mpr (ht₀.trans ht)) ht).trans hV
+
+/-- **Below-r* two-sided trap**: for S.r 0 < r*, the distance |S.r t - r*| satisfies
+    |S.r 0-r*|·exp(-K·t) ≤ |S.r t-r*| ≤ |S.r 0-r*|·exp(-K·S.r 0·r*/2·t).
+    Lower bound from dist_lb; upper from r_dist_bound + min_eq_left (S.r 0 < r*). -/
+theorem LorentzianContinuousSolution.trap_below (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| * Real.exp (-S.K * t) ≤
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ∧
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * S.r 0 * Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) := by
+  constructor
+  · exact S.dist_lb t ht
+  · have h := S.r_dist_bound (ne_of_lt hr₀_lt_rstar) t ht
+    simp only [min_eq_left (le_of_lt hr₀_lt_rstar)] at h
+    exact h
+
+/-- **Above-r* two-sided trap**: for r* < S.r 0, the distance |S.r t - r*| satisfies
+    |S.r 0-r*|·exp(-K·t) ≤ |S.r t-r*| ≤ |S.r 0-r*|·exp(-K·(1-2γ/K)·t).
+    Lower bound from dist_lb; upper bound from lorentzian_lyapunov_r_dist_above. -/
+theorem LorentzianContinuousSolution.trap_above (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| * Real.exp (-S.K * t) ≤
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ∧
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * (1 - 2 * S.γ / S.K)) * t) := by
+  constructor
+  · exact S.dist_lb t ht
+  · rw [S.eq_explicit_of_nonneg t ht]
+    exact lorentzian_lyapunov_r_dist_above S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+      S.hr_init_pos S.hr_init_lt hr₀_gt_rstar t ht
+
+/-- **Two-trajectory distance bound**: for S.r 0 ≠ r* and S'.r 0 ≠ r* (same K, γ),
+    |S.r t - S'.r t| ≤ dist(S.r 0, r*)·exp(-μt) + dist(S'.r 0, r*)·exp(-μ't).
+    Follows from triangle inequality and individual r_dist_bound bounds. -/
+theorem LorentzianContinuousSolution.two_traj_dist
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (hr₀'_ne : S'.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - S'.r t| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+               Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) +
+    |S'.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S'.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+                Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have htri : |S.r t - S'.r t| ≤ |S.r t - rs| + |S'.r t - rs| := by
+    have := abs_sub_le (S.r t) rs (S'.r t)
+    linarith [abs_sub_comm (S'.r t) rs]
+  have hd := S.r_dist_bound hr₀_ne t ht
+  have hd' : |S'.r t - rs| ≤ |S'.r 0 - rs| *
+      Real.exp (-(S.K * min (S'.r 0) rs * rs) / 2 * t) := by
+    have hne' : S'.r 0 ≠ Real.sqrt (1 - 2 * S'.γ / S'.K) := by
+      rw [← hγ_eq, ← hK_eq]; exact hr₀'_ne
+    have h := S'.r_dist_bound hne' t ht
+    rwa [← hK_eq, ← hγ_eq] at h
+  exact htri.trans (add_le_add hd hd')
+
+/-- **V ratio two-sided bound**: for S.r 0 ≠ r*, the ratio V(t)/V(0) satisfies
+    exp(-2K·t) ≤ V(t)/V(0) ≤ exp(-K·min(r₀,r*)·r*·t).
+    Combines v_lb (lower) and v_exp_bound (upper) via div_iff. -/
+theorem LorentzianContinuousSolution.v_ratio_bound (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.exp (-(2 * S.K) * t) ≤
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 /
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ∧
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 /
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+              Real.sqrt (1 - 2 * S.γ / S.K)) * t) := by
+  have hV0_pos : 0 < (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 :=
+    sq_pos_of_ne_zero (sub_ne_zero.mpr hr₀_ne)
+  constructor
+  · rw [le_div_iff₀ hV0_pos, mul_comm]
+    exact S.v_lb t ht
+  · rw [div_le_iff₀ hV0_pos]
+    have h := S.v_exp_bound hr₀_ne t ht
+    linarith [mul_comm (Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+        Real.sqrt (1 - 2 * S.γ / S.K)) * t)) ((S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)]
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
