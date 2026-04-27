@@ -2505,6 +2505,23 @@ theorem lorentzian_lyapunov_r_dist_from_persist (K γ r₀ δ : ℝ)
       t ht
   rwa [Real.sqrt_sq_eq_abs] at h
 
+/-- **Distance decay from persistence for ODE solution**: if S.r t ≥ δ for all t ≥ 0,
+    then |S.r t - r*| ≤ |S.r 0 - r*|·exp(-K·δ·r*/2·t).
+    Lifts r_dist_from_persist to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.r_dist_from_persist (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * δ * Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) := by
+  rw [S.eq_explicit_of_nonneg t ht, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_r_dist_from_persist S.K S.γ (S.r 0) δ S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hδ_pos
+    (fun s hs => (S.eq_explicit_of_nonneg s hs) ▸ h_persist s hs)
+    t ht
+
 /-- **Convergence time from global persistence**: if r(t) ≥ δ for all t ≥ 0 and r₀ ≠ r*,
     then t > log(V₀/ε²)/(K·δ·r*) implies |r(t)-r*| < ε.
     Explicit T = log((r₀-r*)²/ε²)/(K·δ·r*). -/
