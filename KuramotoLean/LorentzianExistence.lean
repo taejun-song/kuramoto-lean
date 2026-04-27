@@ -2333,6 +2333,26 @@ theorem lorentzian_lyapunov_v_nonincreasing (K γ r₀ : ℝ)
   · exact fun s hs t ht hst =>
       lorentzian_lyapunov_v_antitone K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hne hs hst
 
+/-- **V non-increasing for any ODE solution**: V(t) = (S.r t - r*)² is AntitoneOn [0,∞)
+    for any LorentzianContinuousSolution, including S.r 0 = r* (where V ≡ 0).
+    Lifts v_nonincreasing to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.v_nonincreasing (S : LorentzianContinuousSolution) :
+    AntitoneOn (fun t => (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2) (Set.Ici 0) := by
+  intro s hs t ht hst
+  simp only []
+  rw [S.eq_explicit_of_nonneg s (Set.mem_Ici.mp hs),
+      S.eq_explicit_of_nonneg t (Set.mem_Ici.mp ht)]
+  exact lorentzian_lyapunov_v_nonincreasing S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hs ht hst
+
+/-- **V universally bounded by V(0) for any ODE solution**: V(t) ≤ (S.r 0 - r*)² for all t ≥ 0.
+    Corollary of v_nonincreasing at s = 0. No r₀ ≠ r* assumption needed. -/
+theorem LorentzianContinuousSolution.v_le_init (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 :=
+  S.v_nonincreasing (Set.mem_Ici.mpr le_rfl) (Set.mem_Ici.mpr ht) ht
+
 /-- **Sublevel set forward invariance**: once V(t₀) ≤ c, we have V(t) ≤ c for all t ≥ t₀ ≥ 0.
     Direct corollary of v_nonincreasing (V is AntitoneOn [0,∞)). -/
 theorem lorentzian_lyapunov_sublevel_fwd_inv (K γ r₀ : ℝ)
