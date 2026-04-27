@@ -3031,4 +3031,66 @@ theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
   · intro h; nlinarith [sq_nonneg (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K))]
   · intro h; rw [h, sub_self, sq, zero_mul]
 
+/-- **Convergence time (below r*)**: for S.r 0 < r*, once t > log(V₀/ε²)/(K·S.r 0·r*),
+    the distance |S.r t - r*| < ε. Lifts convergence_time_below to any ODE solution. -/
+theorem LorentzianContinuousSolution.convergence_time_below (S : LorentzianContinuousSolution)
+    (hr₀_lt_rstar : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (ε : ℝ) (hε : 0 < ε)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 / ε ^ 2) /
+             (S.K * S.r 0 * Real.sqrt (1 - 2 * S.γ / S.K)) < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_convergence_time_below S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_lt_rstar ε hε t ht htime
+
+/-- **Convergence time (above r*)**: for r* < S.r 0, once t > log(V₀/ε²)/(2K·(1-2γ/K)),
+    the distance |S.r t - r*| < ε. Lifts convergence_time_above to any ODE solution. -/
+theorem LorentzianContinuousSolution.convergence_time_above (S : LorentzianContinuousSolution)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (ε : ℝ) (hε : 0 < ε)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 / ε ^ 2) /
+             (2 * S.K * (1 - 2 * S.γ / S.K)) < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_convergence_time_above S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_gt_rstar ε hε t ht htime
+
+/-- **Unified convergence time**: for S.r 0 ≠ r*, once t > log(V₀/ε²)/(K·min(r₀,r*)·r*),
+    the distance |S.r t - r*| < ε. Covers both below and above r* cases. -/
+theorem LorentzianContinuousSolution.convergence_time (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (ε : ℝ) (hε : 0 < ε)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 / ε ^ 2) /
+             (S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+              Real.sqrt (1 - 2 * S.γ / S.K)) < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_convergence_time S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne ε hε t ht htime
+
+/-- **Two-solution distance tends to zero**: |S.r t - S'.r t| → 0 as t → ∞
+    for any two ODE solutions with identical parameters K, γ.
+    Follows from individual dist_tendsto_zero via triangle inequality + squeeze. -/
+theorem LorentzianContinuousSolution.dist_tendsto
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ) :
+    Filter.Tendsto (fun t => |S.r t - S'.r t|) Filter.atTop (nhds 0) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hS := S.dist_tendsto_zero
+  have hS' : Filter.Tendsto (fun t => |S'.r t - rs|) Filter.atTop (nhds 0) := by
+    have h := S'.dist_tendsto_zero
+    rwa [← hK_eq, ← hγ_eq] at h
+  have hsum : Filter.Tendsto (fun t => |S.r t - rs| + |S'.r t - rs|)
+      Filter.atTop (nhds 0) := by
+    have := hS.add hS'; simpa using this
+  have htri : ∀ t, |S.r t - S'.r t| ≤ |S.r t - rs| + |S'.r t - rs| := fun t => by
+    have := abs_sub_le (S.r t) rs (S'.r t)
+    linarith [abs_sub_comm (S'.r t) rs]
+  apply tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hsum
+  · filter_upwards with t; exact abs_nonneg _
+  · filter_upwards with t; exact htri t
+
 end
