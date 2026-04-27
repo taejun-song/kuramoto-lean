@@ -362,4 +362,53 @@ theorem lorentzian_explicit_tendsto (K γ r₀ : ℝ)
   change Tendsto (fun t => Real.sqrt ((w_func K γ r₀ t)⁻¹)) atTop _
   rwa [hstar] at hsqrt
 
+/-- **Explicit exponential rate for |r(t) - r*|**:
+    |r(t) - r*| ≤ A·exp(-μt)/r*, where A = |1/r₀²-B|, B = K/(K-2γ), μ = K-2γ.
+    Proof: |r-r*| = |r²-r*²|/(r+r*) ≤ |r²-r*²|/r* ≤ A·exp(-μt)/r*. -/
+theorem lorentzian_explicit_rate (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      |1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t) /
+        Real.sqrt (1 - 2 * γ / K) := by
+  have hd : (0 : ℝ) < K - 2 * γ := by linarith
+  set r := lorentzian_explicit K γ r₀ t
+  set r_star := Real.sqrt (1 - 2 * γ / K)
+  have hrstar_pos : 0 < r_star :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hr_pos : 0 < r :=
+    lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  -- |r²-r*²| ≤ |A|·exp(-μt) from sq_diff_bound via sqrt
+  have hA_nn : 0 ≤ |1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t) :=
+    mul_nonneg (abs_nonneg _) (Real.exp_nonneg _)
+  have heq : (|1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t)) ^ 2 =
+      (1 / r₀ ^ 2 - K / (K - 2 * γ)) ^ 2 * Real.exp (-2 * (K - 2 * γ) * t) := by
+    rw [mul_pow, sq_abs, sq (Real.exp _), ← Real.exp_add]; congr 1; ring
+  have hrstar_sq : r_star ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hsq_diff : |r ^ 2 - r_star ^ 2| ≤
+      |1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t) := by
+    have hbound : (r ^ 2 - r_star ^ 2) ^ 2 ≤
+        (1 / r₀ ^ 2 - K / (K - 2 * γ)) ^ 2 * Real.exp (-2 * (K - 2 * γ) * t) := by
+      rw [hrstar_sq]
+      exact lorentzian_explicit_sq_diff_bound K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+    have hsq2 : (r ^ 2 - r_star ^ 2) ^ 2 ≤
+        (|1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t)) ^ 2 :=
+      heq.symm ▸ hbound
+    have h1 : Real.sqrt ((r ^ 2 - r_star ^ 2) ^ 2) ≤
+        Real.sqrt ((|1 / r₀ ^ 2 - K / (K - 2 * γ)| * Real.exp (-(K - 2 * γ) * t)) ^ 2) :=
+      Real.sqrt_le_sqrt hsq2
+    rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq hA_nn] at h1
+  -- |r-r*| = |r²-r*²| / (r+r*) ≤ |r²-r*²| / r*
+  have hsum_pos : 0 < r + r_star := add_pos hr_pos hrstar_pos
+  have hfact : |r ^ 2 - r_star ^ 2| = |r - r_star| * (r + r_star) := by
+    rw [show r ^ 2 - r_star ^ 2 = (r - r_star) * (r + r_star) from by ring,
+        abs_mul, abs_of_pos hsum_pos]
+  have h_le : |r - r_star| * r_star ≤ |r ^ 2 - r_star ^ 2| := by
+    rw [hfact]
+    exact mul_le_mul_of_nonneg_left
+      (le_add_of_nonneg_left (le_of_lt hr_pos)) (abs_nonneg _)
+  rw [le_div_iff₀ hrstar_pos]
+  exact h_le.trans hsq_diff
+
 end
