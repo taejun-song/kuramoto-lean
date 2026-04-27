@@ -2332,6 +2332,20 @@ theorem lorentzian_lyapunov_dist_le_init (K γ r₀ : ℝ)
   have h := Real.sqrt_le_sqrt hV
   rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq_eq_abs] at h
 
+/-- **Ball membership**: r(t) ∈ [r*-|r₀-r*|, r*+|r₀-r*|] for all t ≥ 0.
+    Rephrases dist_le_init as symmetric interval membership via abs_le. -/
+theorem lorentzian_lyapunov_r_in_ball (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * γ / K) - |r₀ - Real.sqrt (1 - 2 * γ / K)| ≤
+    lorentzian_explicit K γ r₀ t ∧
+    lorentzian_explicit K γ r₀ t ≤
+    Real.sqrt (1 - 2 * γ / K) + |r₀ - Real.sqrt (1 - 2 * γ / K)| := by
+  have h := lorentzian_lyapunov_dist_le_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  rw [abs_le] at h
+  exact ⟨by linarith [h.1], by linarith [h.2]⟩
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
