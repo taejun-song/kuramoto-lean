@@ -2283,6 +2283,19 @@ theorem lorentzian_lyapunov_v_ratio_bound (K γ r₀ : ℝ)
     linarith [mul_comm (Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
         Real.sqrt (1 - 2 * γ / K)) * t)) ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)]
 
+/-- **V non-increasing (unconditional)**: V(t) = (r(t)-r*)² is AntitoneOn [0,∞) for ANY r₀ ∈ (0,1),
+    including r₀ = r* (where V ≡ 0). Extends v_antitone (which requires r₀ ≠ r*) to all r₀. -/
+theorem lorentzian_lyapunov_v_nonincreasing (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) :
+    AntitoneOn (fun t => (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (Set.Ici 0) := by
+  rcases eq_or_ne r₀ (Real.sqrt (1 - 2 * γ / K)) with rfl | hne
+  · simp only [lorentzian_explicit_rstar_const K γ hK hγ hKγ, sub_self, sq, zero_mul]
+    exact antitoneOn_const
+  · exact fun s hs t ht hst =>
+      lorentzian_lyapunov_v_antitone K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hne hs hst
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
