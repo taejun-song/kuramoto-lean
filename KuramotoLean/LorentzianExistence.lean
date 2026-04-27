@@ -3267,4 +3267,38 @@ theorem LorentzianContinuousSolution.v_eq_zero_iff (S : LorentzianContinuousSolu
   · intro h; nlinarith [sq_nonneg (S.r t - Real.sqrt (1 - 2 * S.γ / S.K))]
   · intro h; rw [h, sub_self, sq, zero_mul]
 
+/-- **Gronwall V-bound from abstract ODE**: V(a+Δ) ≤ V(a)·exp(-K·δ·(δ+r*)·Δ)
+    when S.r ≥ δ on [a, a+Δ]. Proved directly from v_deriv_formula + comparison_decay_interval,
+    no eq_explicit needed. Rate K·δ·(δ+r*) is tighter than v_persistence_drop's K·δ·r*. -/
+theorem LorentzianContinuousSolution.v_gronwall_from_ode
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (a Δ : ℝ) (ha : 0 ≤ a) (hΔ : 0 ≤ Δ)
+    (h_persist : ∀ u, a ≤ u → u ≤ a + Δ → δ ≤ S.r u) :
+    (S.r (a + Δ) - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r a - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * δ * (δ + Real.sqrt (1 - 2 * S.γ / S.K))) * Δ) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K) with hrs_def
+  set μ := S.K * δ * (δ + rs) with hμ_def
+  have hrs_pos : 0 < rs := Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  set V : ℝ → ℝ := fun u => (S.r u - rs) ^ 2
+  have hV_cont : ContinuousOn V (Set.Icc a (a + Δ)) := by
+    apply ContinuousOn.pow
+    apply ContinuousOn.sub _ continuousOn_const
+    exact S.hr_cont.mono (fun u hu => ha.trans hu.1)
+  have hV_hasderiv : ∀ u, a < u → u < a + Δ → HasDerivAt V
+      (-(S.K * S.r u * (S.r u + rs) * V u)) u :=
+    fun u hu _ => S.v_deriv_formula u (ha.trans hu.le)
+  have hV_bound : ∀ u, a < u → u < a + Δ → -(S.K * S.r u * (S.r u + rs) * V u) ≤ -μ * V u := by
+    intro u hau _
+    have hr_ge := h_persist u hau.le (le_of_lt ‹u < a + Δ›)
+    have hr_pos := (S.r_pos u (ha.trans hau.le)).le
+    have hVu_nn : 0 ≤ V u := sq_nonneg _
+    simp only [V, μ]
+    nlinarith [sq_nonneg (S.r u - rs), mul_nonneg S.hK_pos.le hVu_nn,
+              mul_nonneg (mul_nonneg S.hK_pos.le (by nlinarith : 0 ≤ S.r u * (S.r u + rs) - δ * (δ + rs)))
+                hVu_nn]
+  exact comparison_decay_interval V (fun u => -(S.K * S.r u * (S.r u + rs) * V u))
+    μ a Δ hΔ hV_cont hV_hasderiv hV_bound
+
 end
