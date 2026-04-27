@@ -640,6 +640,31 @@ theorem lorentzian_explicit_sq_hasDerivAt (K γ r₀ : ℝ)
   field_simp [hK.ne']
   ring
 
+/-- When r₀² < r*² = 1-2γ/K, the solution satisfies r(t)² < r*² for all t ≥ 0.
+    Proof: A = 1/r₀²-B > 0 → w(t) = A·exp(-μt)+B > B → r(t)² = 1/w(t) < 1/B = r*². -/
+theorem lorentzian_explicit_sq_lt_rstar (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K)
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t ^ 2 < 1 - 2 * γ / K := by
+  rw [lorentzian_explicit_sq K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht]
+  have hd : (0:ℝ) < K - 2 * γ := by linarith
+  have hB_pos : (0:ℝ) < K / (K - 2 * γ) := div_pos hK hd
+  have hw_pos : 0 < w_func K γ r₀ t := w_func_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hB_inv : (K / (K - 2 * γ))⁻¹ = 1 - 2 * γ / K := by
+    field_simp [hK.ne', hd.ne']
+  rw [← hB_inv]
+  rw [inv_lt_inv₀ hw_pos hB_pos]
+  -- Goal: K/(K-2γ) < w_func K γ r₀ t
+  have hA_pos : 0 < 1 / r₀ ^ 2 - K / (K - 2 * γ) := by
+    rw [sub_pos, div_lt_div_iff₀ hd (sq_pos_of_pos hr₀_pos)]
+    have hmul := mul_lt_mul_of_pos_left hr₀_sq_lt hK
+    have hsimp : K * (1 - 2 * γ / K) = K - 2 * γ := by field_simp [hK.ne']
+    linarith
+  simp only [w_func]
+  linarith [mul_pos hA_pos (Real.exp_pos (-(K - 2 * γ) * t))]
+
 /-- V(t) = r*² - r(t)² satisfies V' = -K·r²·V.
     Combined with r² > 0, this gives V monotone decreasing when V > 0 (r < r*)
     and monotone increasing when V < 0 (r > r*), confirming r(t) → r* from both sides. -/
