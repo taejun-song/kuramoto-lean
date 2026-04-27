@@ -116,6 +116,19 @@ lemma w_func_hasDerivAt (K γ r₀ : ℝ) (hKγ : 2 * γ < K) (t : ℝ) :
 def lorentzian_explicit (K γ r₀ : ℝ) (t : ℝ) : ℝ :=
   Real.sqrt ((w_func K γ r₀ t)⁻¹)
 
+/-- **r* is a fixed point of the Lorentzian ODE**: the ODE velocity field vanishes at r*.
+    lorentzianODE K γ r* = 0 because K/2·r*² = K/2-γ (proved by substituting r*²=1-2γ/K). -/
+theorem lorentzian_rstar_is_fixed_point (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K) :
+    lorentzianODE K γ (Real.sqrt (1 - 2 * γ / K)) = 0 := by
+  simp only [lorentzianODE]
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hcube : Real.sqrt (1 - 2 * γ / K) ^ 3 =
+      (1 - 2 * γ / K) * Real.sqrt (1 - 2 * γ / K) := by
+    rw [show (3:ℕ) = 2 + 1 from rfl, pow_add, hrstar_sq]; ring
+  rw [hcube]
+  field_simp [ne_of_gt hK]; ring
+
 /-- **Exact initial-data separation**: the w-function difference is proportional to exp(-μt).
     The B = K/(K-2γ) terms cancel exactly; only the initial-data difference 1/r₀²-1/r₀'² survives. -/
 theorem w_func_diff (K γ r₀ r₀' : ℝ) (t : ℝ) :
