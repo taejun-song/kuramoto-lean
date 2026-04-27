@@ -259,6 +259,58 @@ theorem lorentzian_explicit_convergence (K γ r₀ : ℝ)
       hr_init_pos := by rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_pos,
       hr_init_lt := by rw [lorentzian_explicit_init K γ r₀ hr₀_pos]; exact hr₀_lt }
 
+/-! ## Explicit exponential rate bound -/
+
+/-- The squared order-parameter error decays exponentially:
+    (r(t)² - r*²)² ≤ A²·exp(-2μt), where A = 1/r₀²-B and μ = K-2γ.
+    Proof: r²-r*² = -(w⁻¹-B⁻¹) = A·exp(-μt)/(w·B) and w·B > 1. -/
+theorem lorentzian_explicit_sq_diff_bound (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1) (t : ℝ) (ht : 0 ≤ t) :
+    (lorentzian_explicit K γ r₀ t ^ 2 - (1 - 2 * γ / K)) ^ 2 ≤
+      (1 / r₀ ^ 2 - K / (K - 2 * γ)) ^ 2 * Real.exp (-2 * (K - 2 * γ) * t) := by
+  have hd : (0 : ℝ) < K - 2 * γ := by linarith
+  have hB_pos : (0 : ℝ) < K / (K - 2 * γ) := div_pos hK hd
+  set w := w_func K γ r₀ t with hw_def
+  have hw_pos : 0 < w := w_func_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hw_gt : 1 < w := w_func_gt_one K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr2 : lorentzian_explicit K γ r₀ t ^ 2 = w⁻¹ :=
+    lorentzian_explicit_sq K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hrstar : (1 - 2 * γ / K) = (K / (K - 2 * γ))⁻¹ := by
+    field_simp [hK.ne', hd.ne']
+  -- B - w = -(A·exp(-μt)) where A = 1/r₀²-B
+  have hBw : K / (K - 2 * γ) - w =
+      -((1 / r₀ ^ 2 - K / (K - 2 * γ)) * Real.exp (-(K - 2 * γ) * t)) := by
+    simp only [hw_def, w_func]; ring
+  -- Key: (w⁻¹-B⁻¹)·(w·B) = B-w = -(A·exp(-μt))
+  have hprod : (w⁻¹ - (K / (K - 2 * γ))⁻¹) * (w * (K / (K - 2 * γ))) =
+      -(1 / r₀ ^ 2 - K / (K - 2 * γ)) * Real.exp (-(K - 2 * γ) * t) := by
+    have hw_ne := hw_pos.ne'
+    have hB_ne := hB_pos.ne'
+    rw [show (w⁻¹ - (K/(K-2*γ))⁻¹) * (w * (K/(K-2*γ))) = K/(K-2*γ) - w from by
+      field_simp [hw_ne, hB_ne]]
+    linarith [hBw]
+  -- (w⁻¹-B⁻¹)²·(w·B)² = (A·exp(-μt))²
+  have hkey : (w⁻¹ - (K / (K - 2 * γ))⁻¹) ^ 2 * (w * (K / (K - 2 * γ))) ^ 2 =
+      (1 / r₀ ^ 2 - K / (K - 2 * γ)) ^ 2 * Real.exp (-2 * (K - 2 * γ) * t) := by
+    calc (w⁻¹ - (K/(K-2*γ))⁻¹) ^ 2 * (w * (K/(K-2*γ))) ^ 2
+        = ((w⁻¹ - (K/(K-2*γ))⁻¹) * (w * (K/(K-2*γ)))) ^ 2 := by ring
+      _ = (-(1/r₀^2-K/(K-2*γ)) * Real.exp (-(K-2*γ)*t)) ^ 2 := by rw [hprod]
+      _ = (1/r₀^2-K/(K-2*γ))^2 * Real.exp (-2*(K-2*γ)*t) := by
+          rw [mul_pow, neg_sq, sq (Real.exp (-(K-2*γ)*t)), ← Real.exp_add]
+          congr 1; ring
+  -- w·B > 1 → (w·B)² ≥ 1
+  have hwB2 : 1 ≤ (w * (K / (K - 2 * γ))) ^ 2 := by
+    have hB_gt : 1 < K / (K - 2 * γ) := (one_lt_div hd).mpr (by linarith)
+    have hwB_gt : 1 < w * (K / (K - 2 * γ)) := by nlinarith
+    nlinarith [sq_nonneg (w * (K / (K - 2 * γ)) - 1)]
+  -- (w⁻¹-B⁻¹)² ≤ (w⁻¹-B⁻¹)²·(w·B)² = RHS
+  rw [hr2, hrstar]
+  calc (w⁻¹ - (K / (K - 2 * γ))⁻¹) ^ 2
+      ≤ (w⁻¹ - (K / (K - 2 * γ))⁻¹) ^ 2 * (w * (K / (K - 2 * γ))) ^ 2 :=
+        le_mul_of_one_le_right (sq_nonneg _) hwB2
+    _ = (1 / r₀ ^ 2 - K / (K - 2 * γ)) ^ 2 * Real.exp (-2 * (K - 2 * γ) * t) := hkey
+
 /-- **Continuous-time convergence**: the explicit Bernoulli solution
     r(t) = √(w(t)⁻¹) converges to r* = √(1 - 2γ/K) as t → ∞ (continuous time). -/
 theorem lorentzian_explicit_tendsto (K γ r₀ : ℝ)
