@@ -1743,4 +1743,55 @@ theorem lorentzian_lyapunov_v_exp_bound_below (K γ r₀ : ℝ)
       Real.exp (-(K * r₀ * Real.sqrt (1 - 2 * γ / K)) * t) := hVt
   rwa [lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at hVt'
 
+/-- **Above-r* Lyapunov exponential bound**: when r* < r₀, V(t) = (r(t)-r*)² ≤ V(0)·exp(-2K·r*²·t).
+    Uses V'=-(K·r·(r+r*)·V) and r(t)≥r* to bound K·r·(r+r*)≥2K·r*², then comparison_decay. -/
+theorem lorentzian_lyapunov_v_exp_bound_above (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_gt_rstar : Real.sqrt (1 - 2 * γ / K) < r₀)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+      Real.exp (-(2 * K * (1 - 2 * γ / K)) * t) := by
+  have hrs_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hVt := comparison_decay
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (fun s => -(K * lorentzian_explicit K γ r₀ s *
+        (lorentzian_explicit K γ r₀ s + Real.sqrt (1 - 2 * γ / K)) *
+        (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2))
+      (2 * K * (1 - 2 * γ / K))
+      (((lorentzian_explicit_continuousOn K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt).sub
+          continuousOn_const).pow 2)
+      (fun s hs => lorentzian_lyapunov_v_deriv_formula K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt s hs.le)
+      (fun s hs => by
+        simp only []
+        have hr_pos := lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt s hs.le
+        have hr_gt := lorentzian_explicit_gt_rstar_of_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+            hr₀_gt_rstar s hs.le
+        -- K·r·(r+r*) ≥ K·r*·2r* = 2K·r*² since r≥r* and r+r*≥2r*
+        have h1 : 2 * K * (1 - 2 * γ / K) ≤ K * lorentzian_explicit K γ r₀ s *
+            (lorentzian_explicit K γ r₀ s + Real.sqrt (1 - 2 * γ / K)) := by
+          have hrs_le : Real.sqrt (1 - 2 * γ / K) ≤ lorentzian_explicit K γ r₀ s := hr_gt.le
+          have hsum : Real.sqrt (1 - 2 * γ / K) + Real.sqrt (1 - 2 * γ / K) ≤
+              lorentzian_explicit K γ r₀ s + Real.sqrt (1 - 2 * γ / K) := by linarith
+          have hprod : Real.sqrt (1 - 2 * γ / K) * (Real.sqrt (1 - 2 * γ / K) +
+              Real.sqrt (1 - 2 * γ / K)) ≤
+              lorentzian_explicit K γ r₀ s * (lorentzian_explicit K γ r₀ s +
+              Real.sqrt (1 - 2 * γ / K)) :=
+            mul_le_mul hrs_le hsum (by linarith) (le_of_lt hr_pos)
+          nlinarith [mul_le_mul_of_nonneg_left hprod hK.le, hrstar_sq]
+        have hcoeff_nn : 0 ≤ K * lorentzian_explicit K γ r₀ s *
+            (lorentzian_explicit K γ r₀ s + Real.sqrt (1 - 2 * γ / K)) -
+            2 * K * (1 - 2 * γ / K) := by linarith
+        nlinarith [mul_nonneg hcoeff_nn
+          (sq_nonneg (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)))])
+      t ht
+  have hVt' : (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+      (lorentzian_explicit K γ r₀ 0 - Real.sqrt (1 - 2 * γ / K)) ^ 2 *
+      Real.exp (-(2 * K * (1 - 2 * γ / K)) * t) := hVt
+  rwa [lorentzian_lyapunov_v_at_zero K γ r₀ hr₀_pos] at hVt'
+
 end
