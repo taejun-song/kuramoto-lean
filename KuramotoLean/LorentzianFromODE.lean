@@ -12,6 +12,10 @@
   toLorentzianSolution_noninc: full constructor (0 assumed fields) for r(0) ≥ r*.
   hpersist for noninc derived via hpersist_from_convergence (ODE → parametric_convergence).
 
+  lorentzian_subcritical_tendsto: K < 2γ → r(t) → 0 (V = r², V' ≤ -2μV).
+  lorentzian_critical_tendsto: K = 2γ → r(t) → 0 (V' = -KV², contradiction + comparison_decay).
+  Combined with existing K > 2γ → r(t) → r*: complete Lorentzian trifurcation.
+
   0 sorry.
 -/
 
@@ -551,5 +555,89 @@ theorem lorentzian_subcritical_tendsto
         (mul_le_mul_of_nonneg_right (le_add_of_nonneg_right zero_le_one) (Real.exp_nonneg _))
     have h1 := Real.sqrt_lt_sqrt (sq_nonneg (r t)) (lt_of_le_of_lt hrsq hC_lt)
     rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq hε.le] at h1⟩
+
+/-! ## Critical Lorentzian convergence: K = 2γ → r(t) → 0
+
+  For K = 2γ the ODE becomes ṙ = -γr³ (purely cubic dissipation).
+  V = r² satisfies V' = 2r·ṙ = -2γr⁴ = -K·V².
+  Contradiction argument: if V ≥ δ forever, then V' ≤ -(Kδ)·V,
+  comparison_decay gives V → 0 exponentially — contradiction. -/
+
+/-- Algebraic bound: for K = 2γ and r² ≥ δ, we have 2r·ṙ ≤ -(Kδ)·r². -/
+private lemma lorentzian_sq_deriv_critical_linear (K γ δ r : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hK_eq : K = 2 * γ) (hδ : 0 < δ) (hrsq : δ ≤ r ^ 2) :
+    2 * r * lorentzianODE K γ r ≤ -(K * δ) * r ^ 2 := by
+  have hcrit : K / 2 - γ = 0 := by linarith
+  have hγval : K / 2 = γ := by linarith
+  unfold lorentzianODE
+  nlinarith [mul_nonneg (sq_nonneg r) (by linarith : (0 : ℝ) ≤ r ^ 2 - δ),
+             mul_nonneg hγ.le (sq_nonneg r), sq_nonneg (r ^ 2)]
+
+/-- **Critical Lorentzian convergence**: K = 2γ → r(t) → 0 (Filter.Tendsto form).
+    The decay is algebraic (V ~ 1/t), proved via contradiction + comparison_decay. -/
+theorem lorentzian_critical_tendsto
+    (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ) (hK_eq : K = 2 * γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 ≤ t → HasDerivAt r (lorentzianODE K γ (r t)) t) :
+    Filter.Tendsto r Filter.atTop (nhds 0) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  by_contra h_not
+  push_neg at h_not
+  have h_all : ∀ T : ℝ, ∃ t, T ≤ t ∧ ε ^ 2 ≤ r t ^ 2 := by
+    intro T
+    obtain ⟨t, hT_le, hdist⟩ := h_not T
+    rw [Real.dist_eq, sub_zero] at hdist
+    exact ⟨t, hT_le, by nlinarith [sq_abs (r t), abs_nonneg (r t), hε.le]⟩
+  have hV_deriv_has : ∀ t, 0 < t →
+      HasDerivAt (fun t => r t ^ 2) (2 * r t * lorentzianODE K γ (r t)) t := by
+    intro t ht
+    have hmul := (hr_ode t (le_of_lt ht)).mul (hr_ode t (le_of_lt ht))
+    convert hmul using 1
+    · funext s; simp [sq, Pi.mul_apply]
+    · ring
+  have hV_anti : AntitoneOn (fun t => r t ^ 2) (Ici 0) := by
+    apply antitoneOn_of_deriv_nonpos (convex_Ici (𝕜 := ℝ) 0) (hr_cont.pow 2)
+    · rw [interior_Ici]
+      intro t ht
+      exact (hV_deriv_has t (mem_Ioi.mp ht)).differentiableAt.differentiableWithinAt
+    · rw [interior_Ici]
+      intro t ht
+      rw [(hV_deriv_has t (mem_Ioi.mp ht)).deriv]
+      have hcrit : K / 2 - γ = 0 := by linarith
+      unfold lorentzianODE
+      nlinarith [sq_nonneg (r t), sq_nonneg (r t ^ 2), hγ.le, mul_nonneg hγ.le (sq_nonneg (r t))]
+  have hV_ge : ∀ t, 0 ≤ t → ε ^ 2 ≤ r t ^ 2 := by
+    intro t ht
+    obtain ⟨s, hst, hVs⟩ := h_all t
+    exact le_trans hVs (hV_anti (mem_Ici.mpr ht) (mem_Ici.mpr (le_trans ht hst)) hst)
+  have hV_linear : ∀ t, 0 < t →
+      2 * r t * lorentzianODE K γ (r t) ≤ -(K * ε ^ 2) * r t ^ 2 :=
+    fun t ht => lorentzian_sq_deriv_critical_linear K γ (ε ^ 2) (r t) hK hγ hK_eq
+      (pow_pos hε 2) (hV_ge t (le_of_lt ht))
+  have hV_exp := comparison_decay (fun t => r t ^ 2)
+    (fun t => 2 * r t * lorentzianODE K γ (r t))
+    (K * ε ^ 2) (hr_cont.pow 2) hV_deriv_has hV_linear
+  have hC_pos : 0 < r 0 ^ 2 + 1 := by linarith [sq_nonneg (r 0)]
+  have hKε_pos : 0 < K * ε ^ 2 := mul_pos hK (pow_pos hε 2)
+  have hC_exp_tendsto : Filter.Tendsto
+      (fun t : ℝ => (r 0 ^ 2 + 1) * Real.exp (-(K * ε ^ 2) * t))
+      Filter.atTop (nhds 0) := by
+    have h1 : Filter.Tendsto (fun t : ℝ => -(K * ε ^ 2) * t) Filter.atTop Filter.atBot :=
+      Filter.tendsto_id.const_mul_atTop_of_neg (by linarith)
+    have h2 := Real.tendsto_exp_atBot.comp h1
+    have h3 := h2.const_mul (r 0 ^ 2 + 1)
+    simpa only [mul_zero] using h3
+  rw [Metric.tendsto_atTop] at hC_exp_tendsto
+  obtain ⟨T, hT⟩ := hC_exp_tendsto (ε ^ 2) (pow_pos hε 2)
+  have hT'_nn : (0 : ℝ) ≤ max T 0 := le_max_right T 0
+  have hV_big := hV_ge (max T 0) hT'_nn
+  have hexp_small := hT (max T 0) (le_max_left T 0)
+  rw [Real.dist_eq, sub_zero,
+      abs_of_nonneg (mul_nonneg hC_pos.le (Real.exp_nonneg _))] at hexp_small
+  have hV_small : r (max T 0) ^ 2 ≤ (r 0 ^ 2 + 1) * Real.exp (-(K * ε ^ 2) * max T 0) :=
+    le_trans (hV_exp (max T 0) hT'_nn)
+      (mul_le_mul_of_nonneg_right (by linarith) (Real.exp_nonneg _))
+  linarith
 
 end
