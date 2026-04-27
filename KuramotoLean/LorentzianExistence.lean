@@ -2257,6 +2257,32 @@ theorem lorentzian_lyapunov_dist_tendsto_zero (K γ r₀ : ℝ)
   simp only [abs_zero] at h2
   exact h2
 
+/-- **V/V(0) two-sided ratio bound**: when r₀ ≠ r*, the ratio V(t)/V(0) satisfies
+    exp(-2K·t) ≤ V(t)/V(0) ≤ exp(-K·min(r₀,r*)·r*·t).
+    Packages v_lb (lower) and v_exp_bound (upper) into a single division statement. -/
+theorem lorentzian_lyapunov_v_ratio_bound (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.exp (-(2 * K) * t) ≤
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 /
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 ∧
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 /
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
+              Real.sqrt (1 - 2 * γ / K)) * t) := by
+  have hV0_pos : 0 < (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 :=
+    sq_pos_of_ne_zero (sub_ne_zero.mpr hr₀_ne)
+  have hlb := lorentzian_lyapunov_v_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hub := lorentzian_lyapunov_v_exp_bound K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht
+  constructor
+  · apply (le_div_iff₀ hV0_pos).mpr
+    linarith [mul_comm (Real.exp (-(2 * K) * t)) ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)]
+  · apply (div_le_iff₀ hV0_pos).mpr
+    linarith [mul_comm (Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
+        Real.sqrt (1 - 2 * γ / K)) * t)) ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)]
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
