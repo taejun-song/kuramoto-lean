@@ -2307,6 +2307,19 @@ theorem lorentzian_lyapunov_sublevel_fwd_inv (K γ r₀ : ℝ)
   (lorentzian_lyapunov_v_nonincreasing K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
     (Set.mem_Ici.mpr ht₀) (Set.mem_Ici.mpr (ht₀.trans ht)) ht).trans hV
 
+/-- **V universally bounded by V(0)**: V(t) ≤ V(0) = (r₀-r*)² for all t ≥ 0 and any r₀.
+    Follows from sublevel_fwd_inv at t₀ = 0 with c = V(0). No r₀ ≠ r* assumption needed. -/
+theorem lorentzian_lyapunov_v_le_init (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤
+    (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 :=
+  lorentzian_lyapunov_sublevel_fwd_inv K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+    ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+    0 t le_rfl ht
+    (by rw [lorentzian_explicit_init K γ r₀ hr₀_pos])
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
