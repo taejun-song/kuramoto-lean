@@ -2320,6 +2320,18 @@ theorem lorentzian_lyapunov_v_le_init (K γ r₀ : ℝ)
     0 t le_rfl ht
     (by rw [lorentzian_explicit_init K γ r₀ hr₀_pos])
 
+/-- **Distance universally bounded by initial**: |r(t)-r*| ≤ |r₀-r*| for all t ≥ 0 and any r₀.
+    Follows from v_le_init by taking square roots via sqrt_le_sqrt + sqrt_sq_eq_abs. -/
+theorem lorentzian_lyapunov_dist_le_init (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| := by
+  have hV := lorentzian_lyapunov_v_le_init K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have h := Real.sqrt_le_sqrt hV
+  rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq_eq_abs] at h
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
