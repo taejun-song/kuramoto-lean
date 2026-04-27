@@ -741,4 +741,40 @@ theorem lorentzian_v_exponential_decay (K γ r₀ : ℝ)
     _ = (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * r₀ ^ 2) * t) := by
         rw [hV0]
 
+/-- |r(t) - r*| ≤ (r*² - r₀²)·exp(-K·r₀²·t) / r*.
+    Follows from V-decay via r*² - r(t)² = (r*-r(t))·(r*+r(t)) ≥ r*·|r(t)-r*|. -/
+theorem lorentzian_r_from_v_decay (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_lt : r₀ ^ 2 < 1 - 2 * γ / K)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * r₀ ^ 2) * t) /
+        Real.sqrt (1 - 2 * γ / K) := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) := by
+    apply Real.sqrt_pos_of_pos
+    rw [sub_pos, div_lt_one hK]; linarith
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+  have hr_pos : 0 < lorentzian_explicit K γ r₀ t :=
+    lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_lt_rstar : lorentzian_explicit K γ r₀ t < Real.sqrt (1 - 2 * γ / K) := by
+    rw [← Real.sqrt_sq (le_of_lt hr_pos)]
+    apply Real.sqrt_lt_sqrt (sq_nonneg _)
+    exact lorentzian_explicit_sq_lt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  have hV_decay := lorentzian_v_exponential_decay K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_lt t ht
+  have habs : |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| =
+      Real.sqrt (1 - 2 * γ / K) - lorentzian_explicit K γ r₀ t := by
+    rw [abs_of_neg (sub_neg.mpr hr_lt_rstar)]
+    ring
+  rw [habs]
+  rw [le_div_iff₀ hrstar_pos]
+  calc (Real.sqrt (1 - 2 * γ / K) - lorentzian_explicit K γ r₀ t) * Real.sqrt (1 - 2 * γ / K)
+      ≤ (Real.sqrt (1 - 2 * γ / K) - lorentzian_explicit K γ r₀ t) *
+        (Real.sqrt (1 - 2 * γ / K) + lorentzian_explicit K γ r₀ t) :=
+        mul_le_mul_of_nonneg_left (by linarith [le_of_lt hr_pos])
+          (sub_nonneg.mpr (le_of_lt hr_lt_rstar))
+    _ = Real.sqrt (1 - 2 * γ / K) ^ 2 - lorentzian_explicit K γ r₀ t ^ 2 := by ring
+    _ ≤ (Real.sqrt (1 - 2 * γ / K) ^ 2 - r₀ ^ 2) * Real.exp (-(K * r₀ ^ 2) * t) := hV_decay
+
 end
