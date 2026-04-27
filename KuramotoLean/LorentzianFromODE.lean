@@ -23,6 +23,7 @@ import KuramotoLean.InvariantBox
 import KuramotoLean.Lorentzian
 import KuramotoLean.GronwallBridge
 import KuramotoLean.LorentzianEnvelope
+import Mathlib.Analysis.ODE.Gronwall
 
 open Real Set Finset
 
@@ -700,5 +701,103 @@ theorem lorentzian_continuous_trifurcation
   · rw [heq] at hr_tendsto; exact hr_tendsto
   · intro hK_le; apply hle; rw [hKc_eq]; exact hK_le
   · intro hK_gt; apply hgt; rw [hKc_eq]; exact hK_gt
+
+/-! ## ODE uniqueness: Lorentzian ODE is Lipschitz, enabling backward uniqueness -/
+
+/-- The Lorentzian ODE is `LipschitzOnWith` on [0,1] with NNReal constant ⟨2K, ...⟩.
+    Packages `lorentzian_ode_lipschitz` in the Mathlib `LipschitzOnWith` form. -/
+theorem lorentzianODE_lipschitzOnWith (K γ : ℝ) (hK : 0 < K) (hK_gt : K > 2 * γ)
+    (hγ : 0 ≤ γ) :
+    LipschitzOnWith ⟨2 * K, by linarith⟩ (lorentzianODE K γ) (Icc 0 1) := by
+  apply LipschitzOnWith.of_dist_le_mul
+  intro x ⟨hx0, hx1⟩ y ⟨hy0, hy1⟩
+  rw [Real.dist_eq, Real.dist_eq]
+  exact lorentzian_ode_lipschitz K γ x y hx0 hx1 hy0 hy1 hK hK_gt hγ
+
+/-- The Lorentzian ODE vanishes at r* = √(1-2γ/K): the equilibrium point. -/
+theorem lorentzianODE_at_rstar (K γ : ℝ) (hK : 0 < K) (hK_gt : K > 2 * γ) :
+    lorentzianODE K γ (Real.sqrt (1 - 2 * γ / K)) = 0 := by
+  set r_star := Real.sqrt (1 - 2 * γ / K)
+  have hK_ne : K ≠ 0 := ne_of_gt hK
+  have hrstar_sq : r_star ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hK_gt))
+  have h3 : r_star ^ 3 = r_star * (1 - 2 * γ / K) := by
+    calc r_star ^ 3 = r_star * r_star ^ 2 := by ring
+      _ = r_star * (1 - 2 * γ / K) := by rw [hrstar_sq]
+  unfold lorentzianODE
+  rw [h3]
+  field_simp [hK_ne]
+  ring
+
+/-- **ODE Monotonicity** (below equilibrium): if r(0) < r* = √(1-2γ/K) and r satisfies
+    the Lorentzian ODE with K > 2γ, then r(t) < r* for all t ≥ 0.
+    Proof: if r(T) ≥ r* for some T, IVT gives t₁ ∈ [0,T] with r(t₁) = r*.
+    By ODE uniqueness (backward in time from t₁), r ≡ r* on [0,t₁].
+    So r(0) = r* — contradiction. -/
+theorem lorentzian_r_stays_below_rstar (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (hK_gt : K > 2 * γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 < t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_bdd : ∀ t, 0 ≤ t → 0 ≤ r t ∧ r t ≤ 1)
+    (hr_init : r 0 < Real.sqrt (1 - 2 * γ / K)) :
+    ∀ t, 0 ≤ t → r t < Real.sqrt (1 - 2 * γ / K) := by
+  set r_star := Real.sqrt (1 - 2 * γ / K) with hr_star_def
+  intro t ht
+  by_contra h_ge
+  push_neg at h_ge
+  -- r(0) < r* ≤ r(t), so by IVT there exists t₁ ∈ [0,t] with r(t₁) = r*
+  have hr_cont_Icc : ContinuousOn r (Icc 0 t) :=
+    hr_cont.mono (Icc_subset_Ici_self)
+  have h_ivt : r_star ∈ r '' Icc 0 t := by
+    apply intermediate_value_Icc ht hr_cont_Icc
+    exact ⟨le_of_lt hr_init, h_ge⟩
+  obtain ⟨t₁, ht₁_icc, hrt₁⟩ := h_ivt
+  have ht₁_nn : 0 ≤ t₁ := ht₁_icc.1
+  have ht₁_le : t₁ ≤ t := ht₁_icc.2
+  -- Case t₁ = 0: r(0) = r*, contradicting r(0) < r*
+  rcases eq_or_lt_of_le ht₁_nn with ht₁_zero | ht₁_pos
+  · exfalso; rw [← ht₁_zero] at hrt₁; linarith [hr_init.trans_eq hrt₁.symm]
+  -- Case t₁ > 0: apply ODE backward uniqueness on [0, t₁]
+  -- The constant g(t) = r* satisfies the ODE with g(t₁) = r* = r(t₁)
+  -- By ODE_solution_unique_of_mem_Icc_left, r ≡ r* on [0, t₁]
+  -- In particular r(0) = r* — contradiction
+  set lipK : NNReal := ⟨2 * K, by linarith⟩ with hlipK_def
+  have hLip : ∀ s ∈ Set.Ioc 0 t₁,
+      LipschitzOnWith lipK (lorentzianODE K γ) (Set.Icc 0 1) := by
+    intro s _
+    exact lorentzianODE_lipschitzOnWith K γ hK hK_gt (le_of_lt hγ)
+  have hf_cont : ContinuousOn r (Set.Icc 0 t₁) :=
+    hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ioc 0 t₁,
+      HasDerivWithinAt r (lorentzianODE K γ (r s)) (Set.Iic s) s :=
+    fun s hs => (hr_ode s hs.1).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ioc 0 t₁, r s ∈ Set.Icc 0 1 := by
+    intro s hs; exact ⟨(hr_bdd s (le_of_lt hs.1)).1, (hr_bdd s (le_of_lt hs.1)).2⟩
+  have hg_cont : ContinuousOn (fun _ => r_star) (Set.Icc 0 t₁) := continuousOn_const
+  have hg_deriv : ∀ s ∈ Set.Ioc 0 t₁,
+      HasDerivWithinAt (fun _ => r_star) (lorentzianODE K γ r_star) (Set.Iic s) s := by
+    intro s _
+    rw [lorentzianODE_at_rstar K γ hK hK_gt]
+    simpa using (hasDerivAt_const s r_star).hasDerivWithinAt (s := Set.Iic s)
+  have hg_bdd : ∀ s ∈ Set.Ioc 0 t₁, r_star ∈ Set.Icc 0 1 := by
+    intro s _
+    have hrstar_pos : 0 < r_star := Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hK_gt)
+    have hrstar_lt : r_star < 1 := by
+      rw [hr_star_def]
+      have h_nn : 0 ≤ 1 - 2 * γ / K := le_of_lt (lorentzian_rstar_pos K γ hK hK_gt)
+      have h_lt : 1 - 2 * γ / K < 1 := by
+        have : 0 < 2 * γ / K := by positivity
+        linarith
+      calc Real.sqrt (1 - 2 * γ / K) < Real.sqrt 1 := Real.sqrt_lt_sqrt h_nn h_lt
+        _ = 1 := Real.sqrt_one
+    exact ⟨le_of_lt hrstar_pos, le_of_lt hrstar_lt⟩
+  have hb : r t₁ = (fun _ => r_star) t₁ := hrt₁
+  have hEqOn := ODE_solution_unique_of_mem_Icc_left
+    (v := fun _ => lorentzianODE K γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := r) (g := fun _ => r_star)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hb
+  have h0 : (0 : ℝ) ∈ Icc 0 t₁ := ⟨le_refl 0, le_of_lt ht₁_pos⟩
+  have hreq : r 0 = r_star := hEqOn h0
+  linarith
 
 end

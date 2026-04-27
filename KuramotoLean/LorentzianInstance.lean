@@ -31,8 +31,10 @@ structure LorentzianSolution where
   δ : ℝ
   hδ : 0 < δ
   hpersist : ∀ N, ∃ n, N ≤ n ∧ δ ≤ r n
+  hlyap_coeff : ℝ
+  hlyap_coeff_pos : 0 < hlyap_coeff
   hlyap : ∀ n, (r n ^ 2 - (1 - 2 * γ / K)) ^ 2 ≤
-    (r 0 ^ 2 - (1 - 2 * γ / K)) ^ 2 *
+    hlyap_coeff *
     Real.exp (-2 * (Finset.range n).sum (fun k => K * r k ^ 2))
 
 def LorentzianSolution.Ψ (S : LorentzianSolution) (n : ℕ) : ℝ :=
@@ -196,41 +198,34 @@ theorem lorentzian_ode_lyapunov_bound (K γ r : ℝ)
 
 theorem LorentzianSolution.hlyap_Ψ (S : LorentzianSolution) (n : ℕ) :
     (S.r n ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 ≤
-    (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 * Real.exp (-2 * S.Ψ n) := by
+    S.hlyap_coeff * Real.exp (-2 * S.Ψ n) := by
   exact S.hlyap n
 
 theorem LorentzianSolution.slaving_from_lyapunov (S : LorentzianSolution) :
     ∀ n, |lorentzianODE S.K S.γ (S.r n)| ≤
-      (S.K / 2 * Real.sqrt ((S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2)) *
+      (S.K / 2 * Real.sqrt S.hlyap_coeff) *
       Real.exp (-1 * S.Ψ n) := by
   intro n
   have hr := S.hr_bdd n
   have hlyap := S.hlyap_Ψ n
   have hdev := lorentzian_ode_lyapunov_bound S.K S.γ (S.r n) S.hK_pos hr.1 hr.2
-  have hW0_nn : 0 ≤ (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 := sq_nonneg _
   calc |lorentzianODE S.K S.γ (S.r n)|
       ≤ S.K / 2 * Real.sqrt ((S.r n ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2) := hdev
-    _ ≤ S.K / 2 * Real.sqrt ((S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 *
-          Real.exp (-2 * S.Ψ n)) := by
+    _ ≤ S.K / 2 * Real.sqrt (S.hlyap_coeff * Real.exp (-2 * S.Ψ n)) := by
         apply mul_le_mul_of_nonneg_left _ (by linarith [S.hK_pos])
         exact Real.sqrt_le_sqrt hlyap
-    _ = S.K / 2 * (Real.sqrt ((S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2) *
-          Real.sqrt (Real.exp (-2 * S.Ψ n))) := by
-        rw [Real.sqrt_mul hW0_nn]
-    _ = (S.K / 2 * Real.sqrt ((S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2)) *
-          Real.sqrt (Real.exp (-2 * S.Ψ n)) := by ring
-    _ = (S.K / 2 * Real.sqrt ((S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2)) *
-          Real.exp (-1 * S.Ψ n) := by
+    _ = S.K / 2 * (Real.sqrt S.hlyap_coeff * Real.sqrt (Real.exp (-2 * S.Ψ n))) := by
+        rw [Real.sqrt_mul (le_of_lt S.hlyap_coeff_pos)]
+    _ = (S.K / 2 * Real.sqrt S.hlyap_coeff) * Real.sqrt (Real.exp (-2 * S.Ψ n)) := by ring
+    _ = (S.K / 2 * Real.sqrt S.hlyap_coeff) * Real.exp (-1 * S.Ψ n) := by
         congr 1
         have : Real.exp (-2 * S.Ψ n) = Real.exp (-1 * S.Ψ n) ^ 2 := by
           rw [sq, ← Real.exp_add]; ring_nf
         rw [this, Real.sqrt_sq (Real.exp_nonneg _)]
 
-theorem LorentzianSolution.slaving_const_pos (S : LorentzianSolution)
-    (hr0_ne : S.r 0 ^ 2 ≠ 1 - 2 * S.γ / S.K) :
-    0 < S.K / 2 * Real.sqrt ((S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2) := by
-  apply mul_pos (by linarith [S.hK_pos])
-  exact Real.sqrt_pos_of_pos (sq_pos_of_ne_zero (sub_ne_zero.mpr hr0_ne))
+theorem LorentzianSolution.slaving_const_pos (S : LorentzianSolution) :
+    0 < S.K / 2 * Real.sqrt S.hlyap_coeff :=
+  mul_pos (by linarith [S.hK_pos]) (Real.sqrt_pos_of_pos S.hlyap_coeff_pos)
 
 /-! ## Assembled theorems -/
 
@@ -246,11 +241,10 @@ theorem lorentzian_global_stability (S : LorentzianSolution)
 /-- **Fully assembled Lorentzian stability from Lyapunov.**
     No external slaving hypothesis needed. Works for all K > 2γ. -/
 theorem lorentzian_global_stability_from_lyapunov (S : LorentzianSolution)
-    (hr0_ne : S.r 0 ^ 2 ≠ 1 - 2 * S.γ / S.K)
     (hL : 3 * (S.K - S.γ) < S.r_star) :
     ∀ ε > 0, ∃ N, ∀ n, N ≤ n →
       |S.r n - S.r_star| < ε :=
   lorentzian_global_stability S
-    _ (S.slaving_const_pos hr0_ne) (S.slaving_from_lyapunov) hL
+    _ S.slaving_const_pos (S.slaving_from_lyapunov) hL
 
 end

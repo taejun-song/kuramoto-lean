@@ -68,6 +68,7 @@ import KuramotoLean.LaSalleConvergence
 import KuramotoLean.LockedExponential
 import KuramotoLean.Lorentzian
 import KuramotoLean.LorentzianEnvelope
+import KuramotoLean.LorentzianFromODE
 import KuramotoLean.LorentzianInstance
 import KuramotoLean.LyapunovPersistence
 import KuramotoLean.MainTheorem

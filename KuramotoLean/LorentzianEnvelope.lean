@@ -29,12 +29,11 @@ private theorem rstar_sq_eq (S : LorentzianSolution) :
 /-! ## Lyapunov envelope -/
 
 private def envelope (S : LorentzianSolution) (n : ℕ) : ℝ :=
-  (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 *
-    exp (-2 * S.Ψ n) / S.r_star ^ 2
+  S.hlyap_coeff * exp (-2 * S.Ψ n) / S.r_star ^ 2
 
 private theorem envelope_nonneg (S : LorentzianSolution) (n : ℕ) :
     0 ≤ envelope S n :=
-  div_nonneg (mul_nonneg (sq_nonneg _) (exp_nonneg _)) (sq_nonneg _)
+  div_nonneg (mul_nonneg (le_of_lt S.hlyap_coeff_pos) (exp_nonneg _)) (sq_nonneg _)
 
 private theorem Ψ_le_succ (S : LorentzianSolution) (n : ℕ) :
     S.Ψ n ≤ S.Ψ (n + 1) := by
@@ -47,7 +46,7 @@ private theorem envelope_mono (S : LorentzianSolution) :
   apply div_le_div_of_nonneg_right _ (sq_nonneg S.r_star)
   exact mul_le_mul_of_nonneg_left
     (exp_le_exp.mpr (by linarith [Ψ_le_succ S n]))
-    (sq_nonneg _)
+    (le_of_lt S.hlyap_coeff_pos)
 
 /-! ## Persistence drops -/
 
@@ -55,26 +54,26 @@ private theorem envelope_drop (S : LorentzianSolution) (n : ℕ)
     (hδ : S.δ ≤ S.r n) :
     envelope S (n + 1) ≤ exp (-2 * S.K * S.δ ^ 2) * envelope S n := by
   have hr2 : (0 : ℝ) < S.r_star ^ 2 := sq_pos_of_pos S.r_star_pos
-  set W := (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 with hW_def
-  suffices hnum : W * exp (-2 * S.Ψ (n + 1)) ≤
-      exp (-2 * S.K * S.δ ^ 2) * (W * exp (-2 * S.Ψ n)) by
+  set C := S.hlyap_coeff with hC_def
+  suffices hnum : C * exp (-2 * S.Ψ (n + 1)) ≤
+      exp (-2 * S.K * S.δ ^ 2) * (C * exp (-2 * S.Ψ n)) by
     simp only [envelope]
-    exact calc W * exp (-2 * S.Ψ (n + 1)) / S.r_star ^ 2
-          ≤ exp (-2 * S.K * S.δ ^ 2) * (W * exp (-2 * S.Ψ n)) / S.r_star ^ 2 :=
+    exact calc C * exp (-2 * S.Ψ (n + 1)) / S.r_star ^ 2
+          ≤ exp (-2 * S.K * S.δ ^ 2) * (C * exp (-2 * S.Ψ n)) / S.r_star ^ 2 :=
             div_le_div_of_nonneg_right hnum (le_of_lt hr2)
-        _ = exp (-2 * S.K * S.δ ^ 2) * (W * exp (-2 * S.Ψ n) / S.r_star ^ 2) :=
+        _ = exp (-2 * S.K * S.δ ^ 2) * (C * exp (-2 * S.Ψ n) / S.r_star ^ 2) :=
             mul_div_assoc _ _ _
   have hΨ_eq : -2 * S.Ψ (n + 1) = -2 * S.Ψ n + (-2 * S.K * S.r n ^ 2) := by
     linarith [S.Ψ_growth n]
-  calc W * exp (-2 * S.Ψ (n + 1))
-      = W * (exp (-2 * S.Ψ n) * exp (-2 * S.K * S.r n ^ 2)) := by
+  calc C * exp (-2 * S.Ψ (n + 1))
+      = C * (exp (-2 * S.Ψ n) * exp (-2 * S.K * S.r n ^ 2)) := by
         rw [hΨ_eq, exp_add]
-    _ = exp (-2 * S.K * S.r n ^ 2) * (W * exp (-2 * S.Ψ n)) := by ring
-    _ ≤ exp (-2 * S.K * S.δ ^ 2) * (W * exp (-2 * S.Ψ n)) :=
+    _ = exp (-2 * S.K * S.r n ^ 2) * (C * exp (-2 * S.Ψ n)) := by ring
+    _ ≤ exp (-2 * S.K * S.δ ^ 2) * (C * exp (-2 * S.Ψ n)) :=
         mul_le_mul_of_nonneg_right
           (exp_le_exp.mpr (by
             nlinarith [pow_le_pow_left₀ (le_of_lt S.hδ) hδ 2, S.hK_pos]))
-          (mul_nonneg (sq_nonneg _) (exp_nonneg _))
+          (mul_nonneg (le_of_lt S.hlyap_coeff_pos) (exp_nonneg _))
 
 /-! ## Envelope controls r -/
 
@@ -90,8 +89,7 @@ private theorem controls_r (S : LorentzianSolution) (n : ℕ) :
           (sq_nonneg _)
     _ = (S.r n ^ 2 - S.r_star ^ 2) ^ 2 := by ring
     _ = (S.r n ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 := by rw [rstar_sq_eq S]
-    _ ≤ (S.r 0 ^ 2 - (1 - 2 * S.γ / S.K)) ^ 2 *
-          exp (-2 * S.Ψ n) := S.hlyap n
+    _ ≤ S.hlyap_coeff * exp (-2 * S.Ψ n) := S.hlyap n
 
 /-! ## Main convergence theorem -/
 
