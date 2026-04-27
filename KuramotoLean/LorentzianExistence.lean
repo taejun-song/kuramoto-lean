@@ -869,4 +869,40 @@ theorem lorentzian_w_exponential_decay (K γ r₀ : ℝ)
     _ = (r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2) *
           Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) := by rw [hW0]
 
+/-- |r(t) - r*| ≤ (r₀² - r*²)·exp(-K·r*²·t) / r* (above-equilibrium case).
+    Same algebra as r_from_v_decay but using w_exponential_decay. -/
+theorem lorentzian_r_from_w_decay (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_sq_gt : 1 - 2 * γ / K < r₀ ^ 2)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+      (r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2) *
+        Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) /
+        Real.sqrt (1 - 2 * γ / K) := by
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * γ / K) := by
+    apply Real.sqrt_pos_of_pos; rw [sub_pos, div_lt_one hK]; linarith
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+  have hr_pos : 0 < lorentzian_explicit K γ r₀ t :=
+    lorentzian_explicit_pos K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht
+  have hr_gt_rstar : Real.sqrt (1 - 2 * γ / K) < lorentzian_explicit K γ r₀ t := by
+    rw [← Real.sqrt_sq (le_of_lt hr_pos)]
+    apply Real.sqrt_lt_sqrt (by rw [sub_nonneg, div_le_one hK]; linarith)
+    rw [← hrstar_sq]
+    exact lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_gt t ht
+  have hW_decay := lorentzian_w_exponential_decay K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_sq_gt t ht
+  have habs : |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| =
+      lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K) :=
+    abs_of_pos (sub_pos.mpr hr_gt_rstar)
+  rw [habs, le_div_iff₀ hrstar_pos]
+  calc (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) * Real.sqrt (1 - 2 * γ / K)
+      ≤ (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) *
+        (lorentzian_explicit K γ r₀ t + Real.sqrt (1 - 2 * γ / K)) :=
+        mul_le_mul_of_nonneg_left (by linarith [le_of_lt hrstar_pos])
+          (sub_nonneg.mpr (le_of_lt hr_gt_rstar))
+    _ = lorentzian_explicit K γ r₀ t ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2 := by ring
+    _ ≤ (r₀ ^ 2 - Real.sqrt (1 - 2 * γ / K) ^ 2) *
+          Real.exp (-(K * Real.sqrt (1 - 2 * γ / K) ^ 2) * t) := hW_decay
+
 end
