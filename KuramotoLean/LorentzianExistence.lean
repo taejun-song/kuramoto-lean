@@ -3301,4 +3301,42 @@ theorem LorentzianContinuousSolution.v_gronwall_from_ode
   exact comparison_decay_interval V (fun u => -(S.K * S.r u * (S.r u + rs) * V u))
     μ a Δ hΔ hV_cont hV_hasderiv hV_bound
 
+/-- **Uniform V decay from abstract ODE**: V(t) ≤ V(0)·exp(-K·δ·(δ+r*)·t)
+    when S.r ≥ δ for all t ≥ 0. Corollary of v_gronwall_from_ode with a=0, Δ=t. -/
+theorem LorentzianContinuousSolution.v_uniform_from_ode
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 ≤
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 *
+    Real.exp (-(S.K * δ * (δ + Real.sqrt (1 - 2 * S.γ / S.K))) * t) := by
+  have h := S.v_gronwall_from_ode δ hδ_pos 0 t le_rfl ht
+    (fun u hu1 hu2 => h_persist u hu1)
+  simpa using h
+
+/-- **Dist bound from abstract ODE Gronwall**: |S.r t - r*| ≤ |S.r 0 - r*|·exp(-K·δ·(δ+r*)/2·t)
+    when S.r ≥ δ for all t ≥ 0. Upgrades the rate in r_dist_from_persist from K·δ·r*/2 to K·δ·(δ+r*)/2. -/
+theorem LorentzianContinuousSolution.dist_from_gronwall
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * δ * (δ + Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  set μ := S.K * δ * (δ + rs)
+  have hV := S.v_uniform_from_ode δ hδ_pos h_persist t ht
+  have hbound : |S.r t - rs| ^ 2 ≤ |S.r 0 - rs| ^ 2 * Real.exp (-μ * t) := by
+    rwa [sq_abs, sq_abs]
+  have key : (|S.r 0 - rs| * Real.exp (-(μ / 2) * t)) ^ 2 =
+      |S.r 0 - rs| ^ 2 * Real.exp (-μ * t) := by
+    rw [mul_pow]; congr 1; rw [sq, ← Real.exp_add]; congr 1; ring
+  have hnn : 0 ≤ |S.r 0 - rs| * Real.exp (-(μ / 2) * t) :=
+    mul_nonneg (abs_nonneg _) (Real.exp_nonneg _)
+  rw [← Real.sqrt_sq (abs_nonneg _), ← Real.sqrt_sq hnn]
+  apply Real.sqrt_le_sqrt
+  rw [key]; exact hbound
+
 end
