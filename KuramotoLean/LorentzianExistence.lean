@@ -2131,6 +2131,25 @@ theorem lorentzian_lyapunov_r_dist_lb (K γ r₀ : ℝ)
     _ = |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| :=
           Real.sqrt_sq_eq_abs _
 
+/-- **Two-sided exponential trap**: for r₀ ≠ r*, the distance |r(t)-r*| is sandwiched between
+    two explicit exponential rates for all t ≥ 0:
+      |r₀-r*|·exp(-K·t) ≤ |r(t)-r*| ≤ |r₀-r*|·exp(-K·min(r₀,r*)·r*/2·t).
+    The upper rate K·min(r₀,r*)·r*/2 ≤ K/2 (sharp for r₀ near r*: both → (K-2γ)/2).
+    The lower rate K is universal — valid for all trajectories regardless of starting point. -/
+theorem lorentzian_lyapunov_r_trap (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-K * t) ≤
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ∧
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| ≤
+    |r₀ - Real.sqrt (1 - 2 * γ / K)| *
+    Real.exp (-(K * min r₀ (Real.sqrt (1 - 2 * γ / K)) *
+               Real.sqrt (1 - 2 * γ / K)) / 2 * t) :=
+  ⟨lorentzian_lyapunov_r_dist_lb K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt t ht,
+   lorentzian_lyapunov_r_dist K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hr₀_ne t ht⟩
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
