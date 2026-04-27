@@ -1898,4 +1898,33 @@ theorem lorentzian_lyapunov_r_dist_above (K γ r₀ : ℝ)
     _ = |r₀ - Real.sqrt (1 - 2 * γ / K)| * Real.exp (-(K * (1 - 2 * γ / K)) * t) := by
         ring_nf
 
+/-- **Explicit convergence time (below r*)**: for r₀ < r*, t > log((r₀-r*)²/ε²)/(K·r₀·r*)
+    implies |r(t)-r*| < ε. First Lyapunov-derived convergence time for the Lorentzian ODE. -/
+theorem lorentzian_lyapunov_convergence_time_below (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_lt_rstar : r₀ < Real.sqrt (1 - 2 * γ / K))
+    (ε : ℝ) (hε : 0 < ε)
+    (t : ℝ) (ht : 0 ≤ t)
+    (htime : Real.log ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 / ε ^ 2) /
+             (K * r₀ * Real.sqrt (1 - 2 * γ / K)) < t) :
+    |lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)| < ε := by
+  have hrs_pos : 0 < Real.sqrt (1 - 2 * γ / K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos K γ hK hKγ)
+  have hV₀_pos : 0 < (r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 :=
+    sq_pos_of_ne_zero (sub_ne_zero.mpr (ne_of_lt hr₀_lt_rstar))
+  have hμ_pos : 0 < K * r₀ * Real.sqrt (1 - 2 * γ / K) :=
+    mul_pos (mul_pos hK hr₀_pos) hrs_pos
+  exact explicit_convergence_time
+      (fun s => (lorentzian_explicit K γ r₀ s - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (lorentzian_explicit K γ r₀)
+      (Real.sqrt (1 - 2 * γ / K))
+      ((r₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2)
+      (K * r₀ * Real.sqrt (1 - 2 * γ / K))
+      ε hμ_pos hV₀_pos hε
+      (fun s hs => lorentzian_lyapunov_v_exp_bound_below K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+          hr₀_lt_rstar s hs)
+      (fun s => le_refl _)
+      t ht htime
+
 end
