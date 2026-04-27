@@ -3339,4 +3339,36 @@ theorem LorentzianContinuousSolution.dist_from_gronwall
   apply Real.sqrt_le_sqrt
   rw [key]; exact hbound
 
+/-- **Two-trajectory sync from abstract ODE Gronwall**: |S.r t - S'.r t| ≤
+    (|S.r 0 - r*| + |S'.r 0 - r*|)·exp(-K·δ·(δ+r*)/2·t)
+    when both solutions satisfy r≥δ globally. Triangle inequality + dist_from_gronwall.
+    Rate K·δ·(δ+r*)/2 is tighter than two_traj_sync_from_persist's K·δ·r*/2. -/
+theorem LorentzianContinuousSolution.two_traj_from_gronwall
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (h_persist' : ∀ t, 0 ≤ t → δ ≤ S'.r t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - S'.r t| ≤
+    (|S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| +
+     |S'.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)|) *
+    Real.exp (-(S.K * δ * (δ + Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hS := S.dist_from_gronwall δ hδ_pos h_persist t ht
+  have hS' : |S'.r t - rs| ≤
+      |S'.r 0 - rs| * Real.exp (-(S.K * δ * (δ + rs) / 2) * t) := by
+    have h := S'.dist_from_gronwall δ hδ_pos h_persist' t ht
+    rwa [← hK_eq, ← hγ_eq] at h
+  have htri : |S.r t - S'.r t| ≤ |S.r t - rs| + |S'.r t - rs| := by
+    have := abs_sub_le (S.r t) rs (S'.r t)
+    linarith [abs_sub_comm (S'.r t) rs]
+  calc |S.r t - S'.r t|
+      ≤ |S.r t - rs| + |S'.r t - rs| := htri
+    _ ≤ |S.r 0 - rs| * Real.exp (-(S.K * δ * (δ + rs) / 2) * t) +
+        |S'.r 0 - rs| * Real.exp (-(S.K * δ * (δ + rs) / 2) * t) :=
+        add_le_add hS hS'
+    _ = (|S.r 0 - rs| + |S'.r 0 - rs|) *
+        Real.exp (-(S.K * δ * (δ + rs) / 2) * t) := by ring
+
 end
