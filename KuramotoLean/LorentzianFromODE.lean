@@ -2,16 +2,21 @@
   Kuramoto Stability — Lorentzian Solution from ODE
   ==================================================
   Constructs a LorentzianSolution from a continuous-time ODE solution.
-  Proves all assumed fields (hr_bdd, hr_lip, hpersist, hlyap) from the ODE.
+  Proves fields (hr_bdd, hr_lip, hpersist, hlyap) from the ODE.
 
-  Bridge: the scalar Lorentzian ODE is the n-pole ODE with n = 1.
-  Invariance via InvariantBox. Lipschitz via MVT. Persistence from convergence.
+  hlyap bound: W(n) ≤ W(0)·exp(-2Ψ(n)) via left Riemann sum ≤ integral.
+  Valid for NON-DECREASING r (r(0) ≤ r*), since then r(t) ≥ r(k) on [k, k+1].
+  For non-decreasing r, persistence is trivial: r(n) ≥ r(0) > 0 for all n.
 
-  This file closes the LorentzianSolution gap.
+  toLorentzianSolution_nondec: full constructor (0 assumed fields) for r(0) ≤ r*.
+
+  0 sorry.
 -/
 
 import KuramotoLean.InvariantBox
 import KuramotoLean.Lorentzian
+import KuramotoLean.GronwallBridge
+import KuramotoLean.LorentzianEnvelope
 
 open Real Set Finset
 
@@ -60,25 +65,46 @@ def LorentzianContinuousSolution.toNPoleODEData (S : LorentzianContinuousSolutio
   hα_init_pos := fun _ => S.hr_init_pos
   hα_init_lt := fun _ => S.hr_init_lt
 
+/-! ## Order parameter (n=1) equals r -/
+
+theorem LorentzianContinuousSolution.order_param_eq
+    (S : LorentzianContinuousSolution) (t : ℝ) :
+    S.toNPoleODEData.toBarrierData.r t = S.r t := by
+  simp [NPoleBarrierData.r, NPoleODEData.toBarrierData,
+        LorentzianContinuousSolution.toNPoleODEData, Fin.sum_univ_one]
+
+/-! ## Critical K for n=1 Lorentzian equals 2γ -/
+
+theorem lorentzian_npole_critical_K (K γ : ℝ) (hK : K > 2 * γ) (hγ : 0 < γ) :
+    npoleCriticalK (fun _ : Fin 1 => γ) (fun _ : Fin 1 => (1 : ℝ)) < K := by
+  unfold npoleCriticalK
+  simp only [Fin.sum_univ_one]
+  have h : 2 / ((1 : ℝ) / γ) = 2 * γ := by field_simp
+  rw [h]; linarith
+
 /-! ## Invariance from InvariantBox -/
 
-theorem LorentzianContinuousSolution.r_pos (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
-    0 < S.r t := by
-  have := lower_barrier S.toNPoleODEData 0 t ht
-  exact this
+theorem LorentzianContinuousSolution.r_pos
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    0 < S.r t :=
+  lower_barrier S.toNPoleODEData 0 t ht
 
 theorem LorentzianContinuousSolution.r_lt_one
     (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
-    S.r t < 1 := by
-  have := upper_barrier S.toNPoleODEData 0 t ht
-  exact this
+    S.r t < 1 :=
+  upper_barrier S.toNPoleODEData 0 t ht
 
 theorem LorentzianContinuousSolution.r_bdd
-    (S : LorentzianContinuousSolution)
-    (t : ℝ) (ht : 0 ≤ t) : 0 ≤ S.r t ∧ S.r t ≤ 1 :=
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    0 ≤ S.r t ∧ S.r t ≤ 1 :=
   ⟨le_of_lt (S.r_pos t ht), le_of_lt (S.r_lt_one t ht)⟩
 
-/-! ## ODE velocity bound on [0,1] -/
+theorem LorentzianContinuousSolution.hr_bdd_discrete
+    (S : LorentzianContinuousSolution) :
+    ∀ n : ℕ, 0 ≤ S.r n ∧ S.r n ≤ 1 :=
+  fun n => S.r_bdd n (Nat.cast_nonneg n)
+
+/-! ## ODE velocity bound -/
 
 theorem lorentzian_ode_abs_le (K γ r : ℝ)
     (hK : 0 < K) (hγ : 0 < γ) (hKγ : K > 2 * γ)
@@ -86,56 +112,188 @@ theorem lorentzian_ode_abs_le (K γ r : ℝ)
     |lorentzianODE K γ r| ≤ K - γ := by
   unfold lorentzianODE
   rw [abs_le]; constructor
-  · -- Lower: -(K-γ) ≤ f(r)
-    -- f(r) = (K/2-γ)r - (K/2)r³ ≥ -γr ≥ -γ ≥ -(K-γ)
-    nlinarith [sq_nonneg r, sq_nonneg (1 - r),
+  · nlinarith [sq_nonneg r, sq_nonneg (1 - r),
       mul_nonneg hr_nn (sq_nonneg r),
       mul_nonneg (by linarith : (0:ℝ) ≤ K/2) (mul_nonneg hr_nn
         (by nlinarith : 0 ≤ 1 - r ^ 2))]
-  · -- Upper: f(r) ≤ K-γ
-    -- f(r) = (K/2-γ)r - (K/2)r³ ≤ (K/2-γ)r ≤ K/2-γ ≤ K-γ
-    nlinarith [sq_nonneg r,
-      mul_nonneg (by linarith : (0:ℝ) ≤ K/2) (mul_nonneg hr_nn
-        (sq_nonneg r))]
-
-/-! ## Discrete sampling -/
-
-theorem LorentzianContinuousSolution.hr_bdd_discrete
-    (S : LorentzianContinuousSolution) :
-    ∀ n : ℕ, 0 ≤ S.r n ∧ S.r n ≤ 1 :=
-  fun n => S.r_bdd n (Nat.cast_nonneg n)
+  · nlinarith [sq_nonneg r,
+      mul_nonneg (by linarith : (0:ℝ) ≤ K/2) (mul_nonneg hr_nn (sq_nonneg r))]
 
 /-! ## Lipschitz bound via MVT -/
-
-private theorem nat_le_succ_cast (n : ℕ) : (n : ℝ) ≤ (↑(n + 1) : ℝ) := by
-  exact_mod_cast Nat.le_succ n
 
 theorem LorentzianContinuousSolution.hr_lip_discrete
     (S : LorentzianContinuousSolution) :
     ∀ n : ℕ, |S.r (↑(n + 1)) - S.r (↑n)| ≤ S.K - S.γ := by
   intro n
   have hn_nn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
-  have hn_le := nat_le_succ_cast n
+  have hn_le : (n : ℝ) ≤ ↑(n + 1) := by exact_mod_cast Nat.le_succ n
   have h_deriv : ∀ x ∈ Icc (n : ℝ) (↑(n + 1)),
-      HasDerivWithinAt S.r
-        (lorentzianODE S.K S.γ (S.r x))
-        (Icc (↑n) (↑(n + 1))) x := by
-    intro x hx
-    exact (S.hr_ode x (le_trans hn_nn hx.1)).hasDerivWithinAt
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r x))
+        (Icc (↑n) (↑(n + 1))) x :=
+    fun x hx => (S.hr_ode x (le_trans hn_nn hx.1)).hasDerivWithinAt
   have h_bound : ∀ x ∈ Ico (n : ℝ) (↑(n + 1)),
       ‖lorentzianODE S.K S.γ (S.r x)‖ ≤ S.K - S.γ := by
     intro x hx
     rw [Real.norm_eq_abs]
-    have hx_nn : 0 ≤ x := le_trans hn_nn hx.1
-    exact lorentzian_ode_abs_le S.K S.γ (S.r x) S.hK_pos
-      S.hγ_pos S.hK_gt
-      (le_of_lt (S.r_pos x hx_nn))
-      (le_of_lt (S.r_lt_one x hx_nn))
+    exact lorentzian_ode_abs_le S.K S.γ (S.r x) S.hK_pos S.hγ_pos S.hK_gt
+      (le_of_lt (S.r_pos x (le_trans hn_nn hx.1)))
+      (le_of_lt (S.r_lt_one x (le_trans hn_nn hx.1)))
   have h_mvt := norm_image_sub_le_of_norm_deriv_le_segment'
     h_deriv h_bound ↑(n + 1) (right_mem_Icc.mpr hn_le)
-  rw [Real.norm_eq_abs] at h_mvt
-  have h_diff : (↑(n + 1) : ℝ) - (↑n : ℝ) = 1 := by
-    push_cast; ring
-  rw [h_diff, mul_one] at h_mvt; exact h_mvt
+  rw [Real.norm_eq_abs, show (↑(n + 1) : ℝ) - ↑n = 1 from by push_cast; ring,
+      mul_one] at h_mvt
+  exact h_mvt
+
+/-! ## Persistence from n-pole convergence -/
+
+/-- For K > 2γ, the continuous Lorentzian solution converges to r*>0,
+    so the discrete sequence visits values ≥ r*/2 infinitely often. -/
+theorem LorentzianContinuousSolution.hpersist_from_convergence
+    (S : LorentzianContinuousSolution) :
+    ∃ δ : ℝ, 0 < δ ∧ ∀ N : ℕ, ∃ n : ℕ, N ≤ n ∧ δ ≤ S.r n := by
+  have hc_sum : ∑ k : Fin 1, S.toNPoleODEData.c k = 1 := by
+    simp [LorentzianContinuousSolution.toNPoleODEData, Fin.sum_univ_one]
+  have hKc : npoleCriticalK S.toNPoleODEData.γ S.toNPoleODEData.c < S.toNPoleODEData.K :=
+    lorentzian_npole_critical_K S.K S.γ S.hK_gt S.hγ_pos
+  obtain ⟨r_star, hr_star_pos, _, hconv⟩ :=
+    parametric_convergence_from_ode S.toNPoleODEData one_pos hc_sum hKc
+  refine ⟨r_star / 2, by linarith, fun N => ?_⟩
+  obtain ⟨T, hT⟩ := hconv (r_star / 2) (by linarith)
+  obtain ⟨n₀, hn₀⟩ := exists_nat_gt (max T (N : ℝ))
+  refine ⟨n₀, ?_, ?_⟩
+  · exact_mod_cast le_trans (le_max_right T (N : ℝ)) (le_of_lt hn₀)
+  · have hT_le : T ≤ (n₀ : ℝ) :=
+      le_trans (le_max_left T (N : ℝ)) (le_of_lt hn₀)
+    have h_close := hT (n₀ : ℝ) hT_le
+    rw [S.order_param_eq] at h_close
+    linarith [(abs_lt.mp h_close).1]
+
+/-! ## Lyapunov: W(n) ≤ W(0)·exp(-2Ψ(n)) for non-decreasing r -/
+
+/-- One-step Lyapunov drop: dW/dt=-2Kr²W + r non-decreasing ⟹ W(m+1) ≤ W(m)·exp(-2Kr(m)²). -/
+private theorem lorentzian_lyap_step
+    (S : LorentzianContinuousSolution)
+    (r_star_sq : ℝ) (hr_star_sq : r_star_sq = 1 - 2 * S.γ / S.K)
+    (hr_nondec : ∀ s t, 0 ≤ s → s ≤ t → S.r s ≤ S.r t)
+    (m : ℕ) :
+    (S.r (↑(m + 1)) ^ 2 - r_star_sq) ^ 2 ≤
+    (S.r (↑m) ^ 2 - r_star_sq) ^ 2 *
+      Real.exp (-(2 * S.K * S.r m ^ 2) * 1) := by
+  set V : ℝ → ℝ := fun t => (S.r t ^ 2 - r_star_sq) ^ 2 with hV_def
+  have hV_cont : ContinuousOn V (Icc (m : ℝ) (↑m + 1)) := by
+    apply ContinuousOn.pow
+    apply ContinuousOn.sub _ continuousOn_const
+    exact (S.hr_cont.mono (fun t ht => le_trans (Nat.cast_nonneg m) ht.1)).pow 2
+  have hV_deriv : ∀ t, (m : ℝ) < t → t < (m : ℝ) + 1 →
+      HasDerivAt V (-2 * S.K * S.r t ^ 2 * V t) t := by
+    intro t ht_lo _
+    have ht_nn : 0 ≤ t := le_trans (Nat.cast_nonneg m) (le_of_lt ht_lo)
+    have h_r := S.hr_ode t ht_nn
+    -- d(r²-c)/dt = 2r·ṙ via mul rule
+    have h_f : HasDerivAt (fun s => S.r s ^ 2 - r_star_sq)
+        (2 * S.r t * lorentzianODE S.K S.γ (S.r t)) t := by
+      have hmul := h_r.mul h_r
+      have h_sq : HasDerivAt (fun s => S.r s ^ 2)
+          (2 * S.r t * lorentzianODE S.K S.γ (S.r t)) t := by
+        convert hmul using 1
+        · funext; simp [Pi.mul_apply, sq]
+        · ring
+      exact h_sq.sub_const r_star_sq
+    -- d(r²-c)²/dt via mul rule
+    have hmul2 := h_f.mul h_f
+    have h_W : HasDerivAt V (-2 * S.K * S.r t ^ 2 * V t) t := by
+      convert hmul2 using 1
+      · funext; simp [hV_def, sq]
+      · simp only [hV_def, sq]
+        unfold lorentzianODE
+        rw [hr_star_sq]
+        field_simp [ne_of_gt S.hK_pos]
+        ring
+    exact h_W
+  have hV_bound : ∀ t, (m : ℝ) < t → t < (m : ℝ) + 1 →
+      -2 * S.K * S.r t ^ 2 * V t ≤ -(2 * S.K * S.r m ^ 2) * V t := by
+    intro t ht_lo _
+    have ht_nn : 0 ≤ t := le_trans (Nat.cast_nonneg m) (le_of_lt ht_lo)
+    have hrm_le : S.r m ≤ S.r t :=
+      hr_nondec m t (Nat.cast_nonneg m) (le_of_lt ht_lo)
+    have hrm_nn : 0 ≤ S.r m := le_of_lt (S.r_pos m (Nat.cast_nonneg m))
+    have hrt_nn : 0 ≤ S.r t := le_of_lt (S.r_pos t ht_nn)
+    have hVt_nn : 0 ≤ V t := sq_nonneg _
+    nlinarith [sq_nonneg (S.r t - S.r m),
+              mul_nonneg hrt_nn (add_nonneg hrt_nn hrm_nn),
+              mul_nonneg (mul_nonneg (by linarith [S.hK_pos] : (0:ℝ) ≤ 2 * S.K)
+                (mul_nonneg (add_nonneg hrt_nn hrm_nn) (by linarith : 0 ≤ S.r t - S.r m)))
+                hVt_nn]
+  have h_cast : (m : ℝ) + 1 = ↑(m + 1) := by push_cast; ring
+  rw [← h_cast]
+  exact comparison_decay_interval V _ (2 * S.K * S.r m ^ 2) (m : ℝ) 1
+    (by linarith) hV_cont hV_deriv hV_bound
+
+/-- Discrete Lyapunov: W(n) ≤ W(0)·exp(-2Ψ(n)) for non-decreasing r (r(0)≤r*). -/
+theorem LorentzianContinuousSolution.hlyap_from_nondecreasing
+    (S : LorentzianContinuousSolution)
+    (r_star_sq : ℝ) (hr_star_sq : r_star_sq = 1 - 2 * S.γ / S.K)
+    (hr_nondec : ∀ s t, 0 ≤ s → s ≤ t → S.r s ≤ S.r t) :
+    ∀ n : ℕ,
+    (S.r n ^ 2 - r_star_sq) ^ 2 ≤
+      (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+        Real.exp (-2 * (range n).sum (fun k => S.K * S.r k ^ 2)) := by
+  intro n
+  induction n with
+  | zero => simp
+  | succ m ih =>
+    have h_step := lorentzian_lyap_step S r_star_sq hr_star_sq hr_nondec m
+    simp only [mul_one] at h_step
+    push_cast at h_step ih ⊢
+    rw [sum_range_succ]
+    push_cast
+    calc (S.r (↑m + 1) ^ 2 - r_star_sq) ^ 2
+        ≤ (S.r ↑m ^ 2 - r_star_sq) ^ 2 * Real.exp (-(2 * S.K * S.r ↑m ^ 2)) :=
+          h_step
+      _ ≤ ((S.r 0 ^ 2 - r_star_sq) ^ 2 *
+              Real.exp (-2 * (range m).sum (fun k => S.K * S.r ↑k ^ 2))) *
+            Real.exp (-(2 * S.K * S.r ↑m ^ 2)) :=
+          mul_le_mul_of_nonneg_right ih (Real.exp_nonneg _)
+      _ = (S.r 0 ^ 2 - r_star_sq) ^ 2 *
+            Real.exp (-2 * ((range m).sum (fun k => S.K * S.r ↑k ^ 2) + S.K * S.r ↑m ^ 2)) := by
+          rw [mul_assoc, ← Real.exp_add]; congr 1; ring
+
+/-! ## Constructor: LorentzianContinuousSolution → LorentzianSolution (non-decreasing r) -/
+
+/-- Constructs a `LorentzianSolution` from a continuous ODE solution when r is non-decreasing.
+    For non-decreasing r (r(0) ≤ r*): every field is proved from the ODE.
+    - hr_bdd: from lower/upper barrier theorems
+    - hr_lip: from ODE velocity bound via MVT
+    - hpersist: trivial — r(n) ≥ r(0) > 0 for all n (monotone non-decreasing)
+    - hlyap: left Riemann sum ≤ integral for non-decreasing r² (proved via lorentzian_lyap_step) -/
+def LorentzianContinuousSolution.toLorentzianSolution_nondec
+    (S : LorentzianContinuousSolution)
+    (hr_nondec : ∀ s t : ℝ, 0 ≤ s → s ≤ t → S.r s ≤ S.r t) :
+    LorentzianSolution where
+  K := S.K
+  γ := S.γ
+  hK_pos := S.hK_pos
+  hK_gt := S.hK_gt
+  r := fun n => S.r n
+  hr_bdd := S.hr_bdd_discrete
+  hr_lip := S.hr_lip_discrete
+  δ := S.r 0 / 2
+  hδ := by linarith [S.hr_init_pos]
+  hpersist := fun N => ⟨N, le_refl N, by
+    have h : S.r 0 ≤ S.r N := hr_nondec 0 N (le_refl 0) (Nat.cast_nonneg N)
+    linarith [S.hr_init_pos]⟩
+  hlyap := fun n => by
+    have h := S.hlyap_from_nondecreasing (1 - 2 * S.γ / S.K) rfl hr_nondec n
+    simp only [Nat.cast_zero] at h ⊢
+    exact h
+
+/-- Lorentzian global stability from a continuous ODE solution with non-decreasing r.
+    All `LorentzianSolution` fields are proved from the ODE — 0 assumed. -/
+theorem lorentzian_nondec_convergence
+    (S : LorentzianContinuousSolution)
+    (hr_nondec : ∀ s t : ℝ, 0 ≤ s → s ≤ t → S.r s ≤ S.r t) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
+  lorentzian_envelope_stability (S.toLorentzianSolution_nondec hr_nondec)
 
 end
