@@ -2296,6 +2296,17 @@ theorem lorentzian_lyapunov_v_nonincreasing (K γ r₀ : ℝ)
   · exact fun s hs t ht hst =>
       lorentzian_lyapunov_v_antitone K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt hne hs hst
 
+/-- **Sublevel set forward invariance**: once V(t₀) ≤ c, we have V(t) ≤ c for all t ≥ t₀ ≥ 0.
+    Direct corollary of v_nonincreasing (V is AntitoneOn [0,∞)). -/
+theorem lorentzian_lyapunov_sublevel_fwd_inv (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (c : ℝ) (t₀ t : ℝ) (ht₀ : 0 ≤ t₀) (ht : t₀ ≤ t)
+    (hV : (lorentzian_explicit K γ r₀ t₀ - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤ c) :
+    (lorentzian_explicit K γ r₀ t - Real.sqrt (1 - 2 * γ / K)) ^ 2 ≤ c :=
+  (lorentzian_lyapunov_v_nonincreasing K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt
+    (Set.mem_Ici.mpr ht₀) (Set.mem_Ici.mpr (ht₀.trans ht)) ht).trans hV
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
