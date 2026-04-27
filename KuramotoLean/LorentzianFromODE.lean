@@ -640,4 +640,65 @@ theorem lorentzian_critical_tendsto
       (mul_le_mul_of_nonneg_right (by linarith) (Real.exp_nonneg _))
   linarith
 
+/-! ## Unified continuous trifurcation for scalar Lorentzian ODE -/
+
+/-- For n=1 with uniform γ and c=1: the n-pole critical K equals 2γ. -/
+theorem lorentzian_npole_critical_K_eq (γ : ℝ) (hγ : 0 < γ) :
+    npoleCriticalK (fun _ : Fin 1 => γ) (fun _ : Fin 1 => (1 : ℝ)) = 2 * γ := by
+  unfold npoleCriticalK
+  simp only [Fin.sum_univ_one]
+  field_simp
+
+/-- Build NPoleODEData for n=1 Lorentzian ODE; works for any positive K. -/
+private def lorentzian_to_npole (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 < t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_init_pos : 0 < r 0) (hr_init_lt : r 0 < 1) : NPoleODEData 1 where
+  γ := fun _ => γ
+  c := fun _ => 1
+  K := K
+  α := fun t _ => r t
+  hK := hK
+  hγ := fun _ => hγ
+  hc := fun _ => one_pos
+  hα_ode := fun t ht k => by
+    have h := hr_ode t ht
+    rw [lorentzian_eq_npole_n1] at h
+    exact Fin.fin_one_eq_zero k ▸ h
+  hα_cont := fun _ => hr_cont
+  hα_init_pos := fun _ => hr_init_pos
+  hα_init_lt := fun _ => hr_init_lt
+
+/-- **Complete Lorentzian trifurcation** (continuous time, Filter.Tendsto form).
+    Any Lorentzian ODE solution with r(0) ∈ (0,1) converges to a limit r_∞ ∈ [0,1]:
+    - K ≤ 2γ → r_∞ = 0 (incoherent/critical regime)
+    - K > 2γ → 0 < r_∞ < 1 (partially synchronized regime)
+    Proof: lift to NPoleODEData n=1, apply trifurcation_from_ode, bridge via
+    lorentzian_npole_critical_K_eq. -/
+theorem lorentzian_continuous_trifurcation
+    (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
+    (hr_ode : ∀ t, 0 < t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_init_pos : 0 < r 0) (hr_init_lt : r 0 < 1) :
+    ∃ r_limit : ℝ, 0 ≤ r_limit ∧ r_limit ≤ 1 ∧
+      Filter.Tendsto r Filter.atTop (nhds r_limit) ∧
+      (K ≤ 2 * γ → r_limit = 0) ∧
+      (2 * γ < K → 0 < r_limit ∧ r_limit < 1) := by
+  set D := lorentzian_to_npole K γ hK hγ r hr_cont hr_ode hr_init_pos hr_init_lt
+  have hc_sum : ∑ k : Fin 1, D.c k = 1 := by
+    change ∑ k : Fin 1, (fun _ => (1 : ℝ)) k = 1
+    simp [Fin.sum_univ_one]
+  have hKc_eq : npoleCriticalK D.γ D.c = 2 * γ := by
+    change npoleCriticalK (fun _ : Fin 1 => γ) (fun _ : Fin 1 => (1 : ℝ)) = 2 * γ
+    exact lorentzian_npole_critical_K_eq γ hγ
+  obtain ⟨r_limit, hr_nn, hr_le, hr_tendsto, hle, hgt⟩ :=
+    trifurcation_from_ode D one_pos hc_sum
+  have heq : D.toBarrierData.r = r := funext fun t => by
+    change ∑ k : Fin 1, (1 : ℝ) * r t = r t
+    simp [Fin.sum_univ_one]
+  refine ⟨r_limit, hr_nn, hr_le, ?_, ?_, ?_⟩
+  · rw [heq] at hr_tendsto; exact hr_tendsto
+  · intro hK_le; apply hle; rw [hKc_eq]; exact hK_le
+  · intro hK_gt; apply hgt; rw [hKc_eq]; exact hK_gt
+
 end
