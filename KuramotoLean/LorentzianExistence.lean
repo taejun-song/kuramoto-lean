@@ -411,4 +411,59 @@ theorem lorentzian_explicit_rate (K γ r₀ : ℝ)
   rw [le_div_iff₀ hrstar_pos]
   exact h_le.trans hsq_diff
 
+/-- **ODE uniqueness**: any LorentzianContinuousSolution equals the explicit Bernoulli
+    formula at every t ≥ 0. Proof: both satisfy the same Lipschitz ODE with the same
+    initial value, so Gronwall (ODE_solution_unique_of_mem_Icc_right) gives equality. -/
+theorem LorentzianContinuousSolution.eq_explicit
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 < t) :
+    S.r t = lorentzian_explicit S.K S.γ (S.r 0) t := by
+  set r₀ := S.r 0
+  have hr₀_pos : 0 < r₀ := S.hr_init_pos
+  have hr₀_lt : r₀ < 1 := S.hr_init_lt
+  set lipK : NNReal := ⟨2 * S.K, by linarith [S.hK_pos]⟩
+  have hLip : ∀ s ∈ Set.Ico 0 t,
+      LipschitzOnWith lipK (lorentzianODE S.K S.γ) (Set.Icc 0 1) :=
+    fun s _ => lorentzianODE_lipschitzOnWith S.K S.γ S.hK_pos S.hK_gt (le_of_lt S.hγ_pos)
+  have hf_cont : ContinuousOn S.r (Set.Icc 0 t) :=
+    S.hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r s)) (Set.Ici s) s :=
+    fun s hs => (S.hr_ode s hs.1).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ico 0 t, S.r s ∈ Set.Icc 0 1 :=
+    fun s hs => ⟨le_of_lt (S.r_pos s hs.1), le_of_lt (S.r_lt_one s hs.1)⟩
+  have hg_cont : ContinuousOn (lorentzian_explicit S.K S.γ r₀) (Set.Icc 0 t) :=
+    (lorentzian_explicit_continuousOn S.K S.γ r₀ S.hK_pos S.hγ_pos S.hK_gt
+      hr₀_pos hr₀_lt).mono Set.Icc_subset_Ici_self
+  have hg_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt (lorentzian_explicit S.K S.γ r₀)
+        (lorentzianODE S.K S.γ (lorentzian_explicit S.K S.γ r₀ s)) (Set.Ici s) s :=
+    fun s hs =>
+      (lorentzian_explicit_hasDerivAt S.K S.γ r₀ S.hK_pos S.hγ_pos S.hK_gt
+        hr₀_pos hr₀_lt s hs.1).hasDerivWithinAt
+  have hg_bdd : ∀ s ∈ Set.Ico 0 t,
+      lorentzian_explicit S.K S.γ r₀ s ∈ Set.Icc 0 1 :=
+    fun s hs => ⟨le_of_lt (lorentzian_explicit_pos S.K S.γ r₀ S.hK_pos S.hγ_pos S.hK_gt
+        hr₀_pos hr₀_lt s hs.1),
+      le_of_lt (lorentzian_explicit_lt_one S.K S.γ r₀ S.hK_pos S.hγ_pos S.hK_gt
+        hr₀_pos hr₀_lt s hs.1)⟩
+  have hinit : S.r 0 = lorentzian_explicit S.K S.γ r₀ 0 :=
+    (lorentzian_explicit_init S.K S.γ r₀ hr₀_pos).symm
+  have hEqOn := ODE_solution_unique_of_mem_Icc_right
+    (v := fun _ => lorentzianODE S.K S.γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := S.r) (g := lorentzian_explicit S.K S.γ r₀)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hinit
+  exact hEqOn ⟨le_of_lt ht, le_refl t⟩
+
+/-- **Universal rate bound**: any LorentzianContinuousSolution satisfies
+    |r(t) - r*| ≤ |A|·exp(-μt)/r* for t > 0.
+    Follows from ODE uniqueness (eq_explicit) + lorentzian_explicit_rate. -/
+theorem LorentzianContinuousSolution.rate_bound
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+      |1 / S.r 0 ^ 2 - S.K / (S.K - 2 * S.γ)| * Real.exp (-(S.K - 2 * S.γ) * t) /
+        Real.sqrt (1 - 2 * S.γ / S.K) := by
+  rw [S.eq_explicit t ht]
+  exact lorentzian_explicit_rate S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt t (le_of_lt ht)
+
 end
