@@ -982,4 +982,72 @@ theorem lorentzian_above_rstar_convergence
       |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε :=
   lorentzian_envelope_stability (S.toLorentzianSolution_from_above hr_init_above)
 
+/-! ## r(0) = r* case: forward ODE uniqueness gives r ≡ r* -/
+
+/-- When r(0) = r*, forward ODE uniqueness (Gronwall) gives r(t) = r* for all t ≥ 0. -/
+theorem LorentzianContinuousSolution.r_constant_at_rstar
+    (S : LorentzianContinuousSolution)
+    (hr_init_eq : S.r 0 = Real.sqrt (1 - 2 * S.γ / S.K)) :
+    ∀ t, 0 ≤ t → S.r t = Real.sqrt (1 - 2 * S.γ / S.K) := by
+  intro t ht
+  rcases ht.eq_or_lt with rfl | ht_pos
+  · exact hr_init_eq
+  set r_star := Real.sqrt (1 - 2 * S.γ / S.K)
+  set lipK : NNReal := ⟨2 * S.K, by linarith [S.hK_pos]⟩
+  have hLip : ∀ s ∈ Set.Ico 0 t, LipschitzOnWith lipK (lorentzianODE S.K S.γ) (Set.Icc 0 1) :=
+    fun s _ => lorentzianODE_lipschitzOnWith S.K S.γ S.hK_pos S.hK_gt (le_of_lt S.hγ_pos)
+  have hf_cont : ContinuousOn S.r (Set.Icc 0 t) := S.hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r s)) (Set.Ici s) s :=
+    fun s hs => (S.hr_ode s hs.1).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ico 0 t, S.r s ∈ Set.Icc 0 1 :=
+    fun s hs => ⟨le_of_lt (S.r_pos s hs.1), le_of_lt (S.r_lt_one s hs.1)⟩
+  have hg_cont : ContinuousOn (fun _ => r_star) (Set.Icc 0 t) := continuousOn_const
+  have hg_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt (fun _ => r_star) (lorentzianODE S.K S.γ ((fun _ => r_star) s)) (Set.Ici s) s := by
+    intro s _
+    simp only
+    rw [lorentzianODE_at_rstar S.K S.γ S.hK_pos S.hK_gt]
+    exact (hasDerivAt_const s r_star).hasDerivWithinAt
+  have hg_bdd : ∀ s ∈ Set.Ico 0 t, r_star ∈ Set.Icc 0 1 := by
+    intro s _
+    have hrstar_pos : 0 < r_star := Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+    have hrstar_lt : r_star < 1 := by
+      have h_nn : 0 ≤ 1 - 2 * S.γ / S.K := le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+      have h_lt : 1 - 2 * S.γ / S.K < 1 := by
+        have : 0 < 2 * S.γ / S.K := div_pos (by linarith [S.hγ_pos]) S.hK_pos
+        linarith
+      calc Real.sqrt (1 - 2 * S.γ / S.K) < Real.sqrt 1 := Real.sqrt_lt_sqrt h_nn h_lt
+        _ = 1 := Real.sqrt_one
+    exact ⟨le_of_lt hrstar_pos, le_of_lt hrstar_lt⟩
+  have hEqOn := ODE_solution_unique_of_mem_Icc_right
+    (v := fun _ => lorentzianODE S.K S.γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := S.r) (g := fun _ => r_star)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hr_init_eq
+  exact hEqOn ⟨le_of_lt ht_pos, le_refl t⟩
+
+/-- Global stability when r(0) = r* (trivially, r stays at r* by ODE uniqueness). -/
+theorem lorentzian_at_rstar_convergence
+    (S : LorentzianContinuousSolution)
+    (hr_init_eq : S.r 0 = Real.sqrt (1 - 2 * S.γ / S.K)) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  have hr_const := S.r_constant_at_rstar hr_init_eq
+  intro ε hε
+  exact ⟨0, fun n _ => by
+    rw [hr_const n (Nat.cast_nonneg n), sub_self, abs_zero]; exact hε⟩
+
+/-! ## Unified convergence theorem -/
+
+/-- **Unified Lorentzian convergence from ODE.**
+    For any K > 2γ and any r(0) ∈ (0,1), r(n) → r* = √(1-2γ/K). -/
+theorem lorentzian_convergence_from_ode
+    (S : LorentzianContinuousSolution) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+      |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  rcases lt_trichotomy (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) with h | h | h
+  · exact lorentzian_below_rstar_convergence S h
+  · exact lorentzian_at_rstar_convergence S h
+  · exact lorentzian_above_rstar_convergence S h
+
 end
