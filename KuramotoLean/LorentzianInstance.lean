@@ -57,7 +57,7 @@ theorem lorentzianPhi_sc_err (K γ r : ℝ) :
 
 /-! ## Ψ monotonicity and divergence (for ApproxSCData) -/
 
-private theorem Ψ_mono (S : LorentzianSolution) :
+theorem lorentzian_psi_mono (S : LorentzianSolution) :
     ∀ n, S.Ψ n ≤ S.Ψ (n + 1) := by
   intro n
   have h := S.Ψ_growth n
@@ -65,16 +65,16 @@ private theorem Ψ_mono (S : LorentzianSolution) :
     mul_nonneg (le_of_lt S.hK_pos) (sq_nonneg _)
   linarith
 
-private theorem Ψ_mono_le (S : LorentzianSolution) (a b : ℕ)
+theorem lorentzian_psi_mono_le (S : LorentzianSolution) (a b : ℕ)
     (hab : a ≤ b) : S.Ψ a ≤ S.Ψ b := by
   induction b with
   | zero => simp [show a = 0 from by omega]
   | succ k ih =>
     rcases Nat.eq_or_lt_of_le hab with h | h
     · rw [h]
-    · exact le_trans (ih (by omega)) (Ψ_mono S k)
+    · exact le_trans (ih (by omega)) (lorentzian_psi_mono S k)
 
-private theorem Ψ_diverges (S : LorentzianSolution) :
+theorem lorentzian_psi_diverges (S : LorentzianSolution) :
     ∀ C, ∃ n, C < S.Ψ n := by
   have hKδ : 0 < S.K * S.δ ^ 2 :=
     mul_pos S.hK_pos (sq_pos_of_pos S.hδ)
@@ -96,7 +96,7 @@ private theorem Ψ_diverges (S : LorentzianSolution) :
     obtain ⟨N, hN⟩ := ih
     obtain ⟨n, hn, hrn⟩ := S.hpersist N
     refine ⟨n + 1, ?_⟩
-    have h_mono := Ψ_mono_le S N n hn
+    have h_mono := lorentzian_psi_mono_le S N n hn
     have h_growth := S.Ψ_growth n
     have h_δ : S.K * S.δ ^ 2 ≤ S.K * S.r n ^ 2 := by
       apply mul_le_mul_of_nonneg_left _ (le_of_lt S.hK_pos)
@@ -130,8 +130,8 @@ private def toApproxSCData (S : LorentzianSolution)
   hΦ_cont := gap_min_from_continuity S.r_star
     (lorentzianPhi S.K S.γ) S.r_star_pos
     (lorentzian_hΦ_unique S) (lorentzianPhi_continuous S.K S.γ)
-  hΨ_mono := Ψ_mono S
-  hΨ_div := Ψ_diverges S
+  hΨ_mono := lorentzian_psi_mono S
+  hΨ_div := lorentzian_psi_diverges S
   γ := 1
   hγ := one_pos
   C := C_s
