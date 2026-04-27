@@ -2596,6 +2596,35 @@ theorem lorentzian_lyapunov_two_traj_sync_from_persist (K γ r₀ r₀' δ : ℝ
         |r₀' - rs| * Real.exp (-(K * δ * rs) / 2 * t) := add_le_add hd hd'
     _ = (|r₀ - rs| + |r₀' - rs|) * Real.exp (-(K * δ * rs) / 2 * t) := by ring
 
+/-- **Two-trajectory synchronization for ODE solutions from persistence**: if both S.r t ≥ δ
+    and S'.r t ≥ δ for all t ≥ 0, and S.K = S'.K, S.γ = S'.γ, then
+    |S.r t - S'.r t| ≤ (|S.r 0 - r*| + |S'.r 0 - r*|)·exp(-K·δ·r*/2·t).
+    Lifts two_traj_sync_from_persist to LorentzianContinuousSolution. -/
+theorem LorentzianContinuousSolution.two_traj_sync_from_persist
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t)
+    (h_persist' : ∀ t, 0 ≤ t → δ ≤ S'.r t)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - S'.r t| ≤
+    (|S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| +
+     |S'.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)|) *
+    Real.exp (-(S.K * δ * Real.sqrt (1 - 2 * S.γ / S.K)) / 2 * t) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have htri : |S.r t - S'.r t| ≤ |S.r t - rs| + |S'.r t - rs| := by
+    have := abs_sub_le (S.r t) rs (S'.r t)
+    linarith [abs_sub_comm (S'.r t) rs]
+  have hd := S.r_dist_from_persist δ hδ_pos h_persist t ht
+  have hd' : |S'.r t - rs| ≤ |S'.r 0 - rs| * Real.exp (-(S.K * δ * rs) / 2 * t) := by
+    have h := S'.r_dist_from_persist δ hδ_pos h_persist' t ht
+    rwa [← hK_eq, ← hγ_eq] at h
+  calc |S.r t - S'.r t|
+      ≤ |S.r t - rs| + |S'.r t - rs| := htri
+    _ ≤ |S.r 0 - rs| * Real.exp (-(S.K * δ * rs) / 2 * t) +
+        |S'.r 0 - rs| * Real.exp (-(S.K * δ * rs) / 2 * t) := add_le_add hd hd'
+    _ = (|S.r 0 - rs| + |S'.r 0 - rs|) * Real.exp (-(S.K * δ * rs) / 2 * t) := by ring
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
