@@ -115,3 +115,4 @@ import KuramotoLean.ZeroActivation
 import KuramotoLean.ExtendedConvergence
 import KuramotoLean.OneDeactivation
 import KuramotoLean.EventualRate
+import KuramotoLean.NPoleContinuumBridge

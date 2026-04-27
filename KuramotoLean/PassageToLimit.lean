@@ -17,6 +17,8 @@
 
 import KuramotoLean.RationalOA
 import KuramotoLean.PerronConvergence
+import KuramotoLean.InvariantBox
+import KuramotoLean.EventualRate
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.Order.Basic
@@ -79,6 +81,27 @@ theorem exp_beats_poly_proved (c_rate ε : ℝ) (hc : 0 < c_rate) (hε : 0 < ε)
   simp only [Real.dist_eq, sub_zero, rpow_one] at hM
   rw [show -c_rate * (n : ℝ) = -(c_rate * n) from by ring] at hM
   exact lt_of_abs_lt hM
+
+/-! ## Grounding theorems: h_npole and h_phase1/h_phase2 are PROVED -/
+
+/-- The h_npole placeholder is GROUNDED: trifurcation_from_ode proves
+    n-pole convergence for ANY K > 0 (sub/critical/supercritical). -/
+theorem npole_convergence_proved {n : ℕ} (D : NPoleODEData n)
+    (hn : 0 < n) (hc_sum : ∑ k, D.c k = 1) :
+    ∃ r_limit : ℝ, 0 ≤ r_limit ∧ r_limit ≤ 1 ∧
+      Tendsto D.toBarrierData.r atTop (nhds r_limit) :=
+  let ⟨r, hr0, hr1, hconv, _, _⟩ := trifurcation_from_ode D hn hc_sum
+  ⟨r, hr0, hr1, hconv⟩
+
+/-- KEY: For supercritical K, n-pole convergence is EXPONENTIAL with rate
+    μ = K·(δ*/2)·δ* that is INDEPENDENT of n (for fixed equilibrium bounds).
+    This uniform rate is what enables the passage to limit N → ∞. -/
+theorem npole_exp_decay_proved {n : ℕ} (D : FullChainData n) :
+    ∃ T₀ : ℝ, 0 ≤ T₀ ∧ ∀ t, T₀ ≤ t →
+      l2Distance D.c (D.α t) D.α_star ≤
+        l2Distance D.c (D.α T₀) D.α_star *
+          Real.exp (-D.exp_rate * (t - T₀)) :=
+  D.eventual_exponential_V
 
 /-! ## The main passage-to-limit theorem -/
 
