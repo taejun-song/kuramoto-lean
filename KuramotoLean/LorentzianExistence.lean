@@ -3388,6 +3388,33 @@ theorem LorentzianContinuousSolution.v_deriv_nonpos
     mul_nonneg (mul_nonneg (mul_nonneg S.hK_pos.le hr_pos.le) h_sum.le) (sq_nonneg _)
   linarith
 
+/-- **V non-increasing from abstract ODE** (no eq_explicit): V = (S.r t - r*)² is AntitoneOn [0,∞).
+    Uses antitoneOn_of_hasDerivWithinAt_nonpos with HasDerivWithinAt from v_deriv_formula
+    and v_deriv_nonpos for the ≤ 0 bound. Alternative proof of v_nonincreasing. -/
+theorem LorentzianContinuousSolution.v_nonincreasing_from_ode
+    (S : LorentzianContinuousSolution) :
+    AntitoneOn (fun t => (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      (Set.Ici (0 : ℝ)) := by
+  apply antitoneOn_of_hasDerivWithinAt_nonpos (convex_Ici _)
+    ((S.hr_cont.sub continuousOn_const).pow 2)
+  · intro t ht
+    simp only [interior_Ici, Set.mem_Ioi] at ht
+    exact (S.v_deriv_formula t ht.le).hasDerivWithinAt
+  · intro t ht
+    simp only [interior_Ici, Set.mem_Ioi] at ht
+    exact S.v_deriv_nonpos t ht.le
+
+/-- **Dist le init from abstract ODE** (no eq_explicit): |S.r t - r*| ≤ |S.r 0 - r*| for all t ≥ 0.
+    Corollary of v_nonincreasing_from_ode via Real.sqrt_le_sqrt. Alternative proof of dist_le_init. -/
+theorem LorentzianContinuousSolution.dist_le_init_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  have hV := S.v_nonincreasing_from_ode (Set.mem_Ici.mpr le_rfl) (Set.mem_Ici.mpr ht) ht
+  rw [← Real.sqrt_sq_eq_abs, ← Real.sqrt_sq_eq_abs]
+  exact Real.sqrt_le_sqrt hV
+
 /-- **Dist bound below r***: when S.r 0 < r*, monotonicity gives S.r t ≥ S.r 0 globally,
     so δ = S.r 0 works in dist_from_gronwall. Rate K·r₀·(r₀+r*)/2 strictly exceeds the
     explicit-formula rate K·r₀·r*/2 from dist_bound_below. NO eq_explicit used. -/
