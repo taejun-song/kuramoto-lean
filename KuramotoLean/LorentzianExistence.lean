@@ -2858,6 +2858,73 @@ theorem LorentzianContinuousSolution.two_traj_sync_from_persist
         |S'.r 0 - rs| * Real.exp (-(S.K * δ * rs) / 2 * t) := add_le_add hd hd'
     _ = (|S.r 0 - rs| + |S'.r 0 - rs|) * Real.exp (-(S.K * δ * rs) / 2 * t) := by ring
 
+/-- **Strict distance decrease**: |r(t)-r*| < |r(s)-r*| for 0 ≤ s < t when r₀ ≠ r*.
+    The trajectory strictly approaches equilibrium at every step. -/
+theorem LorentzianContinuousSolution.dist_strict_decreasing (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| <
+    |S.r s - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  rw [S.eq_explicit_of_nonneg t (hs.trans hst.le), S.eq_explicit_of_nonneg s hs]
+  exact lorentzian_explicit_dist_strict_decreasing S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne hs hst
+
+/-- **Strict Lyapunov anti-tone**: V(t) < V(s) for 0 ≤ s < t when r₀ ≠ r*.
+    The squared distance to equilibrium decreases strictly along trajectories. -/
+theorem LorentzianContinuousSolution.v_strict_anti (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 <
+    (S.r s - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t (hs.trans hst.le), S.eq_explicit_of_nonneg s hs]
+  exact lorentzian_lyapunov_v_strict_anti S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne hs hst
+
+/-- **V strictly less than initial value**: V(t) < V(0) = (r₀-r*)² for t > 0 when r₀ ≠ r*.
+    Sharper than v_le_init: the bound is strict for positive time. -/
+theorem LorentzianContinuousSolution.v_lt_init' (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 < t) :
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 <
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 := by
+  rw [S.eq_explicit_of_nonneg t ht.le, S.eq_explicit_of_nonneg 0 le_rfl,
+      lorentzian_explicit_init S.K S.γ (S.r 0) S.hr_init_pos]
+  exact lorentzian_lyapunov_v_lt_init S.K S.γ (S.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hr₀_ne t ht
+
+/-- **V tends to zero**: (r(t)-r*)² → 0 as t → ∞.
+    Lyapunov form of convergence: V → 0 encodes r(t) → r*. -/
+theorem LorentzianContinuousSolution.v_tendsto_zero (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      Filter.atTop (nhds 0) := by
+  have h := S.tendsto.sub_const (Real.sqrt (1 - 2 * S.γ / S.K))
+  simp only [sub_self] at h
+  have h2 := h.pow 2
+  simp only [zero_pow, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true] at h2
+  exact h2
+
+/-- **Order preservation**: if S.r 0 < S'.r 0 with identical parameters, then S.r t < S'.r t.
+    The explicit Lorentzian flow strictly preserves initial ordering for all t ≥ 0. -/
+theorem LorentzianContinuousSolution.order_preserving
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (hr₀_lt : S.r 0 < S'.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t < S'.r t := by
+  rw [S.eq_explicit_of_nonneg t ht, S'.eq_explicit_of_nonneg t ht, ← hK_eq, ← hγ_eq]
+  exact lorentzian_explicit_order_preserving S.K S.γ (S.r 0) (S'.r 0) S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt S'.hr_init_pos S'.hr_init_lt hr₀_lt t ht
+
+/-- **Forward invariance of ε-ball**: if |S.r 0 - r*| < ε, then |S.r t - r*| < ε for all t ≥ 0.
+    The open ball around r* is positively invariant under the Lorentzian flow. -/
+theorem LorentzianContinuousSolution.r_ball_fwd_inv (S : LorentzianContinuousSolution)
+    (ε : ℝ) (hε : |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| < ε)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  rw [S.eq_explicit_of_nonneg t ht]
+  exact lorentzian_lyapunov_r_ball_fwd_inv S.K S.γ (S.r 0) ε S.hK_pos S.hγ_pos S.hK_gt
+    S.hr_init_pos S.hr_init_lt hε t ht
+
 /-- **V = 0 iff r = r***: the Lyapunov function V = (r(t)-r*)² vanishes exactly at equilibrium.
     Combined with v_pos: V(t) = 0 cannot hold for t ≥ 0 when r₀ ≠ r*. -/
 theorem lorentzian_lyapunov_v_eq_zero_iff (K γ r₀ : ℝ)
