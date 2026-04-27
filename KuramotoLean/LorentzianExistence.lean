@@ -1392,4 +1392,41 @@ theorem lorentzian_fixed_point_iff (K γ r : ℝ)
     · simp [lorentzianODE]
     · exact lorentzian_rstar_is_fixed_point K γ hK hγ hKγ
 
+/-- **Solution avoids equilibrium**: if r₀ ≠ r*, then r(t) ≠ r* for all t ≥ 0.
+    Equivalently, the orbit starting away from r* never reaches r* in finite time. -/
+theorem lorentzian_explicit_ne_rstar (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t ≠ Real.sqrt (1 - 2 * γ / K) := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_ne_sq : r₀ ^ 2 ≠ 1 - 2 * γ / K := by
+    intro h
+    exact hr₀_ne (by rw [← Real.sqrt_sq hr₀_pos.le, h])
+  rcases lt_or_gt_of_ne hr₀_ne_sq with h | h
+  · have hr_lt := lorentzian_explicit_sq_lt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
+    intro heq; rw [heq, hrstar_sq] at hr_lt; exact lt_irrefl _ hr_lt
+  · have hr_gt := lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
+    intro heq; rw [heq, hrstar_sq] at hr_gt; exact lt_irrefl _ hr_gt
+
+/-- **Square difference stays positive**: if r₀ ≠ r*, then (r(t)²-r*²) ≠ 0 for all t ≥ 0.
+    Equivalently, the Lyapunov function V(t) = (r²-r*²)² > 0 until r → r*. -/
+theorem lorentzian_sq_diff_ne_zero (K γ r₀ : ℝ)
+    (hK : 0 < K) (hγ : 0 < γ) (hKγ : 2 * γ < K)
+    (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)
+    (hr₀_ne : r₀ ≠ Real.sqrt (1 - 2 * γ / K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    lorentzian_explicit K γ r₀ t ^ 2 - (1 - 2 * γ / K) ≠ 0 := by
+  have hrstar_sq : Real.sqrt (1 - 2 * γ / K) ^ 2 = 1 - 2 * γ / K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos K γ hK hKγ))
+  have hr₀_ne_sq : r₀ ^ 2 ≠ 1 - 2 * γ / K := by
+    intro h; exact hr₀_ne (by rw [← Real.sqrt_sq hr₀_pos.le, h])
+  rcases lt_or_gt_of_ne hr₀_ne_sq with h | h
+  · have hr_lt := lorentzian_explicit_sq_lt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
+    linarith [hrstar_sq ▸ hr_lt]
+  · have hr_gt := lorentzian_explicit_sq_gt_rstar K γ r₀ hK hγ hKγ hr₀_pos hr₀_lt h t ht
+    linarith [hrstar_sq ▸ hr_gt]
+
 end
