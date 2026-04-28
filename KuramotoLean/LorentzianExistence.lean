@@ -3492,4 +3492,19 @@ theorem LorentzianContinuousSolution.dist_strict_lt_init_from_ode
   rw [← Real.sqrt_sq_eq_abs, ← Real.sqrt_sq_eq_abs]
   exact Real.sqrt_lt_sqrt (sq_nonneg _) hV
 
+/-- **Abs dist StrictAntiOn from abstract ODE**: |S.r t - r*| is StrictAntiOn [0, ∞) when S.r 0 ≠ r*.
+    For any 0 ≤ s < t, |S.r t - r*| < |S.r s - r*| strictly.
+    Corollary of v_strict_anti_from_ode via sqrt strict monotonicity. -/
+theorem LorentzianContinuousSolution.abs_dist_strict_anti_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K)) :
+    StrictAntiOn (fun t => |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)|)
+      (Set.Ici (0 : ℝ)) := by
+  intro s hs t ht hst
+  simp only []
+  have hV := S.v_strict_anti_from_ode h0_ne hs ht hst
+  simp only [] at hV
+  rw [← Real.sqrt_sq_eq_abs, ← Real.sqrt_sq_eq_abs]
+  exact Real.sqrt_lt_sqrt (sq_nonneg _) hV
+
 end
