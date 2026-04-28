@@ -3555,4 +3555,40 @@ theorem LorentzianContinuousSolution.v_deriv_neg_from_ode
       (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2) < 0 :=
   S.v_deriv_neg_at_nonequil t ht (S.ne_rstar h0_ne t ht)
 
+/-- **Dist lower bound from abstract ODE** (NO eq_explicit): |S.r t - r*| ≥ |S.r 0 - r*|·exp(-K·t).
+    Uses v_lb_from_ode + sqrt algebra (same pattern as lorentzian_lyapunov_r_dist_lb).
+    Together with dist_le_init_from_ode, gives two-sided trap: the distance cannot
+    decay faster than exp(-Kt) and cannot exceed the initial distance. -/
+theorem LorentzianContinuousSolution.dist_lb_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| * Real.exp (-S.K * t) ≤
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hvlb := S.v_lb_from_ode t ht
+  have hsqrt_exp : Real.sqrt (Real.exp (-(2 * S.K) * t)) = Real.exp (-S.K * t) := by
+    have h1 : Real.exp (-(2 * S.K) * t) = Real.exp (-S.K * t) ^ 2 := by
+      rw [sq, ← Real.exp_add]; congr 1; ring
+    rw [h1, Real.sqrt_sq (Real.exp_pos _).le]
+  calc |S.r 0 - rs| * Real.exp (-S.K * t)
+      = Real.sqrt ((S.r 0 - rs) ^ 2) * Real.sqrt (Real.exp (-(2 * S.K) * t)) := by
+          rw [Real.sqrt_sq_eq_abs, hsqrt_exp]
+    _ = Real.sqrt ((S.r 0 - rs) ^ 2 * Real.exp (-(2 * S.K) * t)) :=
+          (Real.sqrt_mul (sq_nonneg _) _).symm
+    _ ≤ Real.sqrt ((S.r t - rs) ^ 2) := Real.sqrt_le_sqrt hvlb
+    _ = |S.r t - rs| := Real.sqrt_sq_eq_abs _
+
+/-- **Two-sided distance trap from abstract ODE** (NO eq_explicit): the distance satisfies
+    |S.r 0-r*|·exp(-K·t) ≤ |S.r t-r*| ≤ |S.r 0-r*|.
+    Combines dist_lb_from_ode (lower) and dist_le_init_from_ode (upper). The lower rate K is
+    universal. Analogous to dist_trap but proved without eq_explicit. -/
+theorem LorentzianContinuousSolution.dist_trap_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| * Real.exp (-S.K * t) ≤
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ∧
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| :=
+  ⟨S.dist_lb_from_ode t ht, S.dist_le_init_from_ode t ht⟩
+
 end
