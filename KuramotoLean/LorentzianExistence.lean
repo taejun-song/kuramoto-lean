@@ -3591,4 +3591,56 @@ theorem LorentzianContinuousSolution.dist_trap_from_ode
     |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| :=
   ⟨S.dist_lb_from_ode t ht, S.dist_le_init_from_ode t ht⟩
 
+/-- **V tends to 0 under persistence** (NO eq_explicit): when S.r ≥ δ globally,
+    V(t) = (S.r t - r*)² → 0 as t → ∞. Proved via v_uniform_from_ode + squeeze_zero' + exp→0.
+    First convergence result in the abstract ODE chain. -/
+theorem LorentzianContinuousSolution.v_tendsto_from_persist_ode
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t) :
+    Filter.Tendsto (fun t => (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      Filter.atTop (nhds 0) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hrs_pos : 0 < rs := Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  set mu_rate := S.K * δ * (δ + rs)
+  have hmu_pos : 0 < mu_rate := mul_pos (mul_pos S.hK_pos hδ_pos) (by linarith)
+  have hVbound : ∀ t, 0 ≤ t → (S.r t - rs) ^ 2 ≤ (S.r 0 - rs) ^ 2 * Real.exp (-mu_rate * t) :=
+    fun t ht => S.v_uniform_from_ode δ hδ_pos h_persist t ht
+  have hexp_tendsto : Tendsto (fun t : ℝ => (S.r 0 - rs) ^ 2 * Real.exp (-mu_rate * t))
+      atTop (nhds 0) := by
+    have hmul : Tendsto (fun t : ℝ => mu_rate * t) atTop atTop :=
+      tendsto_atTop_atTop.mpr fun b =>
+        ⟨b / mu_rate, fun y hy => by have := (div_le_iff₀ hmu_pos).mp hy; linarith⟩
+    have hcomp := Real.tendsto_exp_neg_atTop_nhds_zero.comp hmul
+    have heq : (fun x : ℝ => Real.exp (-x)) ∘ (fun t => mu_rate * t) =
+        fun t : ℝ => Real.exp (-mu_rate * t) := by
+      ext t; simp [Function.comp, neg_mul]
+    rw [heq] at hcomp
+    simpa [mul_zero] using tendsto_const_nhds.mul hcomp
+  apply squeeze_zero'
+  · filter_upwards [] with _ using sq_nonneg _
+  · filter_upwards [eventually_ge_atTop (0:ℝ)] with t ht; exact hVbound t ht
+  · exact hexp_tendsto
+
+/-- **Convergence under persistence** (NO eq_explicit): when S.r ≥ δ globally,
+    S.r t → r* as t → ∞. Proved via v_tendsto_from_persist_ode + sqrt + dist metric.
+    First full convergence result from the abstract ODE chain. -/
+theorem LorentzianContinuousSolution.tendsto_from_persist_ode
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_pos : 0 < δ)
+    (h_persist : ∀ t, 0 ≤ t → δ ≤ S.r t) :
+    Filter.Tendsto S.r Filter.atTop (nhds (Real.sqrt (1 - 2 * S.γ / S.K))) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hV_tendsto := S.v_tendsto_from_persist_ode δ hδ_pos h_persist
+  have hdist_tendsto : Tendsto (fun t => |S.r t - rs|) atTop (nhds 0) := by
+    simp_rw [← Real.sqrt_sq_eq_abs]
+    simpa using hV_tendsto.sqrt
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  obtain ⟨N, hN⟩ := (Metric.tendsto_atTop.mp hdist_tendsto) ε hε
+  exact ⟨N, fun t ht => by
+    have h := hN t ht
+    simp only [Real.dist_eq, sub_zero, abs_abs] at h
+    rwa [Real.dist_eq]⟩
+
 end
