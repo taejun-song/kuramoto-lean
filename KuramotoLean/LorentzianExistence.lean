@@ -3507,4 +3507,52 @@ theorem LorentzianContinuousSolution.abs_dist_strict_anti_from_ode
   rw [← Real.sqrt_sq_eq_abs, ← Real.sqrt_sq_eq_abs]
   exact Real.sqrt_lt_sqrt (sq_nonneg _) hV
 
+/-- **V lower bound from abstract ODE** (NO eq_explicit): V(t) ≥ V(0)·exp(-2K·t) for all t ≥ 0.
+    Uses comparison_growth with slope bound V' = -K·r·(r+r*)·V ≥ -2K·V,
+    since r < 1 and r* < 1 give r·(r+r*) < 2. Alternative proof of v_lb without eq_explicit. -/
+theorem LorentzianContinuousSolution.v_lb_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    (S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 * Real.exp (-(2 * S.K) * t) ≤
+    (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2 := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  set V : ℝ → ℝ := fun u => (S.r u - rs) ^ 2
+  have hrs_pos : 0 < rs :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hrs_lt_one : rs < 1 :=
+    lorentzian_rstar_lt_one S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+  have hV_cont : ContinuousOn V (Set.Ici 0) :=
+    (S.hr_cont.sub continuousOn_const).pow 2
+  have hV_hasderiv : ∀ u, 0 < u → HasDerivAt V (-(S.K * S.r u * (S.r u + rs) * V u)) u :=
+    fun u hu => S.v_deriv_formula u hu.le
+  have hV_bound : ∀ u, 0 < u → -(2 * S.K) * V u ≤ -(S.K * S.r u * (S.r u + rs) * V u) := by
+    intro u hu
+    have hr_pos := S.r_pos u hu.le
+    have hr_lt_one := S.r_lt_one u hu.le
+    have hVu : 0 ≤ V u := sq_nonneg _
+    have h_coeff : S.r u * (S.r u + rs) ≤ 2 := by nlinarith
+    have h1 : S.K * S.r u * (S.r u + rs) * V u ≤ 2 * S.K * V u := by
+      calc S.K * S.r u * (S.r u + rs) * V u
+          = S.K * (S.r u * (S.r u + rs)) * V u := by ring
+        _ ≤ S.K * 2 * V u :=
+            mul_le_mul_of_nonneg_right
+              (mul_le_mul_of_nonneg_left h_coeff S.hK_pos.le) hVu
+        _ = 2 * S.K * V u := by ring
+    linarith
+  have hresult := comparison_growth V (fun u => -(S.K * S.r u * (S.r u + rs) * V u))
+    (-(2 * S.K)) hV_cont hV_hasderiv hV_bound t ht
+  simp only [neg_mul] at hresult ⊢
+  linarith
+
+/-- **V deriv strictly negative from abstract ODE** (uses ne_rstar): when S.r 0 ≠ r*,
+    V'(t) < 0 for ALL t ≥ 0 — since ne_rstar gives S.r t ≠ r* for all t, enabling
+    v_deriv_neg_at_nonequil globally. Named all-t version of v_deriv_neg_at_nonequil. -/
+theorem LorentzianContinuousSolution.v_deriv_neg_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    -(S.K * S.r t * (S.r t + Real.sqrt (1 - 2 * S.γ / S.K)) *
+      (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2) < 0 :=
+  S.v_deriv_neg_at_nonequil t ht (S.ne_rstar h0_ne t ht)
+
 end
