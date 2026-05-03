@@ -3705,6 +3705,21 @@ theorem LorentzianContinuousSolution.tendsto_from_ode
     exact S.tendsto_from_persist_ode rs hrs_pos
       (fun t ht => S.r_ge_rstar_of_above h t ht)
 
+/-- **ṙ = 0 iff at equilibrium** (NO eq_explicit): for t ≥ 0,
+    lorentzianODE K γ (r t) = 0 ↔ r t = r* = √(1-2γ/K).
+    Proof: lorentzian_fixed_point_unique + r(t) > 0 rules out the zero equilibrium. -/
+theorem LorentzianContinuousSolution.deriv_eq_zero_iff_rstar
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    lorentzianODE S.K S.γ (S.r t) = 0 ↔ S.r t = Real.sqrt (1 - 2 * S.γ / S.K) := by
+  constructor
+  · intro h
+    rcases lorentzian_fixed_point_unique S.K S.γ (S.r t) S.hK_pos S.hK_gt h with hr0 | hrstar
+    · exact absurd hr0 (ne_of_gt (S.r_pos t ht))
+    · have := (Real.sqrt_sq (le_of_lt (S.r_pos t ht))).symm
+      rw [hrstar] at this; exact this
+  · intro h; rw [h]
+    exact lorentzian_rstar_is_fixed_point S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+
 /-- **ṙ < 0 above r*** (NO eq_explicit): r(t) > r* implies ṙ(t) = lorentzianODE K γ (r t) < 0.
     The ODE pushes back toward r* from above. -/
 theorem LorentzianContinuousSolution.deriv_neg_above
