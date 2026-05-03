@@ -4273,4 +4273,51 @@ theorem LorentzianContinuousSolution.phase_portrait_from_ode
          S.rstar_const_from_ode h t (le_of_lt (lt_of_le_of_lt hs hst))],
    fun h => S.strictly_decreasing_from_ode h s t hs hst⟩
 
+/-- **Orbit hits r* iff starts at r*** (exp 180):
+    S.r t = r* (for any t ≥ 0) iff S.r 0 = r*.
+    Forward: ne_rstar_from_ode (contrapositive). Backward: rstar_const_from_ode. -/
+theorem LorentzianContinuousSolution.eq_rstar_iff_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t = Real.sqrt (1 - 2 * S.γ / S.K) ↔
+    S.r 0 = Real.sqrt (1 - 2 * S.γ / S.K) := by
+  constructor
+  · intro hrt
+    by_contra h0
+    exact S.ne_rstar_from_ode h0 t ht hrt
+  · intro h0
+    exact S.rstar_const_from_ode h0 t ht
+
+/-- **Orbit below r* iff starts below r*** (exp 180):
+    S.r t < r* (for any t ≥ 0) iff S.r 0 < r*. -/
+theorem LorentzianContinuousSolution.lt_rstar_iff_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t < Real.sqrt (1 - 2 * S.γ / S.K) ↔
+    S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K) := by
+  set r_star := Real.sqrt (1 - 2 * S.γ / S.K)
+  constructor
+  · intro hrt
+    rcases lt_trichotomy (S.r 0) r_star with h | h | h
+    · exact h
+    · exact absurd (S.rstar_const_from_ode h t ht) (ne_of_lt hrt)
+    · exact absurd hrt (not_lt.mpr (le_of_lt (S.gt_rstar_of_init h t ht)))
+  · exact fun h0 => S.lt_rstar_of_init h0 t ht
+
+/-- **Orbit above r* iff starts above r*** (exp 180):
+    r* < S.r t (for any t ≥ 0) iff r* < S.r 0. -/
+theorem LorentzianContinuousSolution.gt_rstar_iff_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) < S.r t ↔
+    Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0 := by
+  set r_star := Real.sqrt (1 - 2 * S.γ / S.K)
+  constructor
+  · intro hrt
+    rcases lt_trichotomy (S.r 0) r_star with h | h | h
+    · exact absurd hrt (not_lt.mpr (le_of_lt (S.lt_rstar_of_init h t ht)))
+    · exact absurd (S.rstar_const_from_ode h t ht) (ne_of_gt hrt)
+    · exact h
+  · exact fun h0 => S.gt_rstar_of_init h0 t ht
+
 end
