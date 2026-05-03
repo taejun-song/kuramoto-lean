@@ -23,6 +23,7 @@ import KuramotoLean.PerronConvergence
 import KuramotoLean.InvariantBox
 import KuramotoLean.EventualRate
 import Mathlib.Analysis.Analytic.Basic
+import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.Order.Basic
@@ -59,15 +60,24 @@ axiom rational_approximation_rate
 
 /-! ## Proved: standard analysis lemmas -/
 
-/-- Continuous dependence of ODE solutions on parameters:
-    ‖α(t) - α_n(t)‖ ≤ e^{Lt} · ‖g - g_n‖ for Lipschitz constant L. -/
+/-- Gronwall continuous dependence: two exact solutions of the same K-Lipschitz ODE
+    starting within δ of each other satisfy dist(f t, g t) ≤ δ · exp(K · t) for all
+    t ∈ [0, T]. Direct corollary of Mathlib's dist_le_of_trajectories_ODE. -/
 theorem continuous_dependence_ode
-    (L : ℝ) (hL : 0 < L)
-    (approx_error : ℝ)
-    (t : ℝ) (ht : 0 ≤ t) :
-    ∃ (ode_error : ℝ),
-      ode_error ≤ Real.exp (L * t) * approx_error :=
-  ⟨_, le_refl _⟩
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (v : ℝ → E → E) (f g : ℝ → E)
+    (K : NNReal) (T : ℝ)
+    (hv : ∀ t, LipschitzWith K (v t))
+    (hf : ContinuousOn f (Set.Icc 0 T))
+    (hf' : ∀ t ∈ Set.Ico 0 T, HasDerivWithinAt f (v t (f t)) (Set.Ici t) t)
+    (hg : ContinuousOn g (Set.Icc 0 T))
+    (hg' : ∀ t ∈ Set.Ico 0 T, HasDerivWithinAt g (v t (g t)) (Set.Ici t) t)
+    (δ : ℝ) (hδ : dist (f 0) (g 0) ≤ δ) :
+    ∀ t ∈ Set.Icc 0 T, dist (f t) (g t) ≤ δ * Real.exp ((K : ℝ) * t) := by
+  intro t ht
+  have h := dist_le_of_trajectories_ODE hv hf hf' hg hg' hδ t ht
+  simp only [sub_zero] at h
+  exact h
 
 /-- 1/n → 0 as n → ∞. -/
 theorem poly_decay_proved (ε : ℝ) (hε : 0 < ε) :
