@@ -4607,4 +4607,41 @@ theorem LorentzianContinuousSolution.tendsto_dist_nat_from_ode
     simpa [sub_self] using this
   simpa [abs_zero] using h.abs
 
+/-- **Inverse convergence from abstract ODE** (exp 191):
+    (S.r t)⁻¹ → (r*)⁻¹ as t → ∞. One-liner via tendsto_from_ode.inv₀ + rstar_pos. -/
+theorem LorentzianContinuousSolution.r_inv_tendsto_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => (S.r t)⁻¹)
+      Filter.atTop (nhds (Real.sqrt (1 - 2 * S.γ / S.K))⁻¹) :=
+  S.tendsto_from_ode.inv₀ (ne_of_gt (Real.sqrt_pos_of_pos
+    (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)))
+
+/-- **Nat-indexed inverse convergence from abstract ODE** (exp 191):
+    (fun n:ℕ => (S.r n)⁻¹) → (r*)⁻¹. One-liner via tendsto_nat.inv₀ + rstar_pos. -/
+theorem LorentzianContinuousSolution.r_inv_tendsto_nat_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun n : ℕ => (S.r n)⁻¹)
+      Filter.atTop (nhds (Real.sqrt (1 - 2 * S.γ / S.K))⁻¹) :=
+  S.tendsto_nat.inv₀ (ne_of_gt (Real.sqrt_pos_of_pos
+    (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)))
+
+/-- **Nat-indexed w-function convergence from abstract ODE** (exp 191):
+    (fun n:ℕ => 1 / S.r n ^ 2) → K/(K-2γ). Pattern: same ContinuousAt composition as
+    w_tendsto but using tendsto_nat in place of tendsto_from_ode. -/
+theorem LorentzianContinuousSolution.w_tendsto_nat_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun n : ℕ => 1 / S.r n ^ 2)
+      Filter.atTop (nhds (S.K / (S.K - 2 * S.γ))) := by
+  have hd : (0 : ℝ) < S.K - 2 * S.γ := by linarith [S.hK_gt]
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * S.γ / S.K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hrstar_sq : (1 : ℝ) / Real.sqrt (1 - 2 * S.γ / S.K) ^ 2 = S.K / (S.K - 2 * S.γ) := by
+    rw [Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))]
+    field_simp [ne_of_gt hd, ne_of_gt S.hK_pos]
+  rw [← hrstar_sq]
+  have hcont : ContinuousAt (fun r : ℝ => 1 / r ^ 2) (Real.sqrt (1 - 2 * S.γ / S.K)) := by
+    apply ContinuousAt.div continuousAt_const (continuous_pow 2).continuousAt
+    exact (pow_pos hrstar_pos 2).ne'
+  exact hcont.tendsto.comp S.tendsto_nat
+
 end
