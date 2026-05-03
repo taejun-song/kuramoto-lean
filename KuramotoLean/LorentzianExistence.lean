@@ -1222,6 +1222,22 @@ theorem lorentzian_rstar_tendsto_one (γ : ℝ) (hγ : 0 < γ) :
     simpa using hc.sub h0
   simpa [Real.sqrt_one] using continuous_sqrt.continuousAt.tendsto.comp h1
 
+/-- **Bifurcation birth point**: r* = √(1-2γ/K) → 0 as K → (2γ)⁺.
+    Together with `lorentzian_rstar_tendsto_one` this completes the bifurcation picture:
+    r*(K) is born at K = 2γ with r* = 0 and increases monotonically to 1 as K → ∞. -/
+theorem lorentzian_rstar_tendsto_zero (γ : ℝ) (hγ : 0 < γ) :
+    Filter.Tendsto (fun K => Real.sqrt (1 - 2 * γ / K))
+      (nhdsWithin (2 * γ) (Set.Ioi (2 * γ))) (nhds 0) := by
+  have h2γ_ne : (2 * γ : ℝ) ≠ 0 := ne_of_gt (by linarith)
+  have hcont_inner : ContinuousAt (fun K : ℝ => 1 - 2 * γ / K) (2 * γ) :=
+    continuousAt_const.sub (continuousAt_const.div continuousAt_id h2γ_ne)
+  have hval : (fun K : ℝ => 1 - 2 * γ / K) (2 * γ) = 0 := by
+    simp only []; rw [div_self h2γ_ne, sub_self]
+  have h_inner : Filter.Tendsto (fun K : ℝ => 1 - 2 * γ / K)
+      (nhdsWithin (2 * γ) (Set.Ioi (2 * γ))) (nhds 0) := by
+    rw [← hval]; exact hcont_inner.continuousWithinAt
+  simpa [Real.sqrt_zero] using continuous_sqrt.continuousAt.tendsto.comp h_inner
+
 /-- **Linearized rate at origin**: the derivative of the Lorentzian ODE vector field at r=0
     is K/2-γ. For K > 2γ this is positive, confirming the origin is linearly unstable. -/
 theorem lorentzian_ode_hasDerivAt_zero (K γ : ℝ) :
