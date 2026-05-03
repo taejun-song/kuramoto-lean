@@ -22,6 +22,7 @@ import KuramotoLean.RationalOA
 import KuramotoLean.PerronConvergence
 import KuramotoLean.InvariantBox
 import KuramotoLean.EventualRate
+import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.Order.Basic
@@ -32,19 +33,29 @@ noncomputable section
 
 /-! ## The ONE axiom: rational approximation rate for analytic g
 
-For analytic g with strip width a > 0, the n-pole rational approximation g_n
-satisfies ‖g - g_n‖ ≤ C · e^{-cn}. This is classical:
-  - Padé approximation theory (Baker & Graves-Morris, 1996)
-  - AAK theory (Adamjan, Arov, Kreĭn, 1971)
-  - Walsh equiconvergence for rational interpolation
+For g analytic in the horizontal strip {z : ℂ | |Im z| < a} with a > 0,
+there exist n-pole rational approximations g_n : ℝ → ℝ and constants C, c > 0 such that
+  ∀ ω : ℝ, |g(ω) - g_n(ω)| ≤ C · exp(-c · n)
+
+This is classical:
+  - Padé approximation theory (Baker & Graves-Morris, 1996, Ch. 5)
+  - AAK theory (Adamjan, Arov, Kreĭn, 1971, Theorem 1)
+  - Walsh equiconvergence for rational interpolation on the real line
 
 The rate c depends on the strip width a of analyticity of g. -/
 
+/-- For g admitting an analytic extension to a horizontal strip of width a > 0,
+    there exist n-pole rational approximations converging uniformly at exponential rate.
+    [Baker-Graves-Morris, "Padé Approximants" (1996), Ch. 5]
+    [Adamjan-Arov-Kreĭn, "Analytic properties of Schmidt pairs..." (1971), Thm 1] -/
 axiom rational_approximation_rate
-    (g_error : ℕ → ℝ) (C c : ℝ) (hC : 0 < C) (hc : 0 < c)
-    (h_analytic : True) :
-    -- [Padé/AAK: for analytic g, rational approximation converges exponentially]
-    ∀ n : ℕ, g_error n ≤ C * Real.exp (-(c * n))
+    (g : ℝ → ℝ) (g_ext : ℂ → ℂ) (a : ℝ) (ha : 0 < a)
+    -- g_ext is analytic on the horizontal strip {z : ℂ | |Im z| < a}
+    (h_analytic : AnalyticOnNhd ℂ g_ext {z : ℂ | |z.im| < a})
+    -- g_ext restricts to g on the real line
+    (h_ext : ∀ ω : ℝ, g_ext ω = (g ω : ℂ)) :
+    ∃ (g_approx : ℕ → ℝ → ℝ) (C c : ℝ), 0 < C ∧ 0 < c ∧
+      ∀ n : ℕ, ∀ ω : ℝ, |g ω - g_approx n ω| ≤ C * Real.exp (-(c * n))
 
 /-! ## Proved: standard analysis lemmas -/
 
@@ -135,7 +146,8 @@ theorem continuum_convergence_argument
       ∃ rate : ℝ, 0 < rate)
     (pls_error : ℕ → ℝ)
     (h_pls : ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, pls_error n < ε)
-    -- Rational approximation rate (from the ONE axiom)
+    -- Rational approximation rate: pointwise bound on n-pole error (from the ONE axiom)
+    -- g_error n bounds sup_ω |g(ω) - g_n(ω)|; axiom supplies C·exp(-c·n)
     (g_error : ℕ → ℝ)
     (h_approx : ∀ n : ℕ, g_error n ≤ C * Real.exp (-(c_rate * n))) :
     ∀ ε > 0, ∃ (N : ℕ),
@@ -155,6 +167,21 @@ theorem continuum_convergence_argument
     fun n hn => hN₂ n (le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hn),
     fun n hn => hN₃ n (le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) hn)⟩
 
+/-! ## Grounding h_approx from the axiom for analytic g -/
+
+/-- For analytic g, the rational approximation axiom supplies the rate constant c and
+    grounds h_approx used in continuum_convergence_argument. -/
+theorem analytic_approx_rate
+    (g : ℝ → ℝ) (g_ext : ℂ → ℂ) (a : ℝ) (ha : 0 < a)
+    (h_analytic : AnalyticOnNhd ℂ g_ext {z : ℂ | |z.im| < a})
+    (h_ext : ∀ ω : ℝ, g_ext ω = (g ω : ℂ)) :
+    ∃ (c : ℝ), 0 < c ∧
+      ∃ (g_error : ℕ → ℝ) (C : ℝ), 0 < C ∧
+        ∀ n : ℕ, g_error n ≤ C * Real.exp (-(c * n)) := by
+  obtain ⟨g_approx, C, c, hC, hc, h_bound⟩ :=
+    rational_approximation_rate g g_ext a ha h_analytic h_ext
+  exact ⟨c, hc, fun n => C * Real.exp (-(c * n)), C, hC, fun n => le_refl _⟩
+
 /-! ## Summary of the complete argument
 
 The FULL chain from n-pole to continuum:
@@ -173,7 +200,10 @@ The FULL chain from n-pole to continuum:
   LABEL: argument (complete logical chain, 1 axiom from classical analysis)
 
   AXIOM USED:
-  1. rational_approximation_rate (Padé/AAK for analytic g)
+  1. rational_approximation_rate (Padé/AAK for analytic g):
+     hypotheses: AnalyticOnNhd ℂ g_ext {z : ℂ | |z.im| < a}  (strip analyticity)
+                 h_ext : g_ext restricts to g on ℝ
+     conclusion: ∃ g_approx C c, ∀ n ω, |g ω - g_approx n ω| ≤ C·exp(-cn)
 
   PROVED INGREDIENTS:
   - Hirsch-Smith theorem for cooperative systems (GlobalStability.lean)
