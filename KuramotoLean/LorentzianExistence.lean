@@ -4229,4 +4229,48 @@ theorem LorentzianContinuousSolution.strictly_decreasing_from_ode
       exact S.deriv_neg_above x (le_of_lt hx) (S.gt_rstar_of_init h0 x (le_of_lt hx)))
   exact hSA hs (le_of_lt (lt_of_le_of_lt hs hst)) hst
 
+/-- **Equilibrium is constant from abstract ODE** (exp 178):
+    If S.r 0 = r*, then S.r t = r* for all t ≥ 0.
+    Proof: construct constant solution g ≡ r* (valid since lorentzianODE K γ r* = 0),
+    then apply unique_from_ode (both have same K, γ, initial value). -/
+theorem LorentzianContinuousSolution.rstar_const_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 = Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t = Real.sqrt (1 - 2 * S.γ / S.K) := by
+  set r_star := Real.sqrt (1 - 2 * S.γ / S.K)
+  let S' : LorentzianContinuousSolution := {
+    K := S.K
+    γ := S.γ
+    hK_pos := S.hK_pos
+    hγ_pos := S.hγ_pos
+    hK_gt := S.hK_gt
+    r := fun _ => r_star
+    hr_ode := fun s _ => by
+      have heq : lorentzianODE S.K S.γ r_star = 0 :=
+        lorentzian_rstar_is_fixed_point S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+      rw [heq]; exact hasDerivAt_const s r_star
+    hr_cont := continuousOn_const
+    hr_init_pos := Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+    hr_init_lt := lorentzian_rstar_lt_one S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+  }
+  exact S.unique_from_ode S' rfl rfl h0 t ht
+
+/-- **Phase portrait trichotomy from abstract ODE** (exp 179):
+    Complete qualitative phase portrait for any LCS:
+    (1) r(0) < r* → S.r strictly increasing on [0,∞)
+    (2) r(0) = r* → S.r is constant r*
+    (3) r(0) > r* → S.r strictly decreasing on [0,∞) -/
+theorem LorentzianContinuousSolution.phase_portrait_from_ode
+    (S : LorentzianContinuousSolution)
+    (s t : ℝ) (hs : 0 ≤ s) (hst : s < t) :
+    (S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K) → S.r s < S.r t) ∧
+    (S.r 0 = Real.sqrt (1 - 2 * S.γ / S.K) → S.r s = S.r t) ∧
+    (Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0 → S.r t < S.r s) :=
+  ⟨fun h => S.strictly_increasing_from_ode h s t hs hst,
+   fun h => by
+     rw [S.rstar_const_from_ode h s hs,
+         S.rstar_const_from_ode h t (le_of_lt (lt_of_le_of_lt hs hst))],
+   fun h => S.strictly_decreasing_from_ode h s t hs hst⟩
+
 end
