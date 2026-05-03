@@ -4350,4 +4350,20 @@ theorem LorentzianContinuousSolution.eq_iff_eq_init_from_ode
     · exact absurd hrt (ne_of_gt (S'.order_preserving_from_ode S hK.symm hγ.symm h t ht))
   · exact fun h0 => S.unique_from_ode S' hK hγ h0 t ht
 
+/-- **Global lower bound: S.r t ≥ min(S.r 0, r*)** (exp 182):
+    The corridor lower bound in explicit min form — one-liner from r_in_corridor_from_ode. -/
+theorem LorentzianContinuousSolution.r_ge_min_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) ≤ S.r t :=
+  (S.r_in_corridor_from_ode t ht).1
+
+/-- **Global upper bound: S.r t ≤ max(S.r 0, r*)** (exp 182):
+    The corridor upper bound in explicit max form — one-liner from r_in_corridor_from_ode. -/
+theorem LorentzianContinuousSolution.r_le_max_from_ode
+    (S : LorentzianContinuousSolution)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≤ max (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) :=
+  (S.r_in_corridor_from_ode t ht).2
+
 end
