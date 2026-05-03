@@ -4154,4 +4154,49 @@ theorem LorentzianContinuousSolution.unique_from_ode
     hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd h0
   exact hEqOn ⟨le_of_lt ht_pos, le_refl t⟩
 
+/-- **Order preservation from abstract ODE** (exp 176, NO eq_explicit):
+    If S.r 0 < S'.r 0 (same K, γ), then S.r t < S'.r t for all t ≥ 0.
+    Proof: D = S'.r - S.r is continuous, D(0) > 0. If D(t) ≤ 0, by IVT ∃ t₁ with
+    D(t₁) = 0; then ODE_solution_unique_of_mem_Icc_left gives S.r 0 = S'.r 0 —
+    contradiction. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.order_preserving_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ) (h0 : S.r 0 < S'.r 0)
+    (t : ℝ) (ht : 0 ≤ t) : S.r t < S'.r t := by
+  rcases ht.eq_or_lt with rfl | ht_pos
+  · linarith
+  have hD_cont : ContinuousOn (fun s => S'.r s - S.r s) (Set.Icc 0 t) :=
+    (S'.hr_cont.mono Set.Icc_subset_Ici_self).sub (S.hr_cont.mono Set.Icc_subset_Ici_self)
+  by_contra h_ge
+  push_neg at h_ge
+  have h0_mem : (0 : ℝ) ∈ Set.Icc (S'.r t - S.r t) (S'.r 0 - S.r 0) :=
+    ⟨by linarith, by linarith⟩
+  obtain ⟨t₁, ht₁_mem, ht₁_eq⟩ := intermediate_value_Icc' (le_of_lt ht_pos) hD_cont h0_mem
+  have ht₁_same : S.r t₁ = S'.r t₁ := by linarith
+  rcases (ht₁_mem.1).eq_or_lt with rfl | ht₁_pos
+  · linarith
+  set lipK : NNReal := ⟨2 * S.K, by linarith [S.hK_pos]⟩
+  have hLip : ∀ s ∈ Set.Ioc 0 t₁,
+      LipschitzOnWith lipK (lorentzianODE S.K S.γ) (Set.Icc 0 1) :=
+    fun s _ => lorentzianODE_lipschitzOnWith S.K S.γ S.hK_pos S.hK_gt (le_of_lt S.hγ_pos)
+  have hf_cont : ContinuousOn S.r (Set.Icc 0 t₁) :=
+    S.hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ioc 0 t₁,
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r s)) (Set.Iic s) s :=
+    fun s hs => (S.hr_ode s hs.1.le).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ioc 0 t₁, S.r s ∈ Set.Icc 0 1 :=
+    fun s hs => S.r_mem_Icc_from_ode s hs.1.le
+  have hg_cont : ContinuousOn S'.r (Set.Icc 0 t₁) :=
+    S'.hr_cont.mono Set.Icc_subset_Ici_self
+  have hg_deriv : ∀ s ∈ Set.Ioc 0 t₁,
+      HasDerivWithinAt S'.r (lorentzianODE S.K S.γ (S'.r s)) (Set.Iic s) s :=
+    fun s hs => by rw [hK, hγ]; exact (S'.hr_ode s hs.1.le).hasDerivWithinAt
+  have hg_bdd : ∀ s ∈ Set.Ioc 0 t₁, S'.r s ∈ Set.Icc 0 1 :=
+    fun s hs => S'.r_mem_Icc_from_ode s hs.1.le
+  have hEqOn := ODE_solution_unique_of_mem_Icc_left
+    (v := fun _ => lorentzianODE S.K S.γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := S.r) (g := S'.r)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd ht₁_same
+  linarith [hEqOn ⟨le_refl 0, le_of_lt ht₁_pos⟩]
+
 end
