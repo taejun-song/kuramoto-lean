@@ -3915,4 +3915,31 @@ theorem LorentzianContinuousSolution.r_lipschitz_from_ode
   rw [Real.norm_eq_abs, show (t + s) - t = s from by ring] at h_mvt
   linarith [mul_nonneg (by linarith [S.hK_pos, S.hγ_pos, S.hK_gt] : 0 ≤ S.K - S.γ) hs]
 
+/-- **Complete Lorentzian ODE global stability (billboard theorem)**:
+    Given K > 2γ > 0 and any continuous ODE solution r : ℝ → ℝ with r(0) ∈ (0,1):
+    (1) r(t) ∈ (0,1) for all t ≥ 0  (domain invariance)
+    (2) r(t) → r* = √(1-2γ/K)       (global stability)
+    (3) |r(t)-r*| ≤ |r(0)-r*|·exp(-μt) where μ = K·min(r₀,r*)·(min(r₀,r*)+r*)/2
+    This is the complete abstract-ODE result, requiring no existence construction. -/
+theorem lorentzian_ode_global_stability_complete (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (hKγ : 2 * γ < K)
+    (r : ℝ → ℝ)
+    (hr_ode : ∀ t, 0 ≤ t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_cont : ContinuousOn r (Set.Ici 0))
+    (hr_init_pos : 0 < r 0) (hr_init_lt : r 0 < 1) :
+    (∀ t, 0 ≤ t → r t ∈ Set.Ioo (0 : ℝ) 1) ∧
+    Filter.Tendsto r Filter.atTop (nhds (Real.sqrt (1 - 2 * γ / K))) ∧
+    (∀ t, 0 ≤ t → |r t - Real.sqrt (1 - 2 * γ / K)| ≤
+      |r 0 - Real.sqrt (1 - 2 * γ / K)| *
+      Real.exp (-(K * min (r 0) (Real.sqrt (1 - 2 * γ / K)) *
+                  (min (r 0) (Real.sqrt (1 - 2 * γ / K)) +
+                   Real.sqrt (1 - 2 * γ / K)) / 2) * t)) := by
+  let S : LorentzianContinuousSolution :=
+    { K := K, γ := γ, hK_pos := hK, hγ_pos := hγ, hK_gt := hKγ,
+      r := r, hr_ode := hr_ode, hr_cont := hr_cont,
+      hr_init_pos := hr_init_pos, hr_init_lt := hr_init_lt }
+  exact ⟨fun t ht => S.r_mem_Ioo_from_ode t ht,
+         S.tendsto_from_ode,
+         fun t ht => S.dist_bound_from_ode_unified t ht⟩
+
 end
