@@ -3803,4 +3803,22 @@ theorem LorentzianContinuousSolution.r_in_corridor_from_ode
     · rw [max_eq_left h.le]
       exact S.le_init_of_gt_rstar h t ht
 
+/-- **Positivity from abstract ODE** (NO eq_explicit):
+    S.r t > 0 for all t ≥ 0. Proof: r_in_corridor_from_ode gives r(t) ≥ min(r(0),r*) > 0. -/
+theorem LorentzianContinuousSolution.r_pos_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) : 0 < S.r t := by
+  have hcorr := (S.r_in_corridor_from_ode t ht).1
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * S.γ / S.K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  exact lt_of_lt_of_le (lt_min S.hr_init_pos hrstar_pos) hcorr
+
+/-- **Upper bound < 1 from abstract ODE** (NO eq_explicit):
+    S.r t < 1 for all t ≥ 0. Proof: r_in_corridor_from_ode gives r(t) ≤ max(r(0),r*) < 1. -/
+theorem LorentzianContinuousSolution.r_lt_one_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) : S.r t < 1 := by
+  have hcorr := (S.r_in_corridor_from_ode t ht).2
+  have hrstar_lt : Real.sqrt (1 - 2 * S.γ / S.K) < 1 :=
+    lorentzian_rstar_lt_one S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+  exact lt_of_le_of_lt hcorr (max_lt S.hr_init_lt hrstar_lt)
+
 end
