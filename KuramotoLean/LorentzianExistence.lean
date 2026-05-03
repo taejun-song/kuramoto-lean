@@ -3711,6 +3711,17 @@ theorem lorentzian_ode_convergence_rate_raw (K γ : ℝ) (hK : 0 < K) (hγ : 0 <
      hr_init_pos := hr_init_pos, hr_init_lt := hr_init_lt
    } : LorentzianContinuousSolution).dist_bound_from_ode_unified t ht
 
+/-- **ε-T convergence from abstract ODE** (NO eq_explicit):
+    For any ε > 0, there exists T such that |S.r t - r*| < ε for all t ≥ T.
+    This is the ε-T reformulation of tendsto_from_ode.
+    Proof: one line — extract T from Metric.tendsto_atTop applied to tendsto_from_ode. -/
+theorem LorentzianContinuousSolution.convergence_time_from_ode
+    (S : LorentzianContinuousSolution) (ε : ℝ) (hε : 0 < ε) :
+    ∃ T : ℝ, ∀ t, T ≤ t →
+      |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  obtain ⟨T, hT⟩ := Metric.tendsto_atTop.mp S.tendsto_from_ode ε hε
+  exact ⟨T, fun t ht => by simpa [Real.dist_eq] using hT t ht⟩
+
 /-- **Global stability from raw ODE hypotheses** (NO eq_explicit, NO existence construction):
     Any continuous solution r of the Lorentzian ODE with r(0) ∈ (0,1) converges to r*.
     Takes the ODE directly (not via an explicit construction) and produces Filter.Tendsto.
