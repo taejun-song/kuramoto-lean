@@ -101,6 +101,7 @@ import KuramotoLean.ScalarReduction
 import KuramotoLean.SelfConsistencyDecay
 import KuramotoLean.SelfConsistencyFixedPoint
 import KuramotoLean.SelfConsistencyRigidity
+import KuramotoLean.SelfConsistentExistence
 import KuramotoLean.SelfContainedConvergence
 import KuramotoLean.ShiftedBarrier
 import KuramotoLean.StrictLyapunov
