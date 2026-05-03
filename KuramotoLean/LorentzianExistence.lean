@@ -3777,4 +3777,30 @@ theorem lorentzian_ode_two_traj_sync_raw (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ
        hr_init_pos := hr'_init_pos, hr_init_lt := hr'_init_lt
      } : LorentzianContinuousSolution) rfl rfl
 
+/-- **Monotone corridor from abstract ODE** (NO eq_explicit):
+    S.r t is always between S.r 0 and r* — the trajectory is sandwiched in the
+    corridor [min(S.r 0, r*), max(S.r 0, r*)] for all t ≥ 0.
+    Case split: (1) below: r_nondecreasing_of_below + lt_rstar_of_init;
+                (2) equal: r_constant_at_rstar;
+                (3) above: r_nonincreasing_of_above + gt_rstar_of_init. -/
+theorem LorentzianContinuousSolution.r_in_corridor_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) ≤ S.r t ∧
+    S.r t ≤ max (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  rcases lt_trichotomy (S.r 0) rs with h | h | h
+  · constructor
+    · rw [min_eq_left h.le]
+      exact S.ge_init_of_lt_rstar h t ht
+    · rw [max_eq_right h.le]
+      exact (S.lt_rstar_of_init h t ht).le
+  · constructor
+    · rw [h, min_self]; exact (S.r_constant_at_rstar h t ht).symm.le
+    · rw [h, max_self]; exact (S.r_constant_at_rstar h t ht).le
+  · constructor
+    · rw [min_eq_right h.le]
+      exact (S.gt_rstar_of_init h t ht).le
+    · rw [max_eq_left h.le]
+      exact S.le_init_of_gt_rstar h t ht
+
 end
