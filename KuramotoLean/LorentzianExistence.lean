@@ -4416,4 +4416,23 @@ theorem LorentzianContinuousSolution.gt_rstar_strictly_from_ode
   ⟨S.gt_rstar_of_init h0 t ht.le,
    S.strictly_decreasing_from_ode h0 0 t le_rfl ht⟩
 
+/-- **S.r t ≠ S'.r t iff S.r 0 ≠ S'.r 0** (exp 185):
+    Two solutions are unequal at any time t ≥ 0 iff unequal initially. -/
+theorem LorentzianContinuousSolution.ne_iff_ne_init_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≠ S'.r t ↔ S.r 0 ≠ S'.r 0 :=
+  (S.eq_iff_eq_init_from_ode S' hK hγ t ht).ne
+
+/-- **Separated orbits remain separated** (exp 185):
+    If two LCS solutions start unequal, they remain unequal for all t ≥ 0. -/
+theorem LorentzianContinuousSolution.separated_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ)
+    (h0 : S.r 0 ≠ S'.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≠ S'.r t :=
+  (S.ne_iff_ne_init_from_ode S' hK hγ t ht).mpr h0
+
 end
