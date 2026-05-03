@@ -4531,4 +4531,41 @@ theorem LorentzianContinuousSolution.two_traj_convergence_time_from_ode
     simp only [dist_zero_right, Real.norm_eq_abs, abs_abs] at h
     exact h⟩
 
+/-- **Squared convergence at nat times from abstract ODE** (exp 189):
+    (fun n:ℕ => S.r n ^ 2) → (1 - 2γ/K). Pattern: tendsto_nat.pow 2 + Real.sq_sqrt. -/
+theorem LorentzianContinuousSolution.r_sq_tendsto_nat_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun n : ℕ => S.r n ^ 2) Filter.atTop (nhds (1 - 2 * S.γ / S.K)) := by
+  have h := S.tendsto_nat.pow 2
+  rwa [Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))] at h
+
+/-- **Nat-indexed velocity → 0 from abstract ODE** (exp 189):
+    (fun n:ℕ => lorentzianODE K γ (S.r n)) → 0. Pattern: continuousAt.tendsto.comp tendsto_nat. -/
+theorem LorentzianContinuousSolution.deriv_tendsto_zero_nat_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun n : ℕ => lorentzianODE S.K S.γ (S.r n)) Filter.atTop (nhds 0) := by
+  have hrstar : lorentzianODE S.K S.γ (Real.sqrt (1 - 2 * S.γ / S.K)) = 0 :=
+    lorentzian_rstar_is_fixed_point S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+  rw [← hrstar]
+  have hcont : Continuous (lorentzianODE S.K S.γ) := by unfold lorentzianODE; fun_prop
+  exact hcont.continuousAt.tendsto.comp S.tendsto_nat
+
+/-- **Non-strict upper bound iff from abstract ODE** (exp 189):
+    S.r t ≤ r* ↔ S.r 0 ≤ r* — complements lt_rstar_iff_from_ode. Proof: simp with ← not_lt
+    and gt_rstar_iff_from_ode to reduce both sides to ¬ r* < _. -/
+theorem LorentzianContinuousSolution.le_rstar_iff_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≤ Real.sqrt (1 - 2 * S.γ / S.K) ↔
+    S.r 0 ≤ Real.sqrt (1 - 2 * S.γ / S.K) := by
+  simp only [← not_lt, S.gt_rstar_iff_from_ode t ht]
+
+/-- **Non-strict lower bound iff from abstract ODE** (exp 189):
+    r* ≤ S.r t ↔ r* ≤ S.r 0 — complements gt_rstar_iff_from_ode. Proof: simp with ← not_lt
+    and lt_rstar_iff_from_ode to reduce both sides to ¬ _ < r*. -/
+theorem LorentzianContinuousSolution.rstar_le_iff_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) ≤ S.r t ↔
+    Real.sqrt (1 - 2 * S.γ / S.K) ≤ S.r 0 := by
+  simp only [← not_lt, S.lt_rstar_iff_from_ode t ht]
+
 end
