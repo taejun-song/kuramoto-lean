@@ -4435,4 +4435,21 @@ theorem LorentzianContinuousSolution.separated_from_ode
     S.r t ≠ S'.r t :=
   (S.ne_iff_ne_init_from_ode S' hK hγ t ht).mpr h0
 
+/-- **Natural-number orbit is Cauchy** (exp 186):
+    (S.r n)_{n:ℕ} is a Cauchy sequence — corollary of convergence (tendsto_nat). -/
+theorem LorentzianContinuousSolution.r_cauchySeq_from_ode
+    (S : LorentzianContinuousSolution) :
+    CauchySeq (fun n : ℕ => S.r n) :=
+  S.tendsto_nat.cauchySeq
+
+/-- **Eventually ε-close at nat times** (exp 186):
+    ∀ ε>0, ∃ N:ℕ, ∀ n≥N, |S.r n - r*| < ε — Metric form of nat convergence. -/
+theorem LorentzianContinuousSolution.r_eventually_near_rstar_nat_from_ode
+    (S : LorentzianContinuousSolution) (ε : ℝ) (hε : 0 < ε) :
+    ∃ N : ℕ, ∀ n ≥ N, |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)| < ε := by
+  have htend := S.tendsto_nat
+  rw [Metric.tendsto_atTop] at htend
+  obtain ⟨N, hN⟩ := htend ε hε
+  exact ⟨N, fun n hn => by have h := hN n hn; rwa [Real.dist_eq] at h⟩
+
 end
