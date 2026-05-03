@@ -4063,4 +4063,13 @@ theorem lorentzianODE_locallyLipschitz (K γ : ℝ) :
     LocallyLipschitz (lorentzianODE K γ) :=
   ((lorentzianODE_contDiff K γ).of_le le_top).locallyLipschitz
 
+/-- **lorentzianODE is LipschitzOnWith on any closed interval** (exp 173):
+    For any a ≤ b, ∃ L, LipschitzOnWith L (lorentzianODE K γ) [a,b].
+    Follows from ContDiffOn.exists_lipschitzOnWith (C∞ + convex + compact → Lipschitz). -/
+theorem lorentzianODE_lipschitzOnWith_Icc (K γ a b : ℝ) (hab : a ≤ b) :
+    ∃ L : NNReal, LipschitzOnWith L (lorentzianODE K γ) (Set.Icc a b) := by
+  have hf : ContDiffOn ℝ 1 (lorentzianODE K γ) (Set.Icc a b) :=
+    ((lorentzianODE_contDiff K γ).of_le le_top).contDiffOn
+  exact hf.exists_lipschitzOnWith (by norm_num) (convex_Icc a b) isCompact_Icc
+
 end
