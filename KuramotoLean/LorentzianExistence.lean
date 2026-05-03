@@ -3835,4 +3835,26 @@ theorem LorentzianContinuousSolution.r_mem_Icc_from_ode
     S.r t ∈ Set.Icc (0 : ℝ) 1 :=
   Set.Ioo_subset_Icc_self (S.r_mem_Ioo_from_ode t ht)
 
+/-- **Two-trajectory triangle bound from abstract ODE** (NO eq_explicit):
+    |S.r t - S'.r t| ≤ |S.r 0 - r*| + |S'.r 0 - r*| for all t ≥ 0.
+    Proof: triangle inequality + dist_le_init_from_ode for each trajectory.
+    Weaker than two_traj_dist (no exponential) but requires no ne_rstar hypothesis. -/
+theorem LorentzianContinuousSolution.two_traj_dist_le_sum_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - S'.r t| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| +
+    |S'.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have htri : |S.r t - S'.r t| ≤ |S.r t - rs| + |S'.r t - rs| := by
+    have := abs_sub_le (S.r t) rs (S'.r t)
+    linarith [abs_sub_comm (S'.r t) rs]
+  have hd := S.dist_le_init_from_ode t ht
+  have hd' : |S'.r t - rs| ≤ |S'.r 0 - rs| := by
+    have h := S'.dist_le_init_from_ode t ht
+    rw [← hK_eq, ← hγ_eq] at h
+    exact h
+  linarith
+
 end
