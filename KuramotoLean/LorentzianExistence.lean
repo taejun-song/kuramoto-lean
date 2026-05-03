@@ -4366,4 +4366,34 @@ theorem LorentzianContinuousSolution.r_le_max_from_ode
     S.r t ≤ max (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) :=
   (S.r_in_corridor_from_ode t ht).2
 
+/-- **Global delta lower bound** (exp 183):
+    If δ ≤ S.r 0 and δ ≤ r*, then S.r t ≥ δ for all t ≥ 0.
+    Corollary of r_ge_min_from_ode via le_min. -/
+theorem LorentzianContinuousSolution.r_ge_delta_from_ode
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_le_rstar : δ ≤ Real.sqrt (1 - 2 * S.γ / S.K))
+    (hδ_init : δ ≤ S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) : δ ≤ S.r t :=
+  le_trans (le_min hδ_init hδ_le_rstar) (S.r_ge_min_from_ode t ht)
+
+/-- **Global delta upper bound** (exp 183):
+    If S.r 0 ≤ δ and r* ≤ δ, then S.r t ≤ δ for all t ≥ 0.
+    Corollary of r_le_max_from_ode via max_le. -/
+theorem LorentzianContinuousSolution.r_le_delta_from_ode
+    (S : LorentzianContinuousSolution)
+    (δ : ℝ) (hδ_ge_rstar : Real.sqrt (1 - 2 * S.γ / S.K) ≤ δ)
+    (hδ_init : S.r 0 ≤ δ)
+    (t : ℝ) (ht : 0 ≤ t) : S.r t ≤ δ :=
+  le_trans (S.r_le_max_from_ode t ht) (max_le hδ_init hδ_ge_rstar)
+
+/-- **Trajectory stays in any interval containing S.r 0 and r*** (exp 183):
+    If δ₁ ≤ min(S.r 0, r*) and max(S.r 0, r*) ≤ δ₂, then S.r t ∈ [δ₁, δ₂]. -/
+theorem LorentzianContinuousSolution.r_in_Icc_from_ode
+    (S : LorentzianContinuousSolution)
+    (δ₁ δ₂ : ℝ)
+    (h₁ : δ₁ ≤ min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)))
+    (h₂ : max (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) ≤ δ₂)
+    (t : ℝ) (ht : 0 ≤ t) : S.r t ∈ Set.Icc δ₁ δ₂ :=
+  ⟨h₁.trans (S.r_ge_min_from_ode t ht), (S.r_le_max_from_ode t ht).trans h₂⟩
+
 end
