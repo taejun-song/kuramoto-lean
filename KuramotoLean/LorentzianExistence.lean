@@ -4568,4 +4568,43 @@ theorem LorentzianContinuousSolution.rstar_le_iff_from_ode
     Real.sqrt (1 - 2 * S.γ / S.K) ≤ S.r 0 := by
   simp only [← not_lt, S.lt_rstar_iff_from_ode t ht]
 
+/-- **Non-strict two-solution ordering iff from abstract ODE** (exp 190):
+    S.r t ≤ S'.r t ↔ S.r 0 ≤ S'.r 0 (same K,γ). Proof: simp with ← not_lt and
+    lt_iff_lt_init_from_ode (swapped) to reduce both sides to ¬ S'.r _ < S.r _. -/
+theorem LorentzianContinuousSolution.le_iff_le_init_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ) (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≤ S'.r t ↔ S.r 0 ≤ S'.r 0 := by
+  simp only [← not_lt, S'.lt_iff_lt_init_from_ode S hK.symm hγ.symm t ht]
+
+/-- **Shifted convergence from abstract ODE** (exp 190):
+    (S.r t - r*) → 0 as t → ∞. Direct from tendsto_from_ode via sub tendsto_const. -/
+theorem LorentzianContinuousSolution.tendsto_sub_rstar_atTop_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => S.r t - Real.sqrt (1 - 2 * S.γ / S.K))
+      Filter.atTop (nhds 0) := by
+  have h := S.tendsto_from_ode.sub
+    (tendsto_const_nhds (x := Real.sqrt (1 - 2 * S.γ / S.K)))
+  simpa [sub_self] using h
+
+/-- **Absolute distance → 0 from abstract ODE** (exp 190):
+    |S.r t - r*| → 0 as t → ∞. Pattern: tendsto_sub_rstar.abs + abs_zero. -/
+theorem LorentzianContinuousSolution.tendsto_dist_atTop_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)|)
+      Filter.atTop (nhds 0) := by
+  simpa [abs_zero] using S.tendsto_sub_rstar_atTop_from_ode.abs
+
+/-- **Nat-indexed absolute distance → 0 from abstract ODE** (exp 190):
+    (fun n:ℕ => |S.r n - r*|) → 0. Uses tendsto_nat.sub + sub_self + abs. -/
+theorem LorentzianContinuousSolution.tendsto_dist_nat_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun n : ℕ => |S.r n - Real.sqrt (1 - 2 * S.γ / S.K)|)
+      Filter.atTop (nhds 0) := by
+  have h : Filter.Tendsto (fun n : ℕ => S.r n - Real.sqrt (1 - 2 * S.γ / S.K))
+      Filter.atTop (nhds 0) := by
+    have := S.tendsto_nat.sub (tendsto_const_nhds (x := Real.sqrt (1 - 2 * S.γ / S.K)))
+    simpa [sub_self] using this
+  simpa [abs_zero] using h.abs
+
 end
