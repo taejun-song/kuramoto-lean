@@ -4688,4 +4688,41 @@ theorem LorentzianContinuousSolution.r_sub_rstar_sq_tendsto_nat_from_ode
     simpa [sub_self] using this
   simpa using h.pow 2
 
+/-- **Non-strict increasing at later time from abstract ODE** (exp 193):
+    S.r 0 < r* → 0 ≤ s ≤ t → S.r s ≤ S.r t. Proof: s < t by strictly_increasing;
+    s = t trivially. Builds non-strict from strict. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.r_le_r_later_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (s t : ℝ) (hs : 0 ≤ s) (hst : s ≤ t) : S.r s ≤ S.r t := by
+  rcases hst.lt_or_eq with hst | hst
+  · exact le_of_lt (S.strictly_increasing_from_ode h0 s t hs hst)
+  · rw [hst]
+
+/-- **Non-strict decreasing at later time from abstract ODE** (exp 193):
+    r* < S.r 0 → 0 ≤ s ≤ t → S.r t ≤ S.r s. Builds non-strict from strict. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.r_ge_r_later_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (s t : ℝ) (hs : 0 ≤ s) (hst : s ≤ t) : S.r t ≤ S.r s := by
+  rcases hst.lt_or_eq with hst | hst
+  · exact le_of_lt (S.strictly_decreasing_from_ode h0 s t hs hst)
+  · rw [hst]
+
+/-- **MonotoneOn from abstract ODE** (exp 193):
+    S.r 0 < r* → MonotoneOn S.r (Ici 0). Packages r_le_r_later into standard form. -/
+theorem LorentzianContinuousSolution.monotoneOn_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K)) :
+    MonotoneOn S.r (Set.Ici 0) :=
+  fun s hs _ _ hst => S.r_le_r_later_from_ode h0 s _ (Set.mem_Ici.mp hs) hst
+
+/-- **AntitoneOn from abstract ODE** (exp 193):
+    r* < S.r 0 → AntitoneOn S.r (Ici 0). Packages r_ge_r_later into standard form. -/
+theorem LorentzianContinuousSolution.antitoneOn_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0) :
+    AntitoneOn S.r (Set.Ici 0) :=
+  fun s hs _ _ hst => S.r_ge_r_later_from_ode h0 s _ (Set.mem_Ici.mp hs) hst
+
 end
