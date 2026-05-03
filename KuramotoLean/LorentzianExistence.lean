@@ -4320,4 +4320,34 @@ theorem LorentzianContinuousSolution.gt_rstar_iff_from_ode
     · exact h
   · exact fun h0 => S.gt_rstar_of_init h0 t ht
 
+/-- **S.r t < S'.r t iff S.r 0 < S'.r 0** (exp 181):
+    Order between two LCS solutions at any time t ≥ 0 is determined by initial order. -/
+theorem LorentzianContinuousSolution.lt_iff_lt_init_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t < S'.r t ↔ S.r 0 < S'.r 0 := by
+  constructor
+  · intro hrt
+    rcases lt_trichotomy (S.r 0) (S'.r 0) with h | h | h
+    · exact h
+    · exact absurd (S.unique_from_ode S' hK hγ h t ht) (ne_of_lt hrt)
+    · exact absurd hrt (not_lt.mpr (le_of_lt (S'.order_preserving_from_ode S hK.symm hγ.symm h t ht)))
+  · exact fun h0 => S.order_preserving_from_ode S' hK hγ h0 t ht
+
+/-- **S.r t = S'.r t iff S.r 0 = S'.r 0** (exp 181):
+    Equality between two LCS solutions at any time t ≥ 0 iff initial equality. -/
+theorem LorentzianContinuousSolution.eq_iff_eq_init_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ)
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t = S'.r t ↔ S.r 0 = S'.r 0 := by
+  constructor
+  · intro hrt
+    rcases lt_trichotomy (S.r 0) (S'.r 0) with h | h | h
+    · exact absurd hrt (ne_of_lt (S.order_preserving_from_ode S' hK hγ h t ht))
+    · exact h
+    · exact absurd hrt (ne_of_gt (S'.order_preserving_from_ode S hK.symm hγ.symm h t ht))
+  · exact fun h0 => S.unique_from_ode S' hK hγ h0 t ht
+
 end
