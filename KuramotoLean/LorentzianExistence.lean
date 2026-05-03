@@ -3668,4 +3668,21 @@ theorem LorentzianContinuousSolution.tendsto_from_ode
     exact S.tendsto_from_persist_ode rs hrs_pos
       (fun t ht => S.r_ge_rstar_of_above h t ht)
 
+/-- **Global stability from raw ODE hypotheses** (NO eq_explicit, NO existence construction):
+    Any continuous solution r of the Lorentzian ODE with r(0) ∈ (0,1) converges to r*.
+    Takes the ODE directly (not via an explicit construction) and produces Filter.Tendsto.
+    Proof: wrap into LorentzianContinuousSolution; apply tendsto_from_ode.
+    Uses the abstract ODE chain exclusively — the Bernoulli formula is not referenced. -/
+theorem lorentzian_ode_global_stability_raw (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (hKγ : 2 * γ < K)
+    (r : ℝ → ℝ)
+    (hr_ode : ∀ t, 0 ≤ t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_cont : ContinuousOn r (Set.Ici 0))
+    (hr_init_pos : 0 < r 0) (hr_init_lt : r 0 < 1) :
+    Filter.Tendsto r Filter.atTop (nhds (Real.sqrt (1 - 2 * γ / K))) :=
+  ({ K := K, γ := γ, hK_pos := hK, hγ_pos := hγ, hK_gt := hKγ,
+     r := r, hr_ode := hr_ode, hr_cont := hr_cont,
+     hr_init_pos := hr_init_pos, hr_init_lt := hr_init_lt
+   } : LorentzianContinuousSolution).tendsto_from_ode
+
 end
