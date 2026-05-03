@@ -4199,4 +4199,34 @@ theorem LorentzianContinuousSolution.order_preserving_from_ode
     hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd ht₁_same
   linarith [hEqOn ⟨le_refl 0, le_of_lt ht₁_pos⟩]
 
+/-- **Strictly increasing on [0,∞) from abstract ODE** (exp 177):
+    If S.r 0 < r*, then S.r is strictly increasing on [0,∞).
+    Proof: deriv S.r t = lorentzianODE K γ (S.r t) > 0 (from deriv_pos_below + lt_rstar_of_init);
+    strictMonoOn_of_deriv_pos on Ici 0. -/
+theorem LorentzianContinuousSolution.strictly_increasing_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (s t : ℝ) (hs : 0 ≤ s) (hst : s < t) : S.r s < S.r t := by
+  have hSM : StrictMonoOn S.r (Set.Ici 0) :=
+    strictMonoOn_of_deriv_pos (convex_Ici 0) S.hr_cont (fun x hx => by
+      rw [interior_Ici] at hx
+      rw [(S.hr_ode x (le_of_lt hx)).deriv]
+      exact S.deriv_pos_below x (le_of_lt hx) (S.lt_rstar_of_init h0 x (le_of_lt hx)))
+  exact hSM hs (le_of_lt (lt_of_le_of_lt hs hst)) hst
+
+/-- **Strictly decreasing on [0,∞) from abstract ODE** (exp 177):
+    If r* < S.r 0, then S.r is strictly decreasing on [0,∞).
+    Proof: deriv S.r t = lorentzianODE K γ (S.r t) < 0 (from deriv_neg_above + gt_rstar_of_init);
+    strictAntiOn_of_deriv_neg on Ici 0. -/
+theorem LorentzianContinuousSolution.strictly_decreasing_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (s t : ℝ) (hs : 0 ≤ s) (hst : s < t) : S.r t < S.r s := by
+  have hSA : StrictAntiOn S.r (Set.Ici 0) :=
+    strictAntiOn_of_deriv_neg (convex_Ici 0) S.hr_cont (fun x hx => by
+      rw [interior_Ici] at hx
+      rw [(S.hr_ode x (le_of_lt hx)).deriv]
+      exact S.deriv_neg_above x (le_of_lt hx) (S.gt_rstar_of_init h0 x (le_of_lt hx)))
+  exact hSA hs (le_of_lt (lt_of_le_of_lt hs hst)) hst
+
 end
