@@ -124,3 +124,4 @@ import KuramotoLean.LorentzianContinuumBridge
 import KuramotoLean.LorentzianExistence
 import KuramotoLean.LorentzianAnalyticExtension
 import KuramotoLean.GaussianAnalyticExtension
+import KuramotoLean.LorentzianMixtureAnalyticExtension
