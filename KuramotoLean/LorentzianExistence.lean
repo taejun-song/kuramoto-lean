@@ -3852,9 +3852,39 @@ theorem LorentzianContinuousSolution.two_traj_dist_le_sum_from_ode
     linarith [abs_sub_comm (S'.r t) rs]
   have hd := S.dist_le_init_from_ode t ht
   have hd' : |S'.r t - rs| ≤ |S'.r 0 - rs| := by
-    have h := S'.dist_le_init_from_ode t ht
+    have hrs_eq : rs = Real.sqrt (1 - 2 * S'.γ / S'.K) := by
+      simp only [rs]; rw [← hK_eq, ← hγ_eq]
+    rw [hrs_eq]
+    exact S'.dist_le_init_from_ode t ht
+  linarith
+
+/-- **Two-trajectory exponential sync from abstract ODE** (NO eq_explicit):
+    |S.r t - S'.r t| ≤ |S.r 0-r*|·exp(-μ₁t) + |S'.r 0-r*|·exp(-μ₂t) for same (K,γ).
+    Proof: triangle + dist_bound_from_ode_unified for each. Tighter than two_traj_dist
+    (uses min·(min+r*)/2 rate) and needs no ne_rstar hypothesis. NO eq_explicit -/
+theorem LorentzianContinuousSolution.two_traj_dist_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK_eq : S.K = S'.K) (hγ_eq : S.γ = S'.γ)
+    (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - S'.r t| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+               (min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) +
+                Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) +
+    |S'.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S'.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+                (min (S'.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) +
+                 Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have htri : |S.r t - S'.r t| ≤ |S.r t - rs| + |S'.r t - rs| := by
+    have h1 := abs_sub_le (S.r t) rs (S'.r t)
+    linarith [abs_sub_comm (S'.r t) rs]
+  have hd := S.dist_bound_from_ode_unified t ht
+  have hd' : |S'.r t - rs| ≤ |S'.r 0 - rs| *
+      Real.exp (-(S.K * min (S'.r 0) rs * (min (S'.r 0) rs + rs) / 2) * t) := by
+    have h := S'.dist_bound_from_ode_unified t ht
     rw [← hK_eq, ← hγ_eq] at h
     exact h
-  linarith
+  exact le_trans htri (add_le_add hd hd')
 
 end
