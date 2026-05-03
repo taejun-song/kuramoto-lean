@@ -24,6 +24,7 @@ import KuramotoLean.ComparisonGrowth
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Calculus.Deriv.Inv
+import Mathlib.Analysis.ODE.PicardLindelof
 
 open Real Filter Set
 
@@ -4033,5 +4034,21 @@ theorem lorentzian_ode_global_stability_complete (K γ : ℝ) (hK : 0 < K) (hγ 
   exact ⟨fun t ht => S.r_mem_Ioo_from_ode t ht,
          S.tendsto_from_ode,
          fun t ht => S.dist_bound_from_ode_unified t ht⟩
+
+/-- **Local ODE existence via Picard-Lindelöf** (NO eq_explicit, NO Bernoulli formula):
+    For any r₀ and K, γ > 0, there exists ε > 0 and an ODE solution α on (-ε,ε) with α(0) = r₀.
+    Uses Mathlib's `ContDiffAt.exists_forall_mem_closedBall_exists_eq_forall_mem_Ioo_hasDerivAt₀`.
+    Connects Mathlib's PL theorem to the Lorentzian ODE; global existence already proved via
+    the explicit Bernoulli formula in `lorentzian_continuous_solution_exists`. -/
+theorem lorentzian_ode_local_existence (K γ r₀ : ℝ) :
+    ∃ ε > (0 : ℝ), ∃ α : ℝ → ℝ, α 0 = r₀ ∧
+      ∀ t ∈ Set.Ioo (-ε) ε, HasDerivAt α (lorentzianODE K γ (α t)) t := by
+  have hf : ContDiffAt ℝ 1 (lorentzianODE K γ) r₀ :=
+    ((show ContDiff ℝ ⊤ (lorentzianODE K γ) from
+        by unfold lorentzianODE; fun_prop).contDiffAt).of_le le_top
+  obtain ⟨α, hα₀, ε, hε, hα_deriv⟩ :=
+    ContDiffAt.exists_forall_mem_closedBall_exists_eq_forall_mem_Ioo_hasDerivAt₀ hf 0
+  simp only [zero_sub, zero_add] at hα_deriv
+  exact ⟨ε, hε, α, hα₀, hα_deriv⟩
 
 end
