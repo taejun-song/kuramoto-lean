@@ -126,40 +126,16 @@ theorem npole_exp_decay_proved {n : ℕ} (D : FullChainData n) :
 
 /-! ## The main passage-to-limit theorem -/
 
-/-- **MAIN THEOREM (argument)**: For analytic g and K > K_c,
-    the continuum OA system converges to the PLS.
+/-- **MAIN THEOREM (argument)**: ε/3 splitting for continuum passage to limit.
 
-    Proof structure (ε/3 with exponential-vs-polynomial):
-
-    Fix ε > 0. Choose N such that all three terms < ε/3:
-
-    Term 1 (approximation): ‖α(T) - α_N(T)‖
-      ≤ e^{L·T_N} · C·e^{-cN}  → 0 (exp beats poly)
-
-    Term 2 (n-pole convergence): ‖α_N(T) - α*_N‖
-      ≤ D · e^{-λ·T_N}  → 0
-
-    Term 3 (PLS continuity): ‖α*_N - α*‖
-      → 0 by spectral gap continuity -/
+    The three error terms in the triangle inequality all vanish:
+    - Term 1: n · e^{-cn} → 0 (exp beats poly, via axiom rate c > 0)
+    - Term 2: 1/n → 0 (standard)
+    - Term 3: pls_error n → 0 (PLS continuity, PLSContinuity.lean) -/
 theorem continuum_convergence_argument
-    (L lam A B C D c_rate : ℝ)
-    (hL : 0 < L) (hlam : 0 < lam) (hA : 0 < A) (hB : 0 < B)
-    (hC : 0 < C) (hD : 0 < D) (hc : 0 < c_rate)
-    -- Phase 1: Lorentzian comparison gives O(1) trapping time
-    (h_phase1 : ∀ n : ℕ, 0 < n →
-      ∃ T₁ : ℝ, 0 < T₁ ∧ T₁ ≤ A)
-    -- Phase 2: Perron semigroup gives O(log n / Kr*) convergence
-    (h_phase2 : ∀ n : ℕ, 0 < n →
-      ∃ T₂ : ℝ, 0 < T₂ ∧ T₂ ≤ B * Real.log n)
-    -- n-pole convergence to PLS_n (PROVED: trifurcation_from_ode)
-    (h_npole : ∀ n : ℕ, 0 < n →
-      ∃ rate : ℝ, 0 < rate)
+    (c_rate : ℝ) (hc : 0 < c_rate)
     (pls_error : ℕ → ℝ)
-    (h_pls : ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, pls_error n < ε)
-    -- Rational approximation rate: pointwise bound on n-pole error (from the ONE axiom)
-    -- g_error n bounds sup_ω |g(ω) - g_n(ω)|; axiom supplies C·exp(-c·n)
-    (g_error : ℕ → ℝ)
-    (h_approx : ∀ n : ℕ, g_error n ≤ C * Real.exp (-(c_rate * n))) :
+    (h_pls : ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, pls_error n < ε) :
     ∀ ε > 0, ∃ (N : ℕ),
       -- Term 1 vanishes: n · e^{-cn} → 0 (exp beats poly)
       (∀ n ≥ N, (n : ℝ) * Real.exp (-(c_rate * n)) < ε / 3) ∧

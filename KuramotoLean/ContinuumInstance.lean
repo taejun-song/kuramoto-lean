@@ -166,17 +166,11 @@ The full proof chain:
   3. V antitone → V → L ≥ 0 (AntitoneConvergence)
   4. Path A or B → L = 0 → V → 0
   5. rational_approximation_rate (1 axiom) → passage to limit
-  6. continuum_convergence_argument → all 3 error terms → 0 -/
+  6. continuum_convergence_argument (c_rate, h_pls) → all 3 error terms → 0 -/
 
 theorem continuum_proof_complete
     (D : ContinuumFullData μ)
-    (g_error : ℕ → ℝ) (C c_rate L_lip lam A B D_const : ℝ)
-    (hC : 0 < C) (hc : 0 < c_rate) (hL : 0 < L_lip) (hlam : 0 < lam)
-    (hA : 0 < A) (hB : 0 < B) (hD : 0 < D_const)
-    (h_approx : ∀ n : ℕ, g_error n ≤ C * Real.exp (-(c_rate * n)))
-    (h_phase1 : ∀ n : ℕ, 0 < n → ∃ T₁ : ℝ, 0 < T₁ ∧ T₁ ≤ A)
-    (h_phase2 : ∀ n : ℕ, 0 < n → ∃ T₂ : ℝ, 0 < T₂ ∧ T₂ ≤ B * Real.log n)
-    (h_npole : ∀ n : ℕ, 0 < n → ∃ rate : ℝ, 0 < rate)
+    (c_rate : ℝ) (hc : 0 < c_rate)
     (pls_error : ℕ → ℝ)
     (h_pls : ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, pls_error n < ε) :
     (∀ ε > 0, ∃ T : ℝ, ∀ t, T ≤ t → D.V t < ε) ∧
@@ -185,9 +179,7 @@ theorem continuum_proof_complete
       (∀ n ≥ N, 1 / (n : ℝ) < ε / 3) ∧
       (∀ n ≥ N, pls_error n < ε / 3)) :=
   ⟨D.global_stability,
-   fun ε hε => continuum_convergence_argument
-     L_lip lam A B C D_const c_rate hL hlam hA hB hC hD hc
-     h_phase1 h_phase2 h_npole pls_error h_pls g_error h_approx ε hε⟩
+   fun ε hε => continuum_convergence_argument c_rate hc pls_error h_pls ε hε⟩
 
 /-! ## Summary
 
