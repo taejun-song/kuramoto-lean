@@ -3821,4 +3821,18 @@ theorem LorentzianContinuousSolution.r_lt_one_from_ode
     lorentzian_rstar_lt_one S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
   exact lt_of_le_of_lt hcorr (max_lt S.hr_init_lt hrstar_lt)
 
+/-- **Open interval membership from abstract ODE** (NO eq_explicit):
+    S.r t ∈ Set.Ioo 0 1 for all t ≥ 0. Bundles r_pos_from_ode and r_lt_one_from_ode. -/
+theorem LorentzianContinuousSolution.r_mem_Ioo_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ∈ Set.Ioo (0 : ℝ) 1 :=
+  ⟨S.r_pos_from_ode t ht, S.r_lt_one_from_ode t ht⟩
+
+/-- **Closed interval membership from abstract ODE** (NO eq_explicit):
+    S.r t ∈ Set.Icc 0 1 for all t ≥ 0. Weaker form; often used as a hypothesis. -/
+theorem LorentzianContinuousSolution.r_mem_Icc_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ∈ Set.Icc (0 : ℝ) 1 :=
+  Set.Ioo_subset_Icc_self (S.r_mem_Ioo_from_ode t ht)
+
 end
