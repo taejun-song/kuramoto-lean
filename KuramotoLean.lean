@@ -125,3 +125,4 @@ import KuramotoLean.LorentzianExistence
 import KuramotoLean.LorentzianAnalyticExtension
 import KuramotoLean.GaussianAnalyticExtension
 import KuramotoLean.LorentzianMixtureAnalyticExtension
+import KuramotoLean.GaussianMixtureAnalyticExtension
