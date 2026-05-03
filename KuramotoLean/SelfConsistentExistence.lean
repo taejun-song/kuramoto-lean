@@ -6,34 +6,28 @@
     dα(ω)/dt = -γ(ω)α + (K/2)r(t)(1 - α²),  r(t) = ∫ α(ω,t) dμ(ω)
 
   ContinuumODEExistence proves per-ω existence for GIVEN r.
-  This file adds the self-consistency condition r = ∫α dμ and shows
-  how to construct ContinuumODEData from a self-consistent pair.
-
-  The contraction factor q = (K/2)·T·exp((γ_max+K)·T) < 1 for small T
-  guarantees that the Banach fixed-point on the order parameter mapping
-  T(r)(t) = ∫ α_r(ω,t) dμ produces the unique self-consistent r.
+  This file proves existence via Banach fixed-point on
+  BoundedContinuousFunction(Icc 0 T, ℝ).
 
   0 sorry.
 -/
 
 import KuramotoLean.ContinuumODEExistence
 import KuramotoLean.GeneralGODEInstance
+import Mathlib.Topology.ContinuousMap.Bounded.Basic
+import Mathlib.Topology.ContinuousMap.Bounded.Normed
+import Mathlib.Topology.MetricSpace.Contracting
 
 open MeasureTheory Real Set Filter Metric
+open scoped NNReal
 
 noncomputable section
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
-/-! ## Self-consistent OA system -/
-
-/-- Self-consistent continuum ODE data: ContinuumODEData plus r = ∫α dμ. -/
 structure SelfConsistentOAData (μ : Measure Ω) extends ContinuumODEData μ where
   h_self_consistent : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ
 
-/-! ## Contraction factor analysis -/
-
-/-- Contraction factor for the order parameter mapping on [0,T]. -/
 def contractionFactor (K γ_max T : ℝ) : ℝ :=
   K / 2 * T * exp ((γ_max + K) * T)
 
@@ -42,65 +36,135 @@ theorem contractionFactor_nonneg {K γ_max T : ℝ}
     0 ≤ contractionFactor K γ_max T := by
   unfold contractionFactor; positivity
 
-/-- For small enough T, the contraction factor is strictly less than 1. -/
 theorem contractionFactor_lt_one {K γ_max : ℝ} (hK : 0 < K) (hγ : 0 ≤ γ_max) :
     ∃ T > 0, contractionFactor K γ_max T < 1 := by
   set T₀ := min 1 (1 / (K * exp (γ_max + K)))
-  have hgK : 0 < γ_max + K := by linarith
   have hexp_pos : (0 : ℝ) < exp (γ_max + K) := exp_pos _
   have hKexp : 0 < K * exp (γ_max + K) := mul_pos hK hexp_pos
   refine ⟨T₀, by positivity, ?_⟩
-  have hT₀_pos : 0 < T₀ := by positivity
   have hT₀_le1 : T₀ ≤ 1 := min_le_left _ _
   have hT₀_le : T₀ ≤ 1 / (K * exp (γ_max + K)) := min_le_right _ _
-  have h_gKT : (γ_max + K) * T₀ ≤ γ_max + K := by
-    have : T₀ ≤ 1 := hT₀_le1
-    nlinarith
+  have h_gKT : (γ_max + K) * T₀ ≤ γ_max + K := by nlinarith
   have h_exp : exp ((γ_max + K) * T₀) ≤ exp (γ_max + K) := exp_le_exp.mpr h_gKT
   have h_KT : K * T₀ ≤ 1 / exp (γ_max + K) := by
-    have : K * T₀ ≤ K * (1 / (K * exp (γ_max + K))) := by
-      exact mul_le_mul_of_nonneg_left hT₀_le hK.le
-    linarith [show K * (1 / (K * exp (γ_max + K))) = 1 / exp (γ_max + K) from by
-      field_simp]
+    calc K * T₀ ≤ K * (1 / (K * exp (γ_max + K))) :=
+          mul_le_mul_of_nonneg_left hT₀_le hK.le
+      _ = 1 / exp (γ_max + K) := by field_simp
   show contractionFactor K γ_max T₀ < 1
   unfold contractionFactor
-  have step1 : K / 2 * T₀ ≤ 1 / (2 * exp (γ_max + K)) := by
-    have h := h_KT -- K * T₀ ≤ 1 / exp (γ_max + K)
-    have : K / 2 * T₀ = K * T₀ / 2 := by ring
-    rw [this]
-    have : 1 / (2 * exp (γ_max + K)) = 1 / exp (γ_max + K) / 2 := by ring
-    linarith
-  have step2 : K / 2 * T₀ * exp ((γ_max + K) * T₀) ≤
-      1 / (2 * exp (γ_max + K)) * exp (γ_max + K) := by
-    have hpos1 : 0 ≤ K / 2 * T₀ := by positivity
-    have hpos2 : 0 ≤ exp ((γ_max + K) * T₀) := (exp_pos _).le
-    nlinarith [mul_le_mul step1 h_exp hpos2 (by positivity : 0 ≤ 1 / (2 * exp (γ_max + K)))]
-  have step3 : 1 / (2 * exp (γ_max + K)) * exp (γ_max + K) = 1 / 2 := by
-    field_simp
-  linarith
+  calc K / 2 * T₀ * exp ((γ_max + K) * T₀)
+      ≤ K / 2 * T₀ * exp (γ_max + K) := by
+        nlinarith [h_exp, (by positivity : (0:ℝ) ≤ K / 2 * T₀)]
+    _ ≤ 1 / 2 * (1 / exp (γ_max + K)) * exp (γ_max + K) := by nlinarith [h_KT]
+    _ = 1 / 2 := by field_simp
+    _ < 1 := by norm_num
 
-/-- The Gronwall bound gives the per-ω sensitivity:
-|α_{r₁}(t) - α_{r₂}(t)| ≤ gronwallBound(0, γ+K, K/2·δ, t)
-where δ = sup|r₁-r₂|. Integrating over ω gives the contraction:
-‖T(r₁) - T(r₂)‖_∞ ≤ contractionFactor(K, γ_max, T) · ‖r₁-r₂‖_∞.
+/-! ## Banach fixed-point on BoundedContinuousFunction -/
 
-The proof uses dist_le_of_approx_trajectories_ODE from Mathlib's Gronwall.
-The per-ω ODE with r₁ is an ε-approximate solution of the r₂-ODE,
-with ε = |v₁(t,α) - v₂(t,α)| = |(K/2)(r₁-r₂)(1-α²)| ≤ K/2·δ.
-Gronwall gives |α₁(t)-α₂(t)| ≤ (K/2·δ)/(γ+K)·(exp((γ+K)t)-1).
-On [0,T]: max ≤ contractionFactor(K,γ_max,T) · δ. -/
-theorem contraction_estimate_description :
-    ∀ K γ_max : ℝ, 0 < K → 0 ≤ γ_max →
-    ∃ T > 0, contractionFactor K γ_max T < 1 := fun _ _ => contractionFactor_lt_one
+section BanachFixedPoint
 
-/-! ## Constructor for SelfConsistentOAData
+variable {X : Type*} [TopologicalSpace X] [CompactSpace X] [Nonempty X]
 
-Given a self-consistent pair (α, r) satisfying:
-  - α(ω,·) solves the per-ω ODE with r
-  - r(t) = ∫ α(ω,t) dμ(ω)
-  - α(ω,t) ∈ (0,1) for all t ≥ 0
+theorem bcf_ball_fixed_point
+    (f : BoundedContinuousFunction X ℝ → BoundedContinuousFunction X ℝ)
+    {q : ℝ≥0} (hq : q < 1)
+    (h_self_map : ∀ r : BoundedContinuousFunction X ℝ,
+      r ∈ closedBall 0 1 → f r ∈ closedBall 0 1)
+    (h_lip : ∀ r₁ r₂ : BoundedContinuousFunction X ℝ,
+      r₁ ∈ closedBall 0 1 → r₂ ∈ closedBall 0 1 →
+      dist (f r₁) (f r₂) ≤ q * dist r₁ r₂) :
+    ∃ r_star : BoundedContinuousFunction X ℝ,
+      r_star ∈ closedBall 0 1 ∧ f r_star = r_star := by
+  set S := closedBall (0 : BoundedContinuousFunction X ℝ) 1
+  have h_complete : IsComplete S := isClosed_closedBall.isComplete
+  have h_maps : MapsTo f S S := h_self_map
+  have h_contr : ContractingWith q (h_maps.restrict f S S) := by
+    constructor
+    · exact hq
+    · intro x y
+      simp only [Subtype.edist_eq]
+      rw [edist_dist, edist_dist]
+      have := h_lip x.1 y.1 x.2 y.2
+      calc ENNReal.ofReal (dist (f x.1) (f y.1))
+          ≤ ENNReal.ofReal (↑q * dist x.1 y.1) := ENNReal.ofReal_le_ofReal this
+        _ = ENNReal.ofReal ↑q * ENNReal.ofReal (dist x.1 y.1) :=
+            ENNReal.ofReal_mul (NNReal.coe_nonneg q)
+        _ = ↑q * ENNReal.ofReal (dist x.1 y.1) := by rw [ENNReal.ofReal_coe_nnreal]
+  have h0_mem : (0 : BoundedContinuousFunction X ℝ) ∈ S := mem_closedBall_self zero_le_one
+  have h_edist : edist (0 : BoundedContinuousFunction X ℝ) (f 0) ≠ ⊤ := edist_ne_top _ _
+  obtain ⟨y, hy_mem, hy_fp, _⟩ := h_contr.exists_fixedPoint' h_complete h_maps h0_mem h_edist
+  exact ⟨y, hy_mem, hy_fp⟩
 
-Construct a SelfConsistentOAData with all fields derived. -/
+end BanachFixedPoint
+
+/-! ## Extension from BCF to ℝ → ℝ -/
+
+private def clampToIcc (T : ℝ) (hT : 0 ≤ T) (t : ℝ) : ↥(Icc (0:ℝ) T) :=
+  ⟨max 0 (min t T), le_max_left _ _, max_le hT (min_le_right _ _)⟩
+
+private theorem clampToIcc_continuous (T : ℝ) (hT : 0 ≤ T) :
+    Continuous (clampToIcc T hT) :=
+  Continuous.subtype_mk (continuous_const.max (continuous_id.min continuous_const)) _
+
+def extendBCF (T : ℝ) (hT : 0 ≤ T)
+    (r : BoundedContinuousFunction (↥(Icc (0:ℝ) T)) ℝ) : ℝ → ℝ :=
+  r ∘ clampToIcc T hT
+
+theorem extendBCF_continuous (T : ℝ) (hT : 0 ≤ T)
+    (r : BoundedContinuousFunction (↥(Icc (0:ℝ) T)) ℝ) :
+    Continuous (extendBCF T hT r) :=
+  r.continuous.comp (clampToIcc_continuous T hT)
+
+/-! ## Main existence theorem -/
+
+theorem self_consistent_existence
+    (T_time : ℝ) (hT : 0 < T_time) (K γ_max : ℝ) (hK : 0 < K) (hγ_max : 0 ≤ γ_max)
+    (hq : contractionFactor K γ_max T_time < 1)
+    (solve : (ℝ → ℝ) → Ω → ℝ → ℝ)
+    (h_op_cont : ∀ r : BoundedContinuousFunction (↥(Icc (0:ℝ) T_time)) ℝ,
+      Continuous (fun (t : ↥(Icc 0 T_time)) =>
+        ∫ ω, solve (extendBCF T_time hT.le r) ω (↑t) ∂μ))
+    (h_op_bdd : ∀ r : BoundedContinuousFunction (↥(Icc (0:ℝ) T_time)) ℝ,
+      r ∈ closedBall 0 1 →
+      ∀ (t : ↥(Icc 0 T_time)),
+        |∫ ω, solve (extendBCF T_time hT.le r) ω (↑t) ∂μ| ≤ 1)
+    (h_op_contr : ∀ (r₁ r₂ : BoundedContinuousFunction (↥(Icc (0:ℝ) T_time)) ℝ),
+      r₁ ∈ closedBall 0 1 → r₂ ∈ closedBall 0 1 →
+      ∀ (t : ↥(Icc 0 T_time)),
+      |∫ ω, solve (extendBCF T_time hT.le r₁) ω (↑t) ∂μ -
+       ∫ ω, solve (extendBCF T_time hT.le r₂) ω (↑t) ∂μ| ≤
+      contractionFactor K γ_max T_time * dist r₁ r₂) :
+    ∃ (r_bcf : BoundedContinuousFunction (↥(Icc (0:ℝ) T_time)) ℝ),
+      r_bcf ∈ closedBall 0 1 ∧
+      ∀ (t : ↥(Icc 0 T_time)),
+        r_bcf t = ∫ ω, solve (extendBCF T_time hT.le r_bcf) ω (↑t) ∂μ := by
+  haveI : Nonempty ↥(Icc (0:ℝ) T_time) := ⟨⟨0, left_mem_Icc.mpr hT.le⟩⟩
+  set q : ℝ≥0 := ⟨contractionFactor K γ_max T_time,
+    contractionFactor_nonneg hK.le hγ_max hT.le⟩
+  set T_op : BoundedContinuousFunction (↥(Icc (0:ℝ) T_time)) ℝ →
+      BoundedContinuousFunction (↥(Icc (0:ℝ) T_time)) ℝ :=
+    fun r => BoundedContinuousFunction.mkOfCompact ⟨
+      fun t => ∫ ω, solve (extendBCF T_time hT.le r) ω (↑t) ∂μ,
+      h_op_cont r⟩
+  have h_sm : ∀ r : BoundedContinuousFunction (↥(Icc 0 T_time)) ℝ,
+      r ∈ closedBall 0 1 → T_op r ∈ closedBall 0 1 := by
+    intro r hr
+    rw [mem_closedBall, dist_zero_right] at hr ⊢
+    rw [BoundedContinuousFunction.norm_le (by linarith : (0:ℝ) ≤ 1)]
+    intro t; rw [Real.norm_eq_abs]
+    exact h_op_bdd r (by rwa [mem_closedBall, dist_zero_right]) t
+  have h_lp : ∀ r₁ r₂ : BoundedContinuousFunction (↥(Icc 0 T_time)) ℝ,
+      r₁ ∈ closedBall 0 1 → r₂ ∈ closedBall 0 1 →
+      dist (T_op r₁) (T_op r₂) ≤ q * dist r₁ r₂ := by
+    intro r₁ r₂ hr₁ hr₂
+    rw [BoundedContinuousFunction.dist_le_iff_of_nonempty]
+    intro t; rw [Real.dist_eq]
+    exact h_op_contr r₁ r₂ hr₁ hr₂ t
+  obtain ⟨r_star, hr_mem, hr_fp⟩ :=
+    bcf_ball_fixed_point T_op (show q < 1 from hq) h_sm h_lp
+  exact ⟨r_star, hr_mem, fun t => (DFunLike.congr_fun hr_fp t).symm⟩
+
+/-! ## Constructor for SelfConsistentOAData -/
 
 def mkSelfConsistentOAData
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (α_star : Ω → ℝ)
@@ -119,11 +183,9 @@ def mkSelfConsistentOAData
     hα_init_pos hα_init_lt
   h_self_consistent := h_sc
 
-/-- Extract ContinuumODEData from SelfConsistentOAData. -/
 def SelfConsistentOAData.toODEData (D : SelfConsistentOAData μ) : ContinuumODEData μ :=
   D.toContinuumODEData
 
-/-- A SelfConsistentOAData gives ContinuumODEData with self-consistency. -/
 theorem selfConsistent_gives_ContinuumODEData
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (α_star : Ω → ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
@@ -139,29 +201,5 @@ theorem selfConsistent_gives_ContinuumODEData
   ⟨(mkSelfConsistentOAData γ K r α α_star hK hγ hr_cont hr_bdd hr_nn
     hα_star_pos hα_star_lt hα_ode hα_ode_zero hα_cont hα_init_pos hα_init_lt
     h_sc).toContinuumODEData, h_sc⟩
-
-/-! ## Summary
-
-The self-consistent existence proof for general g has three parts:
-
-1. **Per-ω ODE existence** (ContinuumODEExistence.lean):
-   For given continuous bounded r, each α(ω,·) exists via Picard-Lindelöf.
-
-2. **Invariant region** (GeneralGODEInstance.lean):
-   α(ω,t) ∈ (0,1) for all t ≥ 0 (upper + lower barrier).
-
-3. **Self-consistency** (this file):
-   The order parameter mapping T(r)(t) = ∫ α_r(ω,t) dμ has contraction
-   factor q = (K/2)·T·exp((γ_max+K)·T) < 1 for small T.
-   By Banach fixed-point: ∃! r* with T(r*) = r*.
-   Setting α*(ω,·) = α_{r*}(ω,·) gives the self-consistent solution.
-   Global extension: α*(ω,T) ∈ (0,1) → restart with T₀=T → induction.
-
-The contraction factor < 1 is proved (contractionFactor_lt_one).
-The constructor mkSelfConsistentOAData packages (α*, r*) into
-ContinuumODEData + self-consistency with 0 assumed fields.
-
-LABEL: argument (all ingredients proved or classical; Banach on C([0,T]) is
-standard but requires function-space infrastructure not in this file) -/
 
 end
