@@ -4452,4 +4452,40 @@ theorem LorentzianContinuousSolution.r_eventually_near_rstar_nat_from_ode
   obtain ⟨N, hN⟩ := htend ε hε
   exact ⟨N, fun n hn => by have h := hN n hn; rwa [Real.dist_eq] at h⟩
 
+/-- **Non-negativity from abstract ODE** (exp 187):
+    0 ≤ S.r t for all t ≥ 0. Weakening of r_pos_from_ode; useful for Real.sqrt. -/
+theorem LorentzianContinuousSolution.r_nonneg_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) : 0 ≤ S.r t :=
+  le_of_lt (S.r_pos_from_ode t ht)
+
+/-- **Non-zero from abstract ODE** (exp 187):
+    S.r t ≠ 0 for all t ≥ 0. Direct from r_pos_from_ode. -/
+theorem LorentzianContinuousSolution.r_ne_zero_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) : S.r t ≠ 0 :=
+  ne_of_gt (S.r_pos_from_ode t ht)
+
+/-- **Not equal to 1 from abstract ODE** (exp 187):
+    S.r t ≠ 1 for all t ≥ 0. Direct from r_lt_one_from_ode. -/
+theorem LorentzianContinuousSolution.r_ne_one_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) : S.r t ≠ 1 :=
+  ne_of_lt (S.r_lt_one_from_ode t ht)
+
+/-- **Positivity at natural times from abstract ODE** (exp 187):
+    0 < S.r (n:ℝ) for all n:ℕ. One-liner via r_pos_from_ode + Nat.cast_nonneg. -/
+theorem LorentzianContinuousSolution.r_pos_nat_from_ode
+    (S : LorentzianContinuousSolution) (n : ℕ) : 0 < S.r (n : ℝ) :=
+  S.r_pos_from_ode n (Nat.cast_nonneg n)
+
+/-- **Upper bound < 1 at natural times from abstract ODE** (exp 187):
+    S.r (n:ℝ) < 1 for all n:ℕ. One-liner via r_lt_one_from_ode + Nat.cast_nonneg. -/
+theorem LorentzianContinuousSolution.r_lt_one_nat_from_ode
+    (S : LorentzianContinuousSolution) (n : ℕ) : S.r (n : ℝ) < 1 :=
+  S.r_lt_one_from_ode n (Nat.cast_nonneg n)
+
+/-- **Open interval at natural times from abstract ODE** (exp 187):
+    S.r (n:ℝ) ∈ (0,1) for all n:ℕ. Bundles r_pos_nat and r_lt_one_nat. -/
+theorem LorentzianContinuousSolution.r_mem_Ioo_nat_from_ode
+    (S : LorentzianContinuousSolution) (n : ℕ) : S.r (n : ℝ) ∈ Set.Ioo (0 : ℝ) 1 :=
+  S.r_mem_Ioo_from_ode n (Nat.cast_nonneg n)
+
 end
