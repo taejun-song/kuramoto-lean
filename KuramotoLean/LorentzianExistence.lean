@@ -4396,4 +4396,24 @@ theorem LorentzianContinuousSolution.r_in_Icc_from_ode
     (t : ℝ) (ht : 0 ≤ t) : S.r t ∈ Set.Icc δ₁ δ₂ :=
   ⟨h₁.trans (S.r_ge_min_from_ode t ht), (S.r_le_max_from_ode t ht).trans h₂⟩
 
+/-- **Strict lower + upper bound below r*** (exp 184):
+    For r(0) < r* and t > 0: r(0) < S.r t < r*. -/
+theorem LorentzianContinuousSolution.lt_rstar_strictly_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 < t) :
+    S.r 0 < S.r t ∧ S.r t < Real.sqrt (1 - 2 * S.γ / S.K) :=
+  ⟨S.strictly_increasing_from_ode h0 0 t le_rfl ht,
+   S.lt_rstar_of_init h0 t ht.le⟩
+
+/-- **Strict lower + upper bound above r*** (exp 184):
+    For r* < r(0) and t > 0: r* < S.r t < r(0). -/
+theorem LorentzianContinuousSolution.gt_rstar_strictly_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 < t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) < S.r t ∧ S.r t < S.r 0 :=
+  ⟨S.gt_rstar_of_init h0 t ht.le,
+   S.strictly_decreasing_from_ode h0 0 t le_rfl ht⟩
+
 end
