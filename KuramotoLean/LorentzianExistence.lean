@@ -3739,4 +3739,42 @@ theorem lorentzian_ode_global_stability_raw (K γ : ℝ) (hK : 0 < K) (hγ : 0 <
      hr_init_pos := hr_init_pos, hr_init_lt := hr_init_lt
    } : LorentzianContinuousSolution).tendsto_from_ode
 
+/-- **Two-trajectory synchronization from abstract ODE** (NO eq_explicit):
+    Any two solutions S, S' of the same Lorentzian ODE (same K, γ) with r(0) ∈ (0,1)
+    synchronize: |S.r t - S'.r t| → 0 as t → ∞.
+    Proof: both converge to the same r* by tendsto_from_ode; difference → 0; abs → 0. -/
+theorem LorentzianContinuousSolution.two_traj_tendsto_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hKK : S.K = S'.K) (hγγ : S.γ = S'.γ) :
+    Filter.Tendsto (fun t => |S.r t - S'.r t|) Filter.atTop (nhds 0) := by
+  have hS := S.tendsto_from_ode
+  have hS' : Filter.Tendsto S'.r Filter.atTop
+      (nhds (Real.sqrt (1 - 2 * S.γ / S.K))) := by
+    convert S'.tendsto_from_ode using 2; rw [hKK, hγγ]
+  have hsub := hS.sub hS'
+  simp only [sub_self] at hsub
+  simpa [abs_zero] using hsub.abs
+
+/-- **Two-trajectory synchronization (raw form)** (NO eq_explicit):
+    Any two continuous solutions r, r' of the same Lorentzian ODE with r(0), r'(0) ∈ (0,1)
+    satisfy |r t - r' t| → 0. -/
+theorem lorentzian_ode_two_traj_sync_raw (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+    (hKγ : 2 * γ < K)
+    (r r' : ℝ → ℝ)
+    (hr_ode : ∀ t, 0 ≤ t → HasDerivAt r (lorentzianODE K γ (r t)) t)
+    (hr_cont : ContinuousOn r (Set.Ici 0))
+    (hr_init_pos : 0 < r 0) (hr_init_lt : r 0 < 1)
+    (hr'_ode : ∀ t, 0 ≤ t → HasDerivAt r' (lorentzianODE K γ (r' t)) t)
+    (hr'_cont : ContinuousOn r' (Set.Ici 0))
+    (hr'_init_pos : 0 < r' 0) (hr'_init_lt : r' 0 < 1) :
+    Filter.Tendsto (fun t => |r t - r' t|) Filter.atTop (nhds 0) :=
+  (({ K := K, γ := γ, hK_pos := hK, hγ_pos := hγ, hK_gt := hKγ,
+      r := r, hr_ode := hr_ode, hr_cont := hr_cont,
+      hr_init_pos := hr_init_pos, hr_init_lt := hr_init_lt
+    } : LorentzianContinuousSolution)).two_traj_tendsto_from_ode
+    ({ K := K, γ := γ, hK_pos := hK, hγ_pos := hγ, hK_gt := hKγ,
+       r := r', hr_ode := hr'_ode, hr_cont := hr'_cont,
+       hr_init_pos := hr'_init_pos, hr_init_lt := hr'_init_lt
+     } : LorentzianContinuousSolution) rfl rfl
+
 end
