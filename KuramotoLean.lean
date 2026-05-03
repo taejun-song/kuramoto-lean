@@ -27,9 +27,11 @@ import KuramotoLean.CriticalRate
 import KuramotoLean.ContinuousLorentzianInstance
 import KuramotoLean.ContinuousStability
 import KuramotoLean.ContinuumBarbalat
+import KuramotoLean.ContinuumFubiniLyapunov
 import KuramotoLean.ContinuumGlobalStability
 import KuramotoLean.ContinuumIdentity
 import KuramotoLean.ContinuumLyapunov
+import KuramotoLean.ContinuumODEExistence
 import KuramotoLean.ContinuumRigidity
 import KuramotoLean.ContinuumUniformRate
 import KuramotoLean.Defs
