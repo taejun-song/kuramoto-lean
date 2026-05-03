@@ -3705,6 +3705,30 @@ theorem LorentzianContinuousSolution.tendsto_from_ode
     exact S.tendsto_from_persist_ode rs hrs_pos
       (fun t ht => S.r_ge_rstar_of_above h t ht)
 
+/-- **w-transform convergence** (NO eq_explicit): w(t) = 1/r(t)² → B = K/(K-2γ).
+    The Bernoulli-transformed variable w(t) = 1/r(t)² converges to the w-equilibrium B.
+    Proof: r(t) → r*, r(t) > 0 for all t ≥ 0, so w(t) → 1/r*² = K/(K-2γ). -/
+theorem LorentzianContinuousSolution.w_tendsto (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => 1 / S.r t ^ 2) Filter.atTop (nhds (S.K / (S.K - 2 * S.γ))) := by
+  have hd : (0 : ℝ) < S.K - 2 * S.γ := by linarith [S.hK_gt]
+  have hrstar_pos : 0 < Real.sqrt (1 - 2 * S.γ / S.K) :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hrstar_sq : (1 : ℝ) / Real.sqrt (1 - 2 * S.γ / S.K) ^ 2 = S.K / (S.K - 2 * S.γ) := by
+    rw [Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))]
+    field_simp [ne_of_gt hd, ne_of_gt S.hK_pos]
+  rw [← hrstar_sq]
+  have hcont : ContinuousAt (fun r : ℝ => 1 / r ^ 2) (Real.sqrt (1 - 2 * S.γ / S.K)) := by
+    apply ContinuousAt.div continuousAt_const (continuous_pow 2).continuousAt
+    exact (pow_pos hrstar_pos 2).ne'
+  exact hcont.tendsto.comp S.tendsto_from_ode
+
+/-- **Squared order parameter convergence** (NO eq_explicit):
+    r(t)² → r*² = 1 - 2γ/K as t → ∞.  Proof: square tendsto_from_ode via Tendsto.pow. -/
+theorem LorentzianContinuousSolution.r_sq_tendsto (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => S.r t ^ 2) Filter.atTop (nhds (1 - 2 * S.γ / S.K)) := by
+  have h := S.tendsto_from_ode.pow 2
+  rwa [Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))] at h
+
 /-- **ODE velocity → 0 as t → ∞** (NO eq_explicit):
     ṙ(t) = lorentzianODE K γ (r t) → 0 as t → ∞.
     Proof: r(t) → r* by tendsto_from_ode; lorentzianODE is continuous; lorentzianODE(r*) = 0. -/
