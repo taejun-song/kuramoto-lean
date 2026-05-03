@@ -122,3 +122,4 @@ import KuramotoLean.NPoleContinuumBridge
 import KuramotoLean.FullChainContinuumBridge
 import KuramotoLean.LorentzianContinuumBridge
 import KuramotoLean.LorentzianExistence
+import KuramotoLean.LorentzianAnalyticExtension
