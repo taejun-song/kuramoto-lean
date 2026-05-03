@@ -4644,4 +4644,48 @@ theorem LorentzianContinuousSolution.w_tendsto_nat_from_ode
     exact (pow_pos hrstar_pos 2).ne'
   exact hcont.tendsto.comp S.tendsto_nat
 
+/-- **Below-r* at nat times** (exp 192):
+    S.r 0 < r* → S.r ↑n < r* for all n:ℕ. One-liner via lt_rstar_of_init + Nat.cast_nonneg. -/
+theorem LorentzianContinuousSolution.lt_rstar_of_init_nat_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 < Real.sqrt (1 - 2 * S.γ / S.K)) (n : ℕ) :
+    S.r (n : ℝ) < Real.sqrt (1 - 2 * S.γ / S.K) :=
+  S.lt_rstar_of_init h0 n (Nat.cast_nonneg n)
+
+/-- **Above-r* at nat times** (exp 192):
+    r* < S.r 0 → r* < S.r ↑n for all n:ℕ. One-liner via gt_rstar_of_init + Nat.cast_nonneg. -/
+theorem LorentzianContinuousSolution.gt_rstar_of_init_nat_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0) (n : ℕ) :
+    Real.sqrt (1 - 2 * S.γ / S.K) < S.r (n : ℝ) :=
+  S.gt_rstar_of_init h0 n (Nat.cast_nonneg n)
+
+/-- **Orbit ≠ r* at nat times** (exp 192):
+    S.r 0 ≠ r* → S.r ↑n ≠ r* for all n:ℕ. Via ne_rstar_from_ode + Nat.cast_nonneg. -/
+theorem LorentzianContinuousSolution.ne_rstar_nat_from_ode
+    (S : LorentzianContinuousSolution)
+    (h0 : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K)) (n : ℕ) :
+    S.r (n : ℝ) ≠ Real.sqrt (1 - 2 * S.γ / S.K) :=
+  S.ne_rstar_from_ode h0 n (Nat.cast_nonneg n)
+
+/-- **Squared distance → 0 from abstract ODE** (exp 192):
+    (S.r t - r*)^2 → 0. One-liner via tendsto_sub_rstar.pow 2 + zero_pow. -/
+theorem LorentzianContinuousSolution.r_sub_rstar_sq_tendsto_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => (S.r t - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      Filter.atTop (nhds 0) := by
+  simpa using S.tendsto_sub_rstar_atTop_from_ode.pow 2
+
+/-- **Nat-indexed squared distance → 0 from abstract ODE** (exp 192):
+    (fun n:ℕ => (S.r n - r*)^2) → 0. Pattern: tendsto_sub_rstar_nat.pow 2. -/
+theorem LorentzianContinuousSolution.r_sub_rstar_sq_tendsto_nat_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun n : ℕ => (S.r n - Real.sqrt (1 - 2 * S.γ / S.K)) ^ 2)
+      Filter.atTop (nhds 0) := by
+  have h : Filter.Tendsto (fun n : ℕ => S.r n - Real.sqrt (1 - 2 * S.γ / S.K))
+      Filter.atTop (nhds 0) := by
+    have := S.tendsto_nat.sub (tendsto_const_nhds (x := Real.sqrt (1 - 2 * S.γ / S.K)))
+    simpa [sub_self] using this
+  simpa using h.pow 2
+
 end
