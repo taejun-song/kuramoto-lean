@@ -3887,4 +3887,32 @@ theorem LorentzianContinuousSolution.two_traj_dist_from_ode
     exact h
   exact le_trans htri (add_le_add hd hd')
 
+/-- **ODE velocity bound from abstract ODE** (NO eq_explicit):
+    The ODE velocity |ṙ(t)| = |lorentzianODE K γ (r t)| ≤ K - γ for all t ≥ 0.
+    Proof: r_mem_Icc_from_ode gives r(t) ∈ [0,1]; lorentzian_ode_abs_le gives the bound. -/
+theorem LorentzianContinuousSolution.velocity_bound_from_ode
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    |lorentzianODE S.K S.γ (S.r t)| ≤ S.K - S.γ :=
+  lorentzian_ode_abs_le S.K S.γ (S.r t) S.hK_pos S.hγ_pos S.hK_gt
+    (S.r_mem_Icc_from_ode t ht).1 (S.r_mem_Icc_from_ode t ht).2
+
+/-- **Continuous-time Lipschitz bound from abstract ODE** (NO eq_explicit):
+    |S.r (t + s) - S.r t| ≤ (K - γ) · s for t ≥ 0, s ≥ 0.
+    Proof: MVT on [t, t+s] with velocity bound velocity_bound_from_ode. -/
+theorem LorentzianContinuousSolution.r_lipschitz_from_ode
+    (S : LorentzianContinuousSolution) (t s : ℝ) (ht : 0 ≤ t) (hs : 0 ≤ s) :
+    |S.r (t + s) - S.r t| ≤ (S.K - S.γ) * s := by
+  have h_deriv : ∀ x ∈ Set.Icc t (t + s),
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r x)) (Set.Icc t (t + s)) x :=
+    fun x hx => (S.hr_ode x (le_trans ht hx.1)).hasDerivWithinAt
+  have h_bound : ∀ x ∈ Set.Ico t (t + s),
+      ‖lorentzianODE S.K S.γ (S.r x)‖ ≤ S.K - S.γ := by
+    intro x hx
+    rw [Real.norm_eq_abs]
+    exact S.velocity_bound_from_ode x (le_trans ht hx.1)
+  have h_mvt := norm_image_sub_le_of_norm_deriv_le_segment'
+    h_deriv h_bound (t + s) (Set.right_mem_Icc.mpr (by linarith))
+  rw [Real.norm_eq_abs, show (t + s) - t = s from by ring] at h_mvt
+  linarith [mul_nonneg (by linarith [S.hK_pos, S.hγ_pos, S.hK_gt] : 0 ≤ S.K - S.γ) hs]
+
 end
