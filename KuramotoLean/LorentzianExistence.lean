@@ -4051,4 +4051,16 @@ theorem lorentzian_ode_local_existence (K γ r₀ : ℝ) :
   simp only [zero_sub, zero_add] at hα_deriv
   exact ⟨ε, hε, α, hα₀, hα_deriv⟩
 
+/-- **lorentzianODE is C∞** (exp 172): the Lorentzian ODE vector field is a polynomial,
+    hence ContDiff ℝ ⊤ for all K, γ. Used in Picard-Lindelöf applications. -/
+theorem lorentzianODE_contDiff (K γ : ℝ) : ContDiff ℝ ⊤ (lorentzianODE K γ) := by
+  unfold lorentzianODE; fun_prop
+
+/-- **lorentzianODE is locally Lipschitz** (exp 172): as a C¹ function, lorentzianODE K γ
+    is locally Lipschitz. Follows from ContDiff → LocallyLipschitz.
+    Provides the Lipschitz constant needed for Picard-Lindelöf applications. -/
+theorem lorentzianODE_locallyLipschitz (K γ : ℝ) :
+    LocallyLipschitz (lorentzianODE K γ) :=
+  ((lorentzianODE_contDiff K γ).of_le le_top).locallyLipschitz
+
 end
