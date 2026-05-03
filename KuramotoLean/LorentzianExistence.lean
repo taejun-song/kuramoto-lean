@@ -4072,4 +4072,52 @@ theorem lorentzianODE_lipschitzOnWith_Icc (K γ a b : ℝ) (hab : a ≤ b) :
     ((lorentzianODE_contDiff K γ).of_le le_top).contDiffOn
   exact hf.exists_lipschitzOnWith (by norm_num) (convex_Icc a b) isCompact_Icc
 
+/-- **Abstract ODE: orbit never reaches r*** (exp 174, NO eq_explicit):
+    If S.r 0 ≠ r*, then S.r t ≠ r* for all t ≥ 0.
+    Proved via backward ODE uniqueness: if r(t₀) = r*, the constant solution g ≡ r*
+    satisfies the ODE with g(t₀) = r*; by ODE_solution_unique_of_mem_Icc_left,
+    r ≡ r* on [0, t₀], so r(0) = r* — contradiction. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.ne_rstar_from_ode
+    (S : LorentzianContinuousSolution)
+    (hr₀_ne : S.r 0 ≠ Real.sqrt (1 - 2 * S.γ / S.K))
+    (t : ℝ) (ht : 0 ≤ t) :
+    S.r t ≠ Real.sqrt (1 - 2 * S.γ / S.K) := by
+  set r_star := Real.sqrt (1 - 2 * S.γ / S.K)
+  intro hrt
+  rcases ht.eq_or_lt with rfl | ht_pos
+  · exact hr₀_ne hrt
+  set lipK : NNReal := ⟨2 * S.K, by linarith [S.hK_pos]⟩
+  have hLip : ∀ s ∈ Set.Ioc 0 t,
+      LipschitzOnWith lipK (lorentzianODE S.K S.γ) (Set.Icc 0 1) :=
+    fun s _ => lorentzianODE_lipschitzOnWith S.K S.γ S.hK_pos S.hK_gt (le_of_lt S.hγ_pos)
+  have hf_cont : ContinuousOn S.r (Set.Icc 0 t) :=
+    S.hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ioc 0 t,
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r s)) (Set.Iic s) s :=
+    fun s hs => (S.hr_ode s hs.1.le).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ioc 0 t, S.r s ∈ Set.Icc 0 1 :=
+    fun s hs => S.r_mem_Icc_from_ode s hs.1.le
+  have hg_cont : ContinuousOn (fun _ => r_star) (Set.Icc 0 t) := continuousOn_const
+  have hg_deriv : ∀ s ∈ Set.Ioc 0 t,
+      HasDerivWithinAt (fun _ => r_star) (lorentzianODE S.K S.γ r_star) (Set.Iic s) s := by
+    intro s _
+    rw [lorentzianODE_at_rstar S.K S.γ S.hK_pos S.hK_gt]
+    simpa using (hasDerivAt_const s r_star).hasDerivWithinAt (s := Set.Iic s)
+  have hg_bdd : ∀ s ∈ Set.Ioc 0 t, r_star ∈ Set.Icc 0 1 := by
+    intro s _
+    have hrstar_pos : 0 < r_star :=
+      Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+    have hrstar_lt : r_star < 1 := by
+      have h_nn := le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+      have h_lt : 1 - 2 * S.γ / S.K < 1 :=
+        sub_lt_self 1 (div_pos (by linarith [S.hγ_pos]) S.hK_pos)
+      calc r_star < Real.sqrt 1 := Real.sqrt_lt_sqrt h_nn h_lt
+        _ = 1 := Real.sqrt_one
+    exact ⟨le_of_lt hrstar_pos, le_of_lt hrstar_lt⟩
+  have hEqOn := ODE_solution_unique_of_mem_Icc_left
+    (v := fun _ => lorentzianODE S.K S.γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := S.r) (g := fun _ => r_star)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hrt
+  exact hr₀_ne (hEqOn ⟨le_refl 0, le_of_lt ht_pos⟩)
+
 end
