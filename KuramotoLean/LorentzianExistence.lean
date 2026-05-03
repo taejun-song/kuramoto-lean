@@ -3705,6 +3705,32 @@ theorem LorentzianContinuousSolution.tendsto_from_ode
     exact S.tendsto_from_persist_ode rs hrs_pos
       (fun t ht => S.r_ge_rstar_of_above h t ht)
 
+/-- **ṙ < 0 above r*** (NO eq_explicit): r(t) > r* implies ṙ(t) = lorentzianODE K γ (r t) < 0.
+    The ODE pushes back toward r* from above. -/
+theorem LorentzianContinuousSolution.deriv_neg_above
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t)
+    (h : Real.sqrt (1 - 2 * S.γ / S.K) < S.r t) :
+    lorentzianODE S.K S.γ (S.r t) < 0 := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hrs_pos : 0 < rs := Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hrs_sq : rs ^ 2 = 1 - 2 * S.γ / S.K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))
+  apply lorentzian_ode_neg S.K S.γ (S.r t) S.hK_pos (S.r_pos t ht)
+  nlinarith [S.r_pos t ht, hrs_pos, hrs_sq, sq_nonneg (S.r t - rs)]
+
+/-- **ṙ > 0 below r*** (NO eq_explicit): 0 < r(t) < r* implies ṙ(t) = lorentzianODE K γ (r t) > 0.
+    The ODE pushes toward r* from below. -/
+theorem LorentzianContinuousSolution.deriv_pos_below
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t)
+    (h : S.r t < Real.sqrt (1 - 2 * S.γ / S.K)) :
+    lorentzianODE S.K S.γ (S.r t) > 0 := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hrs_pos : 0 < rs := Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  have hrs_sq : rs ^ 2 = 1 - 2 * S.γ / S.K :=
+    Real.sq_sqrt (le_of_lt (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt))
+  apply lorentzian_ode_pos S.K S.γ (S.r t) S.hK_pos S.hK_gt (S.r_pos t ht)
+  nlinarith [S.r_pos t ht, hrs_pos, hrs_sq, sq_nonneg (S.r t - rs)]
+
 /-- **w-transform convergence** (NO eq_explicit): w(t) = 1/r(t)² → B = K/(K-2γ).
     The Bernoulli-transformed variable w(t) = 1/r(t)² converges to the w-equilibrium B.
     Proof: r(t) → r*, r(t) > 0 for all t ≥ 0, so w(t) → 1/r*² = K/(K-2γ). -/
