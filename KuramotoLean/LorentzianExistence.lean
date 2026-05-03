@@ -4120,4 +4120,38 @@ theorem LorentzianContinuousSolution.ne_rstar_from_ode
     hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd hrt
   exact hr₀_ne (hEqOn ⟨le_refl 0, le_of_lt ht_pos⟩)
 
+/-- **Abstract ODE forward uniqueness** (exp 175, NO eq_explicit):
+    Two LorentzianContinuousSolution with same K, γ, r(0) agree for all t ≥ 0.
+    Uses ODE_solution_unique_of_mem_Icc_right (Gronwall forward uniqueness from same
+    initial condition). Alternative to unique which used eq_explicit. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.unique_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hK : S.K = S'.K) (hγ : S.γ = S'.γ) (h0 : S.r 0 = S'.r 0)
+    (t : ℝ) (ht : 0 ≤ t) : S.r t = S'.r t := by
+  rcases ht.eq_or_lt with rfl | ht_pos
+  · exact h0
+  set lipK : NNReal := ⟨2 * S.K, by linarith [S.hK_pos]⟩
+  have hLip : ∀ s ∈ Set.Ico 0 t,
+      LipschitzOnWith lipK (lorentzianODE S.K S.γ) (Set.Icc 0 1) :=
+    fun s _ => lorentzianODE_lipschitzOnWith S.K S.γ S.hK_pos S.hK_gt (le_of_lt S.hγ_pos)
+  have hf_cont : ContinuousOn S.r (Set.Icc 0 t) :=
+    S.hr_cont.mono Set.Icc_subset_Ici_self
+  have hf_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt S.r (lorentzianODE S.K S.γ (S.r s)) (Set.Ici s) s :=
+    fun s hs => (S.hr_ode s hs.1).hasDerivWithinAt
+  have hf_bdd : ∀ s ∈ Set.Ico 0 t, S.r s ∈ Set.Icc 0 1 :=
+    fun s hs => S.r_mem_Icc_from_ode s hs.1
+  have hg_cont : ContinuousOn S'.r (Set.Icc 0 t) :=
+    S'.hr_cont.mono Set.Icc_subset_Ici_self
+  have hg_deriv : ∀ s ∈ Set.Ico 0 t,
+      HasDerivWithinAt S'.r (lorentzianODE S.K S.γ (S'.r s)) (Set.Ici s) s :=
+    fun s hs => by rw [hK, hγ]; exact (S'.hr_ode s hs.1).hasDerivWithinAt
+  have hg_bdd : ∀ s ∈ Set.Ico 0 t, S'.r s ∈ Set.Icc 0 1 :=
+    fun s hs => S'.r_mem_Icc_from_ode s hs.1
+  have hEqOn := ODE_solution_unique_of_mem_Icc_right
+    (v := fun _ => lorentzianODE S.K S.γ) (s := fun _ => Set.Icc 0 1)
+    (K := lipK) (f := S.r) (g := S'.r)
+    hLip hf_cont hf_deriv hf_bdd hg_cont hg_deriv hg_bdd h0
+  exact hEqOn ⟨le_of_lt ht_pos, le_refl t⟩
+
 end
