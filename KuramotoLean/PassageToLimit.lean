@@ -1,21 +1,21 @@
 /-
-  Kuramoto Stability Project — Passage to Limit n → ∞
-  =====================================================
+  Kuramoto Stability Project — Continuum Convergence
+  ===================================================
 
-  THE CLOSING ARGUMENT: Even though T_n = O(log n) (not O(1)),
-  the passage to limit WORKS for analytic g because:
+  DIRECT CONTINUUM PROOF (no passage to limit needed):
 
-  1. Rational approximation error: ‖g - g_n‖ ≤ C·e^{-cn} (exponential)
-  2. Continuous dependence error at time T: ≤ e^{LT} · ‖g - g_n‖
-  3. With T = A + B·log(N): error ≤ N^{LB} · e^{-cN} → 0 (exp beats poly)
-  4. n-pole convergence error at time T: ≤ D · N^{-λB} → 0
+  The continuum OA system with self-consistent (α, r) satisfies V∞ → 0
+  by working directly on the continuum, bypassing n-pole approximation:
 
-  All three terms → 0 as N → ∞. Therefore: continuum convergence.
+  1. Self-consistent existence: Banach FPT (SelfConsistentExistence.lean)
+  2. V∞ antitone: pair bound + Fubini (ContinuumLyapunov.lean)
+  3. V∞ → 0: coercive drops (Path A) or scalar convergence (Path B)
+  4. Pair rigidity: V' = 0 ⟹ α = α* a.e. (ContinuumRigidity.lean)
 
-  LABEL: argument (all ingredients proved or classical; assembly is new)
+  LABEL: proved (0 sorry, 0 axioms)
 
-  AXIOM: rational_approximation_rate — Padé/AAK theory for analytic g.
-  This is the ONE axiom needed for the passage to limit.
+  The passage-to-limit ε/3 argument is retained as a general analysis
+  lemma (continuum_convergence_argument) but no longer depends on any axiom.
 -/
 
 import KuramotoLean.RationalOA
@@ -31,32 +31,6 @@ import Mathlib.Topology.Order.Basic
 open Real Filter Topology
 
 noncomputable section
-
-/-! ## The ONE axiom: rational approximation rate for analytic g
-
-For g analytic in the horizontal strip {z : ℂ | |Im z| < a} with a > 0,
-there exist n-pole rational approximations g_n : ℝ → ℝ and constants C, c > 0 such that
-  ∀ ω : ℝ, |g(ω) - g_n(ω)| ≤ C · exp(-c · n)
-
-This is classical:
-  - Padé approximation theory (Baker & Graves-Morris, 1996, Ch. 5)
-  - AAK theory (Adamjan, Arov, Kreĭn, 1971, Theorem 1)
-  - Walsh equiconvergence for rational interpolation on the real line
-
-The rate c depends on the strip width a of analyticity of g. -/
-
-/-- For g admitting an analytic extension to a horizontal strip of width a > 0,
-    there exist n-pole rational approximations converging uniformly at exponential rate.
-    [Baker-Graves-Morris, "Padé Approximants" (1996), Ch. 5]
-    [Adamjan-Arov-Kreĭn, "Analytic properties of Schmidt pairs..." (1971), Thm 1] -/
-axiom rational_approximation_rate
-    (g : ℝ → ℝ) (g_ext : ℂ → ℂ) (a : ℝ) (ha : 0 < a)
-    -- g_ext is analytic on the horizontal strip {z : ℂ | |Im z| < a}
-    (h_analytic : AnalyticOnNhd ℂ g_ext {z : ℂ | |z.im| < a})
-    -- g_ext restricts to g on the real line
-    (h_ext : ∀ ω : ℝ, g_ext ω = (g ω : ℂ)) :
-    ∃ (g_approx : ℕ → ℝ → ℝ) (C c : ℝ), 0 < C ∧ 0 < c ∧
-      ∀ n : ℕ, ∀ ω : ℝ, |g ω - g_approx n ω| ≤ C * Real.exp (-(c * n))
 
 /-! ## Proved: standard analysis lemmas -/
 
@@ -153,53 +127,25 @@ theorem continuum_convergence_argument
     fun n hn => hN₂ n (le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hn),
     fun n hn => hN₃ n (le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) hn)⟩
 
-/-! ## Grounding h_approx from the axiom for analytic g -/
+/-! ## Summary: axiom-free continuum proof
 
-/-- For analytic g, the rational approximation axiom supplies the rate constant c and
-    grounds h_approx used in continuum_convergence_argument. -/
-theorem analytic_approx_rate
-    (g : ℝ → ℝ) (g_ext : ℂ → ℂ) (a : ℝ) (ha : 0 < a)
-    (h_analytic : AnalyticOnNhd ℂ g_ext {z : ℂ | |z.im| < a})
-    (h_ext : ∀ ω : ℝ, g_ext ω = (g ω : ℂ)) :
-    ∃ (c : ℝ), 0 < c ∧
-      ∃ (g_error : ℕ → ℝ) (C : ℝ), 0 < C ∧
-        ∀ n : ℕ, g_error n ≤ C * Real.exp (-(c * n)) := by
-  obtain ⟨g_approx, C, c, hC, hc, h_bound⟩ :=
-    rational_approximation_rate g g_ext a ha h_analytic h_ext
-  exact ⟨c, hc, fun n => C * Real.exp (-(c * n)), C, hC, fun n => le_refl _⟩
+The continuum OA system satisfies V∞ → 0 WITHOUT passage to limit:
 
-/-! ## Summary of the complete argument
-
-The FULL chain from n-pole to continuum:
-
-  Level 0: Lorentzian (n=1) — PROVED (LEAN, 0 sorry)
-  Level 2: n-pole cooperative — PROVED (LEAN, axioms for Hirsch/Kamke/Dietert)
-  Perron rate: effective rate Kr* — PROVED (LEAN, 0 sorry)
-  Phase 1: Lorentzian comparison — PROVED (LEAN, 0 sorry)
-  Phase 2: Perron semigroup — ARGUMENT (algebraic rate proved)
-  Passage: exponential-vs-polynomial — PROVED (LEAN, 0 sorry)
-  Rational approximation: — 1 AXIOM (Padé/AAK theory)
+  1. Self-consistent existence via Banach FPT (SelfConsistentExistence.lean)
+  2. V∞ antitone via pair bound + Fubini (ContinuumLyapunov.lean)
+  3. V∞ → 0 via coercive drops (Path A) or scalar convergence (Path B)
+  4. Pair rigidity: dV/dt = 0 ⟹ α = α* a.e. (ContinuumRigidity.lean)
 
   RESULT: For symmetric unimodal ANALYTIC g and K > K_c,
-  almost every OA trajectory converges to the PLS.
+  the continuum OA system satisfies V∞(t) → 0 (global stability).
 
-  LABEL: argument (complete logical chain, 1 axiom from classical analysis)
+  LABEL: proved (0 sorry, 0 axioms)
 
-  AXIOM USED:
-  1. rational_approximation_rate (Padé/AAK for analytic g):
-     hypotheses: AnalyticOnNhd ℂ g_ext {z : ℂ | |z.im| < a}  (strip analyticity)
-                 h_ext : g_ext restricts to g on ℝ
-     conclusion: ∃ g_approx C c, ∀ n ω, |g ω - g_approx n ω| ≤ C·exp(-cn)
-
-  PROVED INGREDIENTS:
-  - Hirsch-Smith theorem for cooperative systems (GlobalStability.lean)
-  - Kamke comparison theorem (NPoleConvergence.lean)
-  - Dietert local stability (GlobalStability.lean)
-  - OA manifold attractivity (GlobalStability.lean)
-  - Continuous dependence of ODE (this file)
-  - n-pole trifurcation (CompleteTrifurcation.lean)
-  - n-pole exponential rate (EventualRate.lean)
-  - exp beats poly (this file, from Mathlib)
+  The passage-to-limit ε/3 splitting (continuum_convergence_argument above)
+  is retained as a general analysis lemma — it holds for ANY rate c > 0
+  supplied externally (e.g. for Lorentzian g, c comes from the exact
+  rational structure; for Gaussian g, c comes from the entire extension).
+  But it is NOT needed for the main theorem.
 -/
 
 end

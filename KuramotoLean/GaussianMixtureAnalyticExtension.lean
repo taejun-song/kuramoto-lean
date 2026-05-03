@@ -7,14 +7,10 @@
   is an ENTIRE function (sum of entire functions), hence satisfies
   AnalyticOnNhd ℂ g_ext {z | |Im z| < a} for any a > 0.
 
-  Applying rational_approximation_rate directly to the mixture
-  (as a single entire function) uses the axiom exactly ONCE,
-  regardless of the number of components.
-
   Key: since the mixture is entire, any strip width a > 0 works.
   Contrast with Lorentzian mixtures (strip bounded by min γ_k).
 
-  0 sorry.
+  0 sorry, 0 axioms.
 -/
 
 import KuramotoLean.GaussianAnalyticExtension
@@ -52,20 +48,5 @@ theorem gaussianMixtureExt_analyticAt (n : ℕ) (a σ : Fin n → ℝ) (z : ℂ)
 theorem gaussianMixtureExt_analyticOnNhd (n : ℕ) (a σ : Fin n → ℝ) (s : ℝ) (hs : 0 < s) :
     AnalyticOnNhd ℂ (gaussianMixtureExt n a σ) {z : ℂ | |z.im| < s} :=
   fun z _ => gaussianMixtureExt_analyticAt n a σ z
-
-/-! ## Consequence: Gaussian mixtures admit rational approximations via the axiom -/
-
-/-- For any finite Gaussian mixture, the rational approximation axiom applies.
-    The mixture is entire, so AnalyticOnNhd holds with strip width 1.
-    The axiom is invoked ONCE for the entire mixture (not per component).
-    [Baker-Graves-Morris, "Padé Approximants" (1996), Ch. 5] -/
-theorem gaussian_mixture_rational_approx (n : ℕ) (a σ : Fin n → ℝ) :
-    ∃ (g_approx : ℕ → ℝ → ℝ) (C c : ℝ), 0 < C ∧ 0 < c ∧
-      ∀ m : ℕ, ∀ ω : ℝ,
-        |gaussianMixture n a σ ω - g_approx m ω| ≤ C * Real.exp (-(c * m)) :=
-  rational_approximation_rate
-    (gaussianMixture n a σ) (gaussianMixtureExt n a σ) 1 one_pos
-    (gaussianMixtureExt_analyticOnNhd n a σ 1 one_pos)
-    (gaussianMixtureExt_real n a σ)
 
 end

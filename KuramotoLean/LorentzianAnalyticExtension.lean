@@ -10,15 +10,15 @@
   Key step: z² + γ² ≠ 0 in S_γ because z² + γ² = (z + iγ)(z - iγ),
   and ±iγ have |Im| = γ, which is excluded from S_γ.
 
-  Consequence: lorentzian_rational_approx is proved WITHOUT the
-  rational_approximation_rate axiom. The Lorentzian is itself a rational
-  function, so g_approx n = g yields zero error (≤ C·exp(-cn) trivially).
+  The Lorentzian is itself a rational function, so g_approx n = g
+  yields zero error (≤ C·exp(-cn) trivially). No approximation theory needed.
 
-  0 sorry, 0 axiom.
+  0 sorry, 0 axioms.
 -/
 
-import KuramotoLean.PassageToLimit
 import Mathlib.Analysis.Analytic.Constructions
+import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 
 open Complex Real Set
 

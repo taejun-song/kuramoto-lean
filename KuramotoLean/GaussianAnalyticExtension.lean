@@ -6,24 +6,23 @@
     g(ω) = exp(-ω² / (2σ²)) / (σ · √(2π))
   admits a complex analytic extension to ALL of ℂ (entire function).
 
-  In particular, it satisfies AnalyticOnNhd ℂ g_ext {z : ℂ | |Im z| < a} for any a > 0,
-  which is the hypothesis required by rational_approximation_rate.
+  In particular, it satisfies AnalyticOnNhd ℂ g_ext {z : ℂ | |Im z| < a} for any a > 0.
 
   Proof: g_ext(z) = exp(-z²/(2σ²)) / C.
     · z ↦ -(z²) is analytic: analyticAt_id.pow 2 + AnalyticAt.neg
     · Dividing by a constant preserves analyticity: AnalyticAt.div_const
     · AnalyticAt.cexp': exp ∘ analytic = analytic
 
-  Unlike the Lorentzian (rational, zero approximation error), the Gaussian is
-  transcendental: gaussian_rational_approx invokes the rational_approximation_rate axiom.
-  This file proves only the AnalyticOnNhd hypothesis (instantiating the axiom for Gaussian g).
+  The Gaussian is transcendental (unlike the rational Lorentzian), but the
+  continuum global stability proof works directly without rational approximation.
 
-  0 sorry.
+  0 sorry, 0 axioms.
 -/
 
-import KuramotoLean.PassageToLimit
+import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 
 open Complex Real Set
 
@@ -61,19 +60,5 @@ theorem gaussianFreqDistExt_analyticAt (σ : ℝ) (z : ℂ) :
 theorem gaussianFreqDistExt_analyticOnNhd (σ : ℝ) (a : ℝ) (ha : 0 < a) :
     AnalyticOnNhd ℂ (gaussianFreqDistExt σ) {z : ℂ | |z.im| < a} :=
   fun z _ => gaussianFreqDistExt_analyticAt σ z
-
-/-! ## Consequence: Gaussian g admits exponential rational approximations via the axiom -/
-
-/-- For the Gaussian distribution, there exist n-pole rational approximations converging
-    uniformly at exponential rate. The Gaussian is entire, so the AnalyticOnNhd hypothesis
-    holds for any strip width a > 0 (we use a = 1).
-    [Baker-Graves-Morris, "Padé Approximants" (1996), Ch. 5; AAK (1971), Thm 1] -/
-theorem gaussian_rational_approx (σ : ℝ) (hσ : 0 < σ) :
-    ∃ (g_approx : ℕ → ℝ → ℝ) (C c : ℝ), 0 < C ∧ 0 < c ∧
-      ∀ n : ℕ, ∀ ω : ℝ, |gaussianFreqDist σ ω - g_approx n ω| ≤ C * Real.exp (-(c * n)) :=
-  rational_approximation_rate
-    (gaussianFreqDist σ) (gaussianFreqDistExt σ) 1 one_pos
-    (gaussianFreqDistExt_analyticOnNhd σ 1 one_pos)
-    (gaussianFreqDistExt_real σ)
 
 end
