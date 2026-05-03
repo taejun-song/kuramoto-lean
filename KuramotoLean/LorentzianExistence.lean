@@ -3643,6 +3643,27 @@ theorem LorentzianContinuousSolution.tendsto_from_persist_ode
     simp only [Real.dist_eq, sub_zero, abs_abs] at h
     rwa [Real.dist_eq]⟩
 
+/-- **Unified exponential distance bound from abstract ODE** (NO eq_explicit):
+    For any r(0) ∈ (0,1), |S.r t - r*| ≤ |S.r 0 - r*|·exp(-μt) where
+    μ = K·min(r₀,r*)·(min(r₀,r*)+r*)/2 ≥ 0.
+    Proof: case split on r(0) vs r*:
+    (1) r(0) < r*: min = r(0), apply dist_from_gronwall_below;
+    (2) r(0) = r*: both sides 0, trivial;
+    (3) r(0) > r*: min = r*, apply dist_from_gronwall_above.
+    Unifies below/above rate bounds into a single abstract ODE inequality. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.dist_bound_from_ode_unified
+    (S : LorentzianContinuousSolution) (t : ℝ) (ht : 0 ≤ t) :
+    |S.r t - Real.sqrt (1 - 2 * S.γ / S.K)| ≤
+    |S.r 0 - Real.sqrt (1 - 2 * S.γ / S.K)| *
+    Real.exp (-(S.K * min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) *
+      (min (S.r 0) (Real.sqrt (1 - 2 * S.γ / S.K)) +
+       Real.sqrt (1 - 2 * S.γ / S.K)) / 2) * t) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  rcases lt_trichotomy (S.r 0) rs with h | h | h
+  · rw [min_eq_left h.le]; exact S.dist_from_gronwall_below h t ht
+  · rw [S.r_constant_at_rstar h t ht, h, min_self, sub_self, abs_zero, zero_mul]
+  · rw [min_eq_right h.le]; exact S.dist_from_gronwall_above h t ht
+
 /-- **Filter.Tendsto convergence from abstract ODE** (NO eq_explicit):
     For any LorentzianContinuousSolution, S.r t → r* = √(1-2γ/K) as t → ∞.
     Proof: case-split on r(0) vs r*; derive persistence from monotonicity; apply
