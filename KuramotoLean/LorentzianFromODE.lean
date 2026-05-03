@@ -872,7 +872,7 @@ theorem LorentzianContinuousSolution.r_nondecreasing_of_below
   exact hmono (Set.mem_Ici.mpr hs) (Set.mem_Ici.mpr (le_trans hs hst)) hst
 
 /-- r stays above r* when r(0) > r* (backward uniqueness argument). -/
-private theorem lorentzian_r_stays_above_rstar (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
+theorem lorentzian_r_stays_above_rstar (K γ : ℝ) (hK : 0 < K) (hγ : 0 < γ)
     (hK_gt : K > 2 * γ)
     (r : ℝ → ℝ) (hr_cont : ContinuousOn r (Ici 0))
     (hr_ode : ∀ t, 0 < t → HasDerivAt r (lorentzianODE K γ (r t)) t)
@@ -949,6 +949,16 @@ theorem LorentzianContinuousSolution.r_nonincreasing_of_above
     linarith [lorentzianODE_neg_of_above S.K S.γ (S.r t) S.hK_pos S.hK_gt hr_pos hr_sq_gt])
   intro s t hs hst
   exact hanti (Set.mem_Ici.mpr hs) (Set.mem_Ici.mpr (le_trans hs hst)) hst
+
+/-- r(t) ≥ r* for all t ≥ 0 when r(0) > r* (direct lift of lorentzian_r_stays_above_rstar). -/
+theorem LorentzianContinuousSolution.r_ge_rstar_of_above
+    (S : LorentzianContinuousSolution)
+    (hr_init_above : Real.sqrt (1 - 2 * S.γ / S.K) < S.r 0)
+    (t : ℝ) (ht : 0 ≤ t) :
+    Real.sqrt (1 - 2 * S.γ / S.K) ≤ S.r t :=
+  le_of_lt (lorentzian_r_stays_above_rstar S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+    S.r S.hr_cont (fun t ht => S.hr_ode t (le_of_lt ht))
+    (fun t ht => S.r_bdd t ht) hr_init_above t ht)
 
 /-! ## Constructors from initial condition -/
 

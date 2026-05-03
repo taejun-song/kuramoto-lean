@@ -3643,4 +3643,29 @@ theorem LorentzianContinuousSolution.tendsto_from_persist_ode
     simp only [Real.dist_eq, sub_zero, abs_abs] at h
     rwa [Real.dist_eq]⟩
 
+/-- **Filter.Tendsto convergence from abstract ODE** (NO eq_explicit):
+    For any LorentzianContinuousSolution, S.r t → r* = √(1-2γ/K) as t → ∞.
+    Proof: case-split on r(0) vs r*; derive persistence from monotonicity; apply
+    tendsto_from_persist_ode. No reference to the explicit Bernoulli formula.
+    Closes the abstract ODE chain at the Filter.Tendsto level. -/
+theorem LorentzianContinuousSolution.tendsto_from_ode
+    (S : LorentzianContinuousSolution) :
+    Filter.Tendsto S.r Filter.atTop (nhds (Real.sqrt (1 - 2 * S.γ / S.K))) := by
+  set rs := Real.sqrt (1 - 2 * S.γ / S.K)
+  have hrs_pos : 0 < rs :=
+    Real.sqrt_pos_of_pos (lorentzian_rstar_pos S.K S.γ S.hK_pos S.hK_gt)
+  rcases lt_trichotomy (S.r 0) rs with h | h | h
+  · -- r(0) < r*: non-decreasing → r(t) ≥ r(0) > 0
+    exact S.tendsto_from_persist_ode (S.r 0) S.hr_init_pos
+      (fun t ht => S.r_nondecreasing_of_below h 0 t le_rfl ht)
+  · -- r(0) = r*: r is constant at r*
+    have hr_const := S.r_constant_at_rstar h
+    rw [Metric.tendsto_atTop]
+    intro ε hε
+    exact ⟨0, fun t ht => by
+      rw [hr_const t ht, Real.dist_eq, sub_self, abs_zero]; exact hε⟩
+  · -- r(0) > r*: r stays above r* → persistence with δ = r*
+    exact S.tendsto_from_persist_ode rs hrs_pos
+      (fun t ht => S.r_ge_rstar_of_above h t ht)
+
 end
