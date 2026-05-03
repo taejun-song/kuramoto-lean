@@ -3705,6 +3705,17 @@ theorem LorentzianContinuousSolution.tendsto_from_ode
     exact S.tendsto_from_persist_ode rs hrs_pos
       (fun t ht => S.r_ge_rstar_of_above h t ht)
 
+/-- **ODE velocity → 0 as t → ∞** (NO eq_explicit):
+    ṙ(t) = lorentzianODE K γ (r t) → 0 as t → ∞.
+    Proof: r(t) → r* by tendsto_from_ode; lorentzianODE is continuous; lorentzianODE(r*) = 0. -/
+theorem LorentzianContinuousSolution.deriv_tendsto_zero (S : LorentzianContinuousSolution) :
+    Filter.Tendsto (fun t => lorentzianODE S.K S.γ (S.r t)) Filter.atTop (nhds 0) := by
+  have hrstar : lorentzianODE S.K S.γ (Real.sqrt (1 - 2 * S.γ / S.K)) = 0 :=
+    lorentzian_rstar_is_fixed_point S.K S.γ S.hK_pos S.hγ_pos S.hK_gt
+  rw [← hrstar]
+  have hcont : Continuous (lorentzianODE S.K S.γ) := by unfold lorentzianODE; fun_prop
+  exact hcont.continuousAt.tendsto.comp S.tendsto_from_ode
+
 /-- **Explicit rate from raw ODE hypotheses** (NO eq_explicit):
     Any continuous solution of the Lorentzian ODE with r(0) ∈ (0,1) satisfies
     |r(t) - r*| ≤ |r(0) - r*| · exp(-μt) where μ = K·min(r₀,r*)·(min(r₀,r*)+r*)/2.
