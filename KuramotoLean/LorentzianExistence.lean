@@ -4488,4 +4488,47 @@ theorem LorentzianContinuousSolution.r_mem_Ioo_nat_from_ode
     (S : LorentzianContinuousSolution) (n : ℕ) : S.r (n : ℝ) ∈ Set.Ioo (0 : ℝ) 1 :=
   S.r_mem_Ioo_from_ode n (Nat.cast_nonneg n)
 
+/-- **Two-trajectory nat-indexed sync from abstract ODE** (exp 188):
+    (fun n:ℕ => |S.r n - S'.r n|) → 0. Uses tendsto_nat for both; same pattern as
+    two_traj_tendsto_from_ode but on ℕ-indexed subsequence. NO eq_explicit. -/
+theorem LorentzianContinuousSolution.two_traj_tendsto_nat_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hKK : S.K = S'.K) (hγγ : S.γ = S'.γ) :
+    Filter.Tendsto (fun n : ℕ => |S.r n - S'.r n|) Filter.atTop (nhds 0) := by
+  have hS := S.tendsto_nat
+  have hS' : Filter.Tendsto (fun n : ℕ => S'.r n) Filter.atTop
+      (nhds (Real.sqrt (1 - 2 * S.γ / S.K))) := by
+    convert S'.tendsto_nat using 2; rw [hKK, hγγ]
+  have hsub := hS.sub hS'
+  simp only [sub_self] at hsub
+  simpa [abs_zero] using hsub.abs
+
+/-- **ε-N two-trajectory sync from abstract ODE** (exp 188):
+    ∀ ε>0, ∃ N:ℕ, ∀ n≥N, |S.r n - S'.r n| < ε. Via two_traj_tendsto_nat + Metric.tendsto_atTop. -/
+theorem LorentzianContinuousSolution.two_traj_eventually_near_nat_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hKK : S.K = S'.K) (hγγ : S.γ = S'.γ) (ε : ℝ) (hε : 0 < ε) :
+    ∃ N : ℕ, ∀ n ≥ N, |S.r n - S'.r n| < ε := by
+  have htend := S.two_traj_tendsto_nat_from_ode S' hKK hγγ
+  rw [Metric.tendsto_atTop] at htend
+  obtain ⟨N, hN⟩ := htend ε hε
+  exact ⟨N, fun n hn => by
+    have h := hN n hn
+    simp only [dist_zero_right, Real.norm_eq_abs, abs_abs] at h
+    exact h⟩
+
+/-- **ε-T two-trajectory sync from abstract ODE** (exp 188):
+    ∀ ε>0, ∃ T:ℝ, ∀ t≥T, |S.r t - S'.r t| < ε. Via two_traj_tendsto + Metric.tendsto_atTop. -/
+theorem LorentzianContinuousSolution.two_traj_convergence_time_from_ode
+    (S S' : LorentzianContinuousSolution)
+    (hKK : S.K = S'.K) (hγγ : S.γ = S'.γ) (ε : ℝ) (hε : 0 < ε) :
+    ∃ T : ℝ, ∀ t, T ≤ t → |S.r t - S'.r t| < ε := by
+  have htend := S.two_traj_tendsto_from_ode S' hKK hγγ
+  rw [Metric.tendsto_atTop] at htend
+  obtain ⟨T, hT⟩ := htend ε hε
+  exact ⟨T, fun t ht => by
+    have h := hT t ht
+    simp only [dist_zero_right, Real.norm_eq_abs, abs_abs] at h
+    exact h⟩
+
 end
