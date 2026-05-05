@@ -58,7 +58,7 @@ The body convergence `h_body` is verified on each compact region {γ ≤ M}:
   Body persistence + coercive pair bound → quantitative rate → V_body → 0
 
 This is the correct formalization of the Dietert (2016) tail-body split. -/
-theorem kuramoto_standard_model [IsProbabilityMeasure μ]
+theorem kuramoto_standard_model_v1 [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)

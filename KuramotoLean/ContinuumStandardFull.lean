@@ -191,7 +191,7 @@ theorem kuramoto_continuum_standard_full [IsProbabilityMeasure μ]
       (fun t => ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0) :=
     fun M _ => body_conv_of_full_conv α α_star hα_sq_int _ (hγ_level M) hV_zero
   -- Step 3: r → r* via kuramoto_standard_model
-  exact kuramoto_standard_model γ K hK hγ hγ_meas α_star r_star
+  exact kuramoto_standard_model_v1 γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level h_tail h_body
