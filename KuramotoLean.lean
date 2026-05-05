@@ -31,6 +31,7 @@ import KuramotoLean.ContinuumFubiniLyapunov
 import KuramotoLean.ContinuumGlobalStability
 import KuramotoLean.ContinuumIdentity
 import KuramotoLean.ContinuumLyapunov
+import KuramotoLean.ContinuumMainTheorem
 import KuramotoLean.ContinuumODEExistence
 import KuramotoLean.ContinuumRigidity
 import KuramotoLean.ContinuumUniformRate
@@ -104,6 +105,7 @@ import KuramotoLean.SelfConsistencyRigidity
 import KuramotoLean.SelfConsistentExistence
 import KuramotoLean.SelfContainedConvergence
 import KuramotoLean.ShiftedBarrier
+import KuramotoLean.StandardContinuumTheorem
 import KuramotoLean.StrictLyapunov
 import KuramotoLean.SubcriticalConvergence
 import KuramotoLean.SubcriticalLyapunov
