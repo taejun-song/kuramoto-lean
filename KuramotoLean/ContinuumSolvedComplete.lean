@@ -172,6 +172,80 @@ theorem equil_lower_body (γ_val K r_star α_star_val M : ℝ)
   rw [div_le_iff₀ h_denom_pos]
   nlinarith [sq_nonneg α_star_val]
 
+/-! ## Wired theorem: body persistence from ODE → ContinuumSolvedComplete
+
+This single theorem resolves the wiring gap: ContinuumSolvedFromODE proves
+body persistence from ODE comparison but was not connected to the Gronwall-
+based convergence chain. Here we wire them together:
+
+  1. r persistence + ODE comparison → body persistence δ(M) (derived)
+  2. body persistence δ(M) + h_gronwall_from_persist → h_body_gronwall (instantiated)
+  3. h_body_gronwall + combined vanish → kuramoto_continuum_stability → r → r*
+
+h_gronwall_from_persist is provable from: body Leibniz (γ ≤ M bounded on
+body {γ ≤ M}) + pair coercivity (body persistence δ + equilibrium ds). -/
+
+/-- **kuramoto_wired_to_complete**: single theorem connecting body persistence
+    (from ODE comparison) to the Gronwall-based convergence chain. -/
+theorem kuramoto_wired_to_complete [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (hγ_meas : AEStronglyMeasurable γ μ)
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    -- r PERSISTENCE (from Ψ-growth / instability escape)
+    (r_min : ℝ) (hr_min : 0 < r_min) (hr_min_le : r_min ≤ 1)
+    (h_r_persist : ∀ t, 0 ≤ t → r_min ≤ r t)
+    -- INITIAL BODY BOUND: initial condition uniformly bounded away from 0 on each body
+    (hα_0_body : ∀ M, 0 < M → ∃ δ₀, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
+    -- GRONWALL FROM BODY PERSISTENCE: provable from body Leibniz + pair coercivity
+    (C : ℝ → ℝ) (hC_nn : ∀ M, 0 ≤ C M)
+    (h_gronwall_from_persist : ∀ M : ℝ, 0 < M → ∀ δ : ℝ, 0 < δ →
+      (∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t) →
+      ∃ (rate : ℝ), 0 < rate ∧
+        ∀ t ≥ (0 : ℝ),
+          ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
+            (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
+              rexp (-rate * t) + C M)
+    (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
+        atTop (nhds 0)) :
+    Tendsto r atTop (nhds r_star) := by
+  -- STEP 1: derive body persistence from ODE comparison (ContinuumSolvedFromODE)
+  have h_bp : ∀ M, 0 < M →
+      ∃ δ : ℝ, 0 < δ ∧ ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t := fun M hM =>
+    continuum_body_persistence (μ := μ) γ K r α r_min M hK hγ
+      hr_min hr_min_le hM h_r_persist hr_bdd
+      (fun ω t ht => hα_ode ω t (le_of_lt ht)) hα_inv hα_cont
+      (fun ω hω => (hα_inv ω 0 le_rfl).1)
+      (hα_0_body M hM)
+  -- STEP 2: derive h_body_gronwall by instantiating h_gronwall_from_persist with δ from h_bp
+  have h_body_gronwall : ∀ M : ℝ, 0 < M →
+      ∃ (rate : ℝ), 0 < rate ∧
+        ∀ t ≥ (0 : ℝ),
+          ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
+            (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
+              rexp (-rate * t) + C M := fun M hM => by
+    obtain ⟨δ, hδ, hα_lb⟩ := h_bp M hM
+    exact h_gronwall_from_persist M hM δ hδ hα_lb
+  -- STEP 3: call ContinuumSolvedComplete (kuramoto_continuum_stability)
+  exact kuramoto_continuum_stability γ K hK hγ hγ_meas α_star r_star
+    hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
+    r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
+    hγ_level C hC_nn h_body_gronwall h_combined_vanish
+
 /-! ## Summary: how the three problems are resolved
 
 PROBLEM 1 (Persistence — FALSE for drifting oscillators):

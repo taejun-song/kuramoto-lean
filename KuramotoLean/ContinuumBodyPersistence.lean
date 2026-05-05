@@ -128,7 +128,7 @@ This is NON-TAUTOLOGICAL: the hypothesis specifies the geometric decay
 MECHANISM (body coercivity + tail bound), not just V → 0. -/
 theorem kuramoto_continuum_from_body_persistence [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
     (hαs_int : Integrable α_star μ)
@@ -178,7 +178,7 @@ The body rate comes from pair coercivity on {γ ≤ M₀} where locked
 oscillators persist. The tail comes from g ∈ L¹. -/
 theorem kuramoto_continuum_full_chain [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
     (hαs_int : Integrable α_star μ)

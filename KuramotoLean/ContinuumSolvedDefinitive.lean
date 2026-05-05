@@ -169,7 +169,7 @@ theorem body_ds_lower_bound'
     (γ_val K r_star α_star_val M : ℝ)
     (hK : 0 < K) (hr_star : 0 < r_star)
     (hα_star_pos : 0 < α_star_val) (_hα_star_lt : α_star_val < 1)
-    (hγ_le : γ_val ≤ M) (hM : 0 < M) (_hγ_pos : 0 < γ_val)
+    (hγ_le : γ_val ≤ M) (hM : 0 < M)
     (h_equil : γ_val * α_star_val = (K / 2) * r_star * (1 - α_star_val ^ 2)) :
     K * r_star / (2 * M + K * r_star) ≤ α_star_val := by
   have h_denom_pos : 0 < 2 * M + K * r_star := by positivity
