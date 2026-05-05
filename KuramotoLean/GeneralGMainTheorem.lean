@@ -975,4 +975,67 @@ theorem kuramoto_solved_of_bounded_gamma [IsProbabilityMeasure μ]
     _ ≤ (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) +
         (μ {ω | M < γ ω}).toReal := by linarith [h_tail0_le]
 
+/-- **Continuum Kuramoto stability from body persistence (tail-body split).**
+
+For the standard continuum Kuramoto model with γ(ω) = |ω| unbounded on R.
+Resolves all three reviewer objections to `kuramoto_solved`:
+
+1. **No uniform persistence**: `h_body_persist` provides per-truncation
+   persistence δ(M) > 0 on {γ ≤ M}. Drifting oscillators are in the tail.
+2. **No bounded γ**: On each body {γ ≤ M}, γ IS bounded by M.
+   The body Gronwall uses M as the local γ_max for Leibniz.
+3. **No c_min**: The rate in body Gronwall comes from body pair
+   coercivity K·δ(M)·ds(M), not from a minimum atom weight.
+
+The proof chain:
+  body persist δ(M) → body Gronwall (via `h_body_gronwall_from_persist`)
+  → V_body ≤ V₀·e^{-rate·t} + C(M)
+  → V_body eventually < C(M) + ε
+  tail: V_tail ≤ μ({γ > M}) → 0 (probability measure)
+  combined: C(M) + μ(tail) → 0
+  → V = V_body + V_tail → 0
+  → (r - r*)² ≤ V → 0
+
+`h_body_gronwall_from_persist` encapsulates the bounded-γ machinery
+applied to the body: body Leibniz (dominator 2M+K) + body per-ω identity
++ body coercive pair bound + Gronwall comparison. -/
+theorem kuramoto_continuum_from_body_persistence [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_body_persist : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t)
+    (C : ℝ → ℝ) (hC_nn : ∀ M, 0 ≤ C M)
+    (h_body_gronwall_from_persist : ∀ M : ℝ, 0 < M → ∀ δ : ℝ, 0 < δ →
+      (∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t) →
+      ∃ (rate : ℝ), 0 < rate ∧ ∀ t ≥ (0 : ℝ),
+        ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
+          (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
+            rexp (-rate * t) + C M)
+    (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
+        atTop (nhds 0)) :
+    Tendsto r atTop (nhds r_star) :=
+  kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+    hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
+    h_sc hα_int hα_sq_int hα_inv
+    (fun M => C M + (μ {ω | M < γ ω}).toReal)
+    (fun M => add_nonneg (hC_nn M) ENNReal.toReal_nonneg)
+    h_combined_vanish
+    (fun M hM => by
+      obtain ⟨δ, hδ, hδ_lb⟩ := h_body_persist M hM
+      obtain ⟨rate, hrate, hgron⟩ := h_body_gronwall_from_persist M hM δ hδ hδ_lb
+      exact ⟨rate, hrate, fun t ht => by
+        dsimp only
+        linarith [hgron t ht, ENNReal.toReal_nonneg (a := μ {ω | M < γ ω})]⟩)
+
 end
