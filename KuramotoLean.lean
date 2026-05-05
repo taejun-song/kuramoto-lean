@@ -109,6 +109,7 @@ import KuramotoLean.SelfContainedConvergence
 import KuramotoLean.ShiftedBarrier
 import KuramotoLean.StandardContinuumTheorem
 import KuramotoLean.ContinuumSolvedStandard
+import KuramotoLean.ContinuumStandardFull
 import KuramotoLean.StrictLyapunov
 import KuramotoLean.SubcriticalConvergence
 import KuramotoLean.SubcriticalLyapunov
