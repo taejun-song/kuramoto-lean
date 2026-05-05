@@ -3,28 +3,26 @@
   =======================================================
   Clean end-to-end theorem taking physical data + proved regularity.
 
-  All three former axioms are now PROVED as theorems (0 axioms):
-    1. oa_self_consistent_global_existence  — data passed through
-    2. leibniz_oa_lyapunov                  — Mathlib ParametricIntegral
-    3. supercritical_coercive_drops         — Gronwall comparison
-
   kuramoto_solved is UNCONDITIONAL: no mu_rate or hV_rate hypothesis.
   dV/dt ≤ 0 is DERIVED from the pair bound (per-ω identity + DS ≤ r*Q).
-  V → 0 via antitone + Barbalat + pair rigidity.
+  V → 0 via antitone + strict Lyapunov + instability exclusion.
 
   Remaining sorry (1):
     - LaSalle L=0: V antitone → V→L, need L=0.
-      Argument: V(n)-V(n+1)→0, MVT gives tₙ with ∫∫pair(tₙ)→0,
-      pair≥0 a.e. convergence → α→α* a.e. (rigidity), DCT → V→0.
+      Supercritical condition proved: ∫α*/(1-α*²) > r*
+      (ContinuumSupercritical.lean, 0 sorry). This gives K > K_c
+      and unstable eigenvalue λ>0 at α=0.
+      Remaining gap: continuum persistence — lift the n-pole
+      instability exclusion (InstabilityExclusion + ChetaevEscape)
+      to the continuum setting using the eigenvalue.
   Axiom budget: 0
 -/
 
-import KuramotoLean.GeneralGContinuumBridge
 import KuramotoLean.SelfConsistentExistence
 import KuramotoLean.ContinuumUniformRate
 import KuramotoLean.ContinuumRigidity
 import KuramotoLean.ContinuumIdentity
-import KuramotoLean.ContinuousLaSalle
+import KuramotoLean.ContinuumSupercritical
 import KuramotoLean.OAGlobalExistence
 import Mathlib.Analysis.Calculus.ParametricIntegral
 
@@ -91,27 +89,6 @@ theorem lyapunov_antitone [IsProbabilityMeasure μ]
            _ = V a := hVa.symm
     · push_neg at hb
       rw [hV_neg a (le_of_lt ha), hV_neg b (le_of_lt hb)]
-
-/-! ## Persistence drops -/
-theorem persistence_drops [IsProbabilityMeasure μ]
-    (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (α_star : Ω → ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
-    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1)
-    (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
-    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
-    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
-    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (hα_star_pos : ∀ ω, 0 < α_star ω)
-    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
-    (μ_rate : ℝ) (hμ_pos : 0 < μ_rate)
-    (h_uni_drop : ∀ t, 0 ≤ t →
-      ∫ ω, (α ω (t + 1) - α_star ω) ^ 2 ∂μ ≤
-        exp (-μ_rate) * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) :
-    ∀ T_bd : ℝ, ∃ t, T_bd ≤ t ∧
-      ∫ ω, (α ω (t + 1) - α_star ω) ^ 2 ∂μ ≤
-        exp (-μ_rate) * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := by
-  intro T_bd
-  exact ⟨max T_bd 0, le_max_left _ _, h_uni_drop (max T_bd 0) (le_max_right _ _)⟩
 
 /-! ## Helper: extend ContinuousOn to Continuous -/
 
@@ -240,51 +217,6 @@ theorem leibniz_oa_lyapunov
       (bound_integrable := integrable_const C)
       (h_diff := Eventually.of_forall (fun ω s hs => h_pw_deriv ω s hs))).2
 
-/-! ## Theorem 3: Supercritical coercive drops (replaces axiom)
-
-dV/dt ≤ 0 from rate bound; V(t+1) ≤ e^{-μ}V(t) from Gronwall. -/
-theorem supercritical_coercive_drops
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
-    (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (α_star : Ω → ℝ)
-    (r_star : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
-    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
-    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
-    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
-    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
-    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
-    (μ_rate : ℝ) (hμ_pos : 0 < μ_rate)
-    (hV_rate : ∀ t, 0 < t →
-      ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ ≤
-        -μ_rate * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ)
-    (hV_has_deriv : ∀ t, 0 < t → HasDerivAt (fun s => ∫ ω, (α ω s - α_star ω) ^ 2 ∂μ)
-      (∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ) t)
-    (hV_cont_on : ContinuousOn (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) (Ici 0)) :
-    (∀ t, 0 < t → ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ ≤ 0) ∧
-    (∀ t, 0 ≤ t → ∫ ω, (α ω (t + 1) - α_star ω) ^ 2 ∂μ ≤
-      exp (-μ_rate) * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) := by
-  constructor
-  · intro t ht
-    have hV_nn : 0 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ :=
-      integral_nonneg (fun ω => sq_nonneg (α ω t - α_star ω))
-    have hR := hV_rate t ht
-    have : 0 ≤ μ_rate * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := mul_nonneg (le_of_lt hμ_pos) hV_nn
-    linarith
-  · intro t ht
-    set V : ℝ → ℝ := fun s => ∫ ω, (α ω s - α_star ω) ^ 2 ∂μ
-    set V' : ℝ → ℝ := fun s => ∫ ω, 2 * (α ω s - α_star ω) * oaScalarRHS (γ ω) K r s (α ω s) ∂μ
-    have h_decay := comparison_decay_interval V V' μ_rate t 1 (by linarith : (0:ℝ) ≤ 1)
-      (hV_cont_on.mono (fun x hx => mem_Ici.mpr (le_trans ht (mem_Icc.mp hx).1)))
-      (fun s hs1 hs2 => hV_has_deriv s (by linarith))
-      (fun s hs1 hs2 => hV_rate s (by linarith))
-    simp only [mul_one] at h_decay
-    calc ∫ ω, (α ω (t + 1) - α_star ω) ^ 2 ∂μ
-        = V (t + 1) := rfl
-      _ ≤ V t * exp (-μ_rate) := h_decay
-      _ = exp (-μ_rate) * V t := mul_comm _ _
-      _ = exp (-μ_rate) * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := rfl
-
 /-! ## Theorem 1: Self-consistent global existence (replaces axiom)
 
 The construction data (r, α) is passed in directly. -/
@@ -315,81 +247,6 @@ theorem oa_self_consistent_global_existence
       (∀ ω t, 0 ≤ t → 0 < α' ω t ∧ α' ω t < 1) :=
   ⟨r, α, hr_cont, hr_bdd, hr_nn, hα_ode, hα_cont, hα_init, h_sc,
     hα_int, hα_sq_int, hα_neg, hα_inv⟩
-
-/-! ## Main theorem: physical data → V → 0 ∧ r → r* -/
-theorem kuramoto_general_g_main [IsProbabilityMeasure μ]
-    (γ : Ω → ℝ) (K γ_max : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
-    (hγ_max : 0 ≤ γ_max) (hγ_bdd : ∀ ω, γ ω ≤ γ_max)
-    (hγ_meas : AEStronglyMeasurable γ μ)
-    (α_star : Ω → ℝ) (r_star : ℝ)
-    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
-    (hαs_int : Integrable α_star μ)
-    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
-    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
-    (α_0 : Ω → ℝ) (hα_0_pos : ∀ ω, 0 < α_0 ω) (hα_0_lt : ∀ ω, α_0 ω < 1)
-    (μ_rate : ℝ) (hμ_pos : 0 < μ_rate)
-    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
-    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1) (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
-    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
-    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
-    (hα_init : ∀ ω, α ω 0 = α_0 ω)
-    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
-    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
-    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
-    (hα_neg : ∀ ω t, t ≤ 0 → α ω t = α ω 0)
-    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (hV_rate : ∀ t, 0 < t →
-      ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ ≤
-        -μ_rate * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) :
-    ∃ (r' : ℝ → ℝ) (α' : Ω → ℝ → ℝ),
-      (∀ ω t, 0 ≤ t → 0 < α' ω t ∧ α' ω t < 1) ∧
-      Tendsto (fun t => ∫ ω, (α' ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0) ∧
-      Tendsto r' atTop (nhds r_star) := by
-  haveI : SFinite μ := inferInstance
-  have ⟨hV_cont_on, hV_has_deriv⟩ :=
-    leibniz_oa_lyapunov (μ := μ) γ K r α α_star hα_ode hα_inv hα_sq_int
-      γ_max hγ_bdd hγ_max hγ hK hr_bdd hα_star_pos hα_star_lt hα_cont hα_neg
-      hα_int hαs_int hγ_meas
-  have ⟨hV_deriv_np, h_uni_drop⟩ :=
-    supercritical_coercive_drops (μ := μ) γ K r α α_star r_star
-      hK hγ hα_ode hα_inv h_sc hα_sq_int hα_star_pos hα_star_lt hα_star_equil
-      μ_rate hμ_pos hV_rate hV_has_deriv hV_cont_on
-  have hV_nn : ∀ t, 0 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ :=
-    fun t => integral_nonneg (fun _ => sq_nonneg _)
-  have hV_anti : Antitone (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) :=
-    lyapunov_antitone γ K r α α_star r_star hK hγ hr_cont hr_bdd hr_nn
-      hα_ode hα_cont hα_star_pos hα_star_lt hα_star_equil h_sc hα_inv hα_sq_int
-      hα_neg hV_cont_on hV_has_deriv hV_deriv_np
-  have hdrops : ∀ T_bd : ℝ, ∃ t, T_bd ≤ t ∧
-      ∫ ω, (α ω (t + 1) - α_star ω) ^ 2 ∂μ ≤
-        exp (-μ_rate) * ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ :=
-    persistence_drops γ K r α α_star hK hγ hr_cont hr_bdd hr_nn
-      hα_ode h_sc hα_inv hα_star_pos hα_sq_int μ_rate hμ_pos h_uni_drop
-  have hV_zero : Tendsto (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ)
-      atTop (nhds 0) :=
-    coercive_drop_from_persistence _ hV_nn hV_anti μ_rate hμ_pos hdrops
-  have hV_controls_r : ∀ t, 0 ≤ t →
-      (r t - r_star) ^ 2 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := by
-    intro t ht
-    have hsub_int : Integrable (fun ω => α ω t - α_star ω) μ := (hα_int t).sub hαs_int
-    have hrsc : r t - r_star = ∫ ω, (α ω t - α_star ω) ∂μ := by
-      rw [h_sc t ht, hr_star_eq, integral_sub (hα_int t) hαs_int]
-    rw [hrsc]; exact sq_integral_le_integral_sq μ _ hsub_int (hα_sq_int t)
-  have hr_conv : Tendsto r atTop (nhds r_star) := by
-    rw [Metric.tendsto_atTop]
-    intro ε hε
-    rw [Metric.tendsto_atTop] at hV_zero
-    obtain ⟨N, hN⟩ := hV_zero (ε ^ 2) (by positivity)
-    refine ⟨max N 0, fun t ht => ?_⟩
-    have ht_ge : N ≤ t := le_trans (le_max_left _ _) ht
-    have ht_nn : (0 : ℝ) ≤ t := le_trans (le_max_right _ _) ht
-    have hV_t := hN t ht_ge
-    simp only [Real.dist_eq, sub_zero] at hV_t
-    rw [abs_of_nonneg (hV_nn t)] at hV_t
-    rw [Real.dist_eq]
-    exact abs_lt_of_sq_lt_sq (lt_of_le_of_lt (hV_controls_r t ht_nn) hV_t) (le_of_lt hε)
-  exact ⟨r, α, hα_inv, hV_zero, hr_conv⟩
 
 /-! ## Per-ω Lyapunov identity for oaScalarRHS
 
@@ -578,19 +435,15 @@ theorem kuramoto_solved [IsProbabilityMeasure μ]
       atTop (nhds 0) := by
     obtain ⟨L, hL_nn, hL⟩ := antitone_bounded_converges _ hV_anti hV_nn
     suffices L = 0 by rwa [this] at hL
-    -- LaSalle argument: V antitone, V ≥ 0, V → L ≥ 0. Want L = 0.
-    -- Step 1: V(n) - V(n+1) → 0 (integer convergence).
-    -- Step 2: V(n) - V(n+1) = ∫_n^{n+1} (-V') = (K/2)∫_n^{n+1} ∫∫pair (FTC).
-    -- Step 3: MVT on continuous ∫∫pair ≥ 0: ∃ tₙ ∈ [n,n+1] with ∫∫pair(tₙ) → 0.
-    -- Step 4: ∫∫pair = 2(r*Q - DS), Q ≥ V (since α+1/α* > 1), |DS| ≤ V (C-S).
-    --   If DS ≤ 0: pair ≥ 2r*V, so V ≤ pair/(2r*) → 0.
-    --   If DS > 0: pair → 0, so r*Q → DS.
-    --     But r*Q ≥ r*V and DS ≤ V, so r*V ≤ V + pair/2.
-    --     Need: pair → 0 ⟹ α → α* a.e. (rigidity + DCT) ⟹ V → 0.
-    -- Step 5: pair ≥ 0 with ∫∫pair → 0 ⟹ pair → 0 in L¹(μ⊗μ) ⟹ α → α* a.e. (subseq).
-    --   Dichotomy from pair(0,α*₁,α*₂,α*₂) = α*₁α*₂ > 0:
-    --   {ω: α→0} has measure 0 or 1. If 1: r→0, but pair(0,0) = 0
-    --   so need instability exclusion. If 0: α → α* a.e., DCT gives V → 0.
+    -- LaSalle: V antitone, V ≥ 0, V → L ≥ 0. Goal: L = 0.
+    -- Step 1: Supercritical condition (K > K_c) from equilibrium.
+    -- ∫α*/(1-α*²) > r*, equivalently (K/2)∫(1/γ) > 1.
+    -- This implies ∃ unstable eigenvalue λ > 0 at α = 0.
+    -- Step 2: Instability exclusion — α can't converge to 0 a.e.
+    -- The W = ∫α/(γ+λ) functional grows when α is small.
+    -- Step 3: pair rigidity + DCT: pair→0 + α↛0 ⟹ α→α* ⟹ V→0.
+    -- Remaining gap: continuum persistence from the eigenvalue.
+    -- (n-pole version: InstabilityExclusion + ChetaevEscape)
     sorry
   have hV_controls_r : ∀ t, 0 ≤ t →
       (r t - r_star) ^ 2 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := by
