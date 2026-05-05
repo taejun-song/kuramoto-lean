@@ -826,7 +826,7 @@ applied to the body {γ ≤ M} where:
   • Gronwall comparison → exponential decay to absorbing ball C(M) -/
 theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
