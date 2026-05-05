@@ -114,6 +114,7 @@ import KuramotoLean.TrajectoryLyapunov
 import KuramotoLean.UniformRate
 import KuramotoLean.UpperBarrier
 import KuramotoLean.VolterraTrapping
+import KuramotoLean.WeakStarLaSalle
 import KuramotoLean.WeightedEnergy
 import KuramotoLean.WindowedApproximation
 import KuramotoLean.ZeroActivation
