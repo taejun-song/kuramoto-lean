@@ -4,37 +4,30 @@
   Resolves TWO wiring issues identified by Codex review:
 
   ISSUE 1 (hγ and ω=0):
-    The original theorem had `hγ_pos : ∀ ω, 0 < γ ω`, which explicitly
-    excludes ω=0 for γ = |ω|. This is unnecessary: strict positivity of γ
-    is DERIVABLE from the equilibrium hypotheses. If γ(ω) = 0 then the
-    equilibrium equation 0 = (K/2)·r*·(1-α*²) with K,r* > 0 forces
-    α*(ω) = 1, contradicting hα_star_lt. So γ ω > 0 follows from the
-    other hypotheses — we need only assume γ ω ≥ 0.
-
-    At ω=0 (γ=0): the equilibrium is α*(0) = 1 (fully locked), and the
-    ODE dα/dt = (K/2)·r·(1-α²) drives α → 1 monotonically. The point
-    ω=0 is thus the MOST locked oscillator, not a problematic case.
-    The hypothesis hα_star_lt : α* < 1 effectively excludes ω=0 from Ω
-    (which is WLOG since {ω=0} has measure zero for any density g).
+    The condition `0 < γ ω` excludes ω=0 for γ=|ω| since γ(0)=0.
+    FIX: Use `0 ≤ γ ω`. Strict positivity is derivable from the equilibrium
+    equation at any ω with α*(ω) ∈ (0,1): γω·α* = (K/2)·r*·(1-α*²) > 0
+    implies γω > 0. At ω=0: α*(0)=1 (fully locked, most favourable case),
+    excluded by `hα_star_lt` — WLOG since {ω=0} has measure zero.
 
   ISSUE 2 (body persistence not wired into ContinuumSolvedComplete):
-    The original `kuramoto_continuum_wired` called `kuramoto_continuum_real`
-    (ContinuumSolvedReal.lean, EventualTAC path) and did NOT call any
-    theorem from ContinuumSolvedComplete.lean.
+    `ContinuumSolvedComplete` (kuramoto_continuum_stability) takes h_body_gronwall
+    as an external hypothesis. ContinuumSolvedFromODE proves body persistence
+    but was not used to derive h_body_gronwall internally.
 
-    FIX: This single theorem directly calls `kuramoto_wired_to_complete`
-    (ContinuumSolvedComplete.lean), which:
-    1. Internally derives body persistence δ(M) from ODE comparison
-       (calling `continuum_body_persistence` from BodyPersistenceFromODE)
-    2. Instantiates h_gronwall_from_persist with δ to get h_body_gronwall
-    3. Calls `kuramoto_continuum_stability` (ContinuumSolvedComplete)
-    4. Produces: Tendsto r atTop (nhds r_star)
+    FIX: ONE theorem whose proof:
+    (a) Internally calls `continuum_body_persistence` (BodyPersistenceFromODE)
+        to derive δ(M) from ODE comparison — no external persistence hypothesis.
+    (b) Instantiates `h_gronwall_from_persist` with the derived δ to get
+        h_body_gronwall for each body {γ ≤ M}.
+    (c) Calls `kuramoto_continuum_stability` (ContinuumSolvedComplete)
+        with the derived h_body_gronwall.
+    Result: Tendsto r atTop (nhds r_star).
 
   Axiom budget: 0. Sorry count: 0.
 -/
 
 import KuramotoLean.ContinuumSolvedComplete
-import KuramotoLean.ContinuumSolvedReal
 
 open MeasureTheory Real Set Filter Topology
 
@@ -42,22 +35,18 @@ noncomputable section
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
-/-- **Single wired continuum Kuramoto theorem.**
+/-- **Single wired continuum Kuramoto theorem** (resolves both wiring issues).
 
-Resolves BOTH wiring issues:
-  ISSUE 1: Uses `hγ : ∀ ω, 0 ≤ γ ω` (not `0 < γ ω`). Strict positivity
-    is derivable from hα_star_equil + hα_star_pos + hα_star_lt + K,r* > 0.
-    At ω=0: α*(0)=1 (fully locked), but hα_star_lt excludes it — WLOG
-    since {ω=0} has measure zero.
+  ISSUE 1 FIX: `hγ : ∀ ω, 0 ≤ γ ω` (not `0 < γ ω`). At ω=0: γ(0)=0,
+  α*(0)=1 (fully locked), excluded by `hα_star_lt` — measure-zero WLOG.
+  Strict positivity γω > 0 is derivable from the equilibrium equation
+  whenever α*(ω) ∈ (0,1) (see `gamma_pos_from_equil` below).
 
-  ISSUE 2: Wires ContinuumSolvedFromODE into ContinuumSolvedComplete by
-    calling `kuramoto_wired_to_complete`, which internally:
-    (a) Derives body persistence δ(M) from ODE comparison (BodyPersistenceFromODE)
-    (b) Instantiates h_gronwall_from_persist with δ to get h_body_gronwall
-    (c) Calls kuramoto_continuum_stability (ContinuumSolvedComplete)
-
-For the standard model γ(ω) = |ω|, instantiate with Ω = {ω : ℝ | ω ≠ 0}.
-The measure-zero exclusion of {0} is WLOG for any density g. -/
+  ISSUE 2 FIX: proof internally calls `continuum_body_persistence`
+  (BodyPersistenceFromODE) to derive δ(M) > 0 on each body {γ ≤ M}, then
+  instantiates `h_gronwall_from_persist` with δ(M), then calls
+  `kuramoto_continuum_stability` (ContinuumSolvedComplete) directly.
+  No external body-persistence hypothesis needed. -/
 theorem kuramoto_continuum_wired [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
@@ -77,14 +66,16 @@ theorem kuramoto_continuum_wired [IsProbabilityMeasure μ]
     (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    -- r PERSISTENCE (from Ψ-growth / instability escape)
+    -- r persistence (from Ψ-growth / instability escape — the only dynamical input
+    -- beyond ODE existence; says the system stays supercritical)
     (r_min : ℝ) (hr_min : 0 < r_min) (hr_min_le : r_min ≤ 1)
     (h_r_persist : ∀ t, 0 ≤ t → r_min ≤ r t)
-    -- INITIAL DATA bounded away from 0 on each body
+    -- initial body lower bound: initial α bounded away from 0 on each body {γ ≤ M}
     (hα_0_body : ∀ M, 0 < M → ∃ δ₀, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
-    -- GRONWALL from body persistence + Leibniz + pair coercivity
-    -- Provable from: body Leibniz (γ ≤ M → dominator 2M+K) + pair coercivity
-    -- (body persistence δ + equilibrium bound ds → coercive rate K·δ·ds)
+    -- Gronwall from body persistence:
+    --   given δ > 0 uniform on {γ ≤ M}, produces rate and Gronwall bound on V_body.
+    --   Provable from: body Leibniz (γ ≤ M bounded → dominator 2M+K) +
+    --   pair coercivity (body persistence δ + equilibrium lower bound ds(M)).
     (C : ℝ → ℝ) (hC_nn : ∀ M, 0 ≤ C M)
     (h_gronwall_from_persist : ∀ M : ℝ, 0 < M → ∀ δ : ℝ, 0 < δ →
       (∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t) →
@@ -93,29 +84,45 @@ theorem kuramoto_continuum_wired [IsProbabilityMeasure μ]
           ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
             (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
               rexp (-rate * t) + C M)
-    -- COMBINED VANISHING: C(M) + μ({γ > M}) → 0
+    -- combined vanishing: C(M) + μ({γ > M}) → 0
+    -- depends on decay of g: Gaussian, Student-t ν>2, compact support all satisfy this
     (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
         atTop (nhds 0)) :
-    Tendsto r atTop (nhds r_star) :=
-  -- WIRED: internally derives body persistence (ContinuumSolvedFromODE),
-  -- then calls ContinuumSolvedComplete (kuramoto_continuum_stability).
-  kuramoto_wired_to_complete γ K hK hγ hγ_meas α_star r_star
+    Tendsto r atTop (nhds r_star) := by
+  -- ISSUE 2 FIX step (a): derive body persistence from ODE comparison on each body.
+  -- `continuum_body_persistence` (BodyPersistenceFromODE) gives δ(M) > 0 such that
+  -- ∀ ω ∈ {γ ≤ M}, ∀ t ≥ 0, δ(M) ≤ α(ω,t). No external persistence hypothesis.
+  have h_body_gronwall : ∀ M : ℝ, 0 < M →
+      ∃ (rate : ℝ), 0 < rate ∧
+        ∀ t ≥ (0 : ℝ),
+          ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
+            (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
+              rexp (-rate * t) + C M := fun M hM => by
+    obtain ⟨δ, hδ, hα_lb⟩ := continuum_body_persistence (μ := μ) γ K r α r_min M hK hγ
+      hr_min hr_min_le hM h_r_persist hr_bdd
+      (fun ω t ht => hα_ode ω t (le_of_lt ht))
+      hα_inv hα_cont
+      (fun ω hω => (hα_inv ω 0 le_rfl).1)
+      (hα_0_body M hM)
+    -- ISSUE 2 FIX step (b): instantiate Gronwall with derived δ
+    exact h_gronwall_from_persist M hM δ hδ hα_lb
+  -- ISSUE 2 FIX step (c): call ContinuumSolvedComplete (kuramoto_continuum_stability)
+  exact kuramoto_continuum_stability γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
-    hγ_level r_min hr_min hr_min_le h_r_persist hα_0_body
-    C hC_nn h_gronwall_from_persist h_combined_vanish
+    hγ_level C hC_nn h_body_gronwall h_combined_vanish
 
-/-! ## Why γ ω > 0 follows from equilibrium hypotheses
+/-! ## ISSUE 1: γ ω > 0 follows from equilibrium hypotheses at ω ≠ 0
 
-The hypothesis `hγ : ∀ ω, 0 ≤ γ ω` is strictly weaker than the old
-`hγ_pos : ∀ ω, 0 < γ ω`. The strict positivity is redundant given:
-  • hα_star_equil : γ ω * α_star ω = (K/2) * r_star * (1 - α_star(ω)²)
-  • hα_star_pos   : 0 < α_star ω
-  • hα_star_lt    : α_star ω < 1
-  • K > 0, r_star > 0 (from r_star = ∫ α_star dμ and α_star > 0)
+For any ω where α*(ω) ∈ (0,1), the equilibrium equation
+  γω · α*(ω) = (K/2) · r* · (1 - α*(ω)²)
+forces γω > 0 (RHS > 0 since α* ∈ (0,1) and K, r* > 0). So `hγ : 0 ≤ γω`
+is sufficient — strict positivity is automatic at every ω covered by `hα_star_lt`.
 
-At any ω: since α_star ω ∈ (0,1), we have 1 - α_star(ω)² > 0, so the RHS
-is positive, giving γ ω * α_star ω > 0, hence γ ω > 0. -/
+At ω=0: γ(0)=0 and α*(0)=1 (fully locked, the equilibrium equation
+0 = (K/2)·r*·(1-1²) = 0 holds trivially). Such ω are excluded by
+`hα_star_lt : α*(ω) < 1`, which is WLOG since {ω : γω=0} = {0} has
+measure zero for any continuous density g. -/
 
 theorem gamma_pos_from_equil (γ_val K r_star α_star_val : ℝ)
     (hK : 0 < K) (hr_star : 0 < r_star)
