@@ -217,13 +217,58 @@ theorem kuramoto_solved_integrable_gamma [IsProbabilityMeasure μ]
     -- from equilibrium, and γ is integrable. Bound: |(α-α*)²(α+1/α*)| ≤ 2+2γ/(Kr*).
     have hq_int : Integrable (fun ω => (α ω t - α_star ω) ^ 2 *
         (α ω t + 1 / α_star ω)) μ := by
-      -- 1/α* = α* + 2γ/(Kr*) from equilibrium. So α+1/α* ≤ 1+1+2γ/(Kr*) = 2+2γ/(Kr*).
-      -- (α-α*)² ≤ 1. Product ≤ 2+2γ/(Kr*) which is integrable.
-      sorry
-    -- S integrability: |(α-��*)·(1-α²)| ≤ 1·1 = 1, always integrable on prob. space
+      have hKr : 0 < K * r_star := mul_pos hK hr_star_pos
+      have h_inv : ∀ ω, 1 / α_star ω = α_star ω + 2 * γ ω / (K * r_star) := by
+        intro ω
+        have heq := hα_star_equil ω
+        have hα_ne : α_star ω ≠ 0 := ne_of_gt (hα_star_pos ω)
+        field_simp
+        nlinarith [sq_nonneg (α_star ω), hα_star_pos ω, hα_star_lt ω, hγ ω]
+      have h_eq : ∀ ω, (α ω t - α_star ω) ^ 2 * (α ω t + 1 / α_star ω) =
+          (α ω t - α_star ω) ^ 2 * (α ω t + α_star ω + 2 / (K * r_star) * γ ω) := by
+        intro ω; congr 1; rw [h_inv]; ring
+      simp_rw [h_eq]
+      have h_bound : ∀ ω, ‖(α ω t - α_star ω) ^ 2 *
+          (α ω t + α_star ω + 2 / (K * r_star) * γ ω)‖ ≤
+          2 + 2 / (K * r_star) * γ ω := by
+        intro ω
+        have hp := (hα_inv ω t (le_of_lt ht)).1
+        have hl := (hα_inv ω t (le_of_lt ht)).2
+        have hp' := hα_star_pos ω; have hl' := hα_star_lt ω
+        have hγω := hγ ω
+        have h_sum_le : α ω t + α_star ω + 2 / (K * r_star) * γ ω ≤
+            2 + 2 / (K * r_star) * γ ω := by linarith
+        have h_sum_nn : (0 : ℝ) ≤ α ω t + α_star ω + 2 / (K * r_star) * γ ω := by
+          positivity
+        have h_sq_le : (α ω t - α_star ω) ^ 2 ≤ 1 := by nlinarith
+        rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (sq_nonneg _) h_sum_nn)]
+        calc (α ω t - α_star ω) ^ 2 * (α ω t + α_star ω + 2 / (K * r_star) * γ ω)
+            ≤ 1 * (2 + 2 / (K * r_star) * γ ω) :=
+              mul_le_mul h_sq_le h_sum_le h_sum_nn zero_le_one
+          _ = 2 + 2 / (K * r_star) * γ ω := one_mul _
+      exact ((integrable_const 2).add (hγ_int.const_mul (2 / (K * r_star)))).mono'
+        (((hα_sq_int t).aestronglyMeasurable).mul
+          (((hα_int t).aestronglyMeasurable.add hαs_int.aestronglyMeasurable).add
+            (hγ_meas.const_mul (2 / (K * r_star)))))
+        (Eventually.of_forall h_bound)
     have hs_int : Integrable (fun ω => (α ω t - α_star ω) *
         (1 - (α ω t) ^ 2)) μ := by
-      sorry
+      have h_bound : ∀ ω, ‖(α ω t - α_star ω) * (1 - (α ω t) ^ 2)‖ ≤ 1 := by
+        intro ω
+        have hp := (hα_inv ω t (le_of_lt ht)).1
+        have hl := (hα_inv ω t (le_of_lt ht)).2
+        have hp' := hα_star_pos ω; have hl' := hα_star_lt ω
+        rw [Real.norm_eq_abs, abs_mul]
+        have h1 : |α ω t - α_star ω| ≤ 1 := abs_le.mpr ⟨by linarith, by linarith⟩
+        have h2 : |1 - (α ω t) ^ 2| ≤ 1 := by
+          rw [abs_le]; constructor <;> nlinarith [sq_nonneg (α ω t)]
+        calc |α ω t - α_star ω| * |1 - (α ω t) ^ 2|
+            ≤ 1 * 1 := mul_le_mul h1 h2 (abs_nonneg _) zero_le_one
+          _ = 1 := mul_one 1
+      exact (integrable_const (1:ℝ)).mono'
+        (((hα_int t).aestronglyMeasurable.sub hαs_int.aestronglyMeasurable).mul
+          (aestronglyMeasurable_const.sub ((hα_int t).aestronglyMeasurable.pow 2)))
+        (Eventually.of_forall h_bound)
     exact continuum_lyapunov_deriv_nonpos γ K (r t) (fun ω => α ω t) α_star r_star
       hK hγ (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
       hα_star_pos hα_star_lt hα_star_equil hr_star_eq (h_sc t (le_of_lt ht))
