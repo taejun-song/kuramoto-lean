@@ -1,6 +1,6 @@
 /-
-  kuramoto_solved_continuum — Definitive Continuum Kuramoto Stability
-  ===================================================================
+  kuramoto_standard_continuum — Definitive Continuum Kuramoto Stability
+  =====================================================================
   The correct theorem for the STANDARD continuum Kuramoto model:
     dα/dt = -|ω|·α + (K/2)·r(t)·(1 - α²)
     r(t) = ∫ α(ω,t) g(ω) dω
@@ -92,7 +92,7 @@ for any fixed M (from body persistence + equilibrium lower bound).
 Covers: Gaussian, Student-t (ν > 2), compact support, any g with
 M · g(M) integrable. NOT Lorentzian without additional argument
 (use `kuramoto_continuum_real` for Lorentzian via EventualTAC). -/
-theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
+theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -195,14 +195,14 @@ theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
   rw [Real.dist_eq]
   exact abs_lt_of_sq_lt_sq hV_lt (le_of_lt hε)
 
-/-- **End-to-end existential form of `kuramoto_solved_continuum`.**
+/-- **End-to-end existential form of `kuramoto_standard_continuum`.**
 
 Parallel to `kuramoto_solved` (GeneralGMainTheorem.lean) but for the
 standard continuum model with unbounded γ.
 
 The existence hypothesis bundles ODE data + body Gronwall + C → 0.
 No bounded γ, no uniform persistence, no minimum weight. -/
-theorem kuramoto_solved_continuum_exists [IsProbabilityMeasure μ]
+theorem kuramoto_standard_continuum_exists [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -224,17 +224,17 @@ theorem kuramoto_solved_continuum_exists [IsProbabilityMeasure μ]
                 rexp (-rate * t) + C M))) :
     ∃ (r : ℝ → ℝ), Tendsto r atTop (nhds r_star) := by
   obtain ⟨r, α, h_sc, hα_int, hα_sq_int, hα_inv, C, hC_nn, hC_vanish, h_gron⟩ := h_exists
-  exact ⟨r, kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+  exact ⟨r, kuramoto_standard_continuum γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
     h_sc hα_int hα_sq_int hα_inv C hC_nn hC_vanish h_gron⟩
 
-/-- **`kuramoto_solved` is a special case of `kuramoto_solved_continuum`.**
+/-- **`kuramoto_solved` is a special case of `kuramoto_standard_continuum`.**
 
 When γ IS bounded by γ_max and persistence IS uniform, the global Gronwall
 V(t) ≤ V(0)·exp(-rate·t) implies the body Gronwall with absorbing radius
 C(M) = μ({γ > M}) (tail measure). Since γ is bounded, μ({γ > M}) = 0
 for M ≥ γ_max, so C → 0. -/
-theorem kuramoto_solved_of_bounded [IsProbabilityMeasure μ]
+theorem kuramoto_standard_of_bounded [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -256,7 +256,7 @@ theorem kuramoto_solved_of_bounded [IsProbabilityMeasure μ]
     Tendsto r atTop (nhds r_star) := by
   -- Use C(M) = μ({γ > M}) as absorbing radius
   set C := fun M => (μ {ω | M < γ ω}).toReal
-  apply kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+  apply kuramoto_standard_continuum γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
     h_sc hα_int hα_sq_int hα_inv C
     (fun _ => ENNReal.toReal_nonneg)
