@@ -51,7 +51,7 @@ for any epsilon, there exists body S with V_S -> 0 and mu(S^c) < epsilon.
 Proof: |r-r*|^2 <= V = V_body + V_tail < (body -> 0) + (tail < epsilon) -> 0. -/
 theorem kuramoto_continuum_from_happrox [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
@@ -174,7 +174,7 @@ setup where the body S = {omega | gamma(omega) <= M} has bounded gamma and
 the restricted Lyapunov converges by the bounded-gamma stability theorem. -/
 theorem kuramoto_continuum_physical [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)

@@ -70,7 +70,7 @@ Combined vanishing: C(M) + μ({γ>M}) → 0 as M → ∞.
   • NOT Lorentzian (use Bernoulli closed-form instead) -/
 theorem kuramoto_continuum_stability [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     -- Equilibrium data
     (α_star : Ω → ℝ) (r_star : ℝ)

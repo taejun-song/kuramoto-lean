@@ -71,7 +71,7 @@ For Lorentzian (∫|ω|g = ∞):
   Lorentzian uses Bernoulli closed-form instead (LorentzianFromODE.lean). -/
 theorem kuramoto_solved_continuum_tailbody [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
     -- Equilibrium data
     (α_star : Ω → ℝ) (r_star : ℝ)
@@ -109,7 +109,7 @@ This version takes the Gronwall bound explicitly and derives the
 absorbing ball property. More directly connects to the body ODE analysis. -/
 theorem kuramoto_solved_continuum_gronwall [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
@@ -157,7 +157,7 @@ formulation: the body converges fast enough that its absorbing radius
 is bounded by the tail measure itself. -/
 theorem kuramoto_solved_continuum_simple [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)

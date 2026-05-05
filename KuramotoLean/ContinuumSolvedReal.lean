@@ -123,7 +123,7 @@ Covers: Lorentzian, Gaussian, Student-t (all ν), compact support — any g ∈ 
 Strictly generalizes `kuramoto_solved_continuum` (which requires ∫γ dμ < ∞). -/
 theorem kuramoto_continuum_real [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
     (α_star : Ω → ℝ) (r_star : ℝ)

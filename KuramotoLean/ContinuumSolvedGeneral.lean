@@ -65,7 +65,7 @@ ContinuumTailBodyConvergence.lean. The body Gronwall bound gives
 the absorbing ball, and combined vanishing drives r → r*. -/
 theorem kuramoto_general_continuum [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
@@ -141,7 +141,7 @@ theorem kuramoto_solved_bounded_special_case [IsProbabilityMeasure μ]
             (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
               rexp (-rate * t) + 0) :
     Tendsto r atTop (nhds r_star) :=
-  kuramoto_general_continuum γ K hK hγ hγ_meas α_star r_star
+  kuramoto_general_continuum γ K hK (fun ω => le_of_lt (hγ ω)) hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level (fun _ => (0 : ℝ)) (fun _ => le_refl 0) (fun M hM => h_body_rate M hM)
@@ -192,7 +192,7 @@ theorem kuramoto_solved_fast_decay [IsProbabilityMeasure μ]
     (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
         atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) :=
-  kuramoto_general_continuum γ K hK hγ hγ_meas α_star r_star
+  kuramoto_general_continuum γ K hK (fun ω => le_of_lt (hγ ω)) hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level C hC_nn h_body_rate h_combined_vanish

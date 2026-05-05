@@ -78,7 +78,7 @@ Proof chain:
   ∴ r → r*                                        [squeeze] -/
 theorem kuramoto_continuum_theorem [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
     (α_star : Ω → ℝ) (r_star : ℝ)

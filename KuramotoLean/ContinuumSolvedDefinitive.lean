@@ -86,7 +86,7 @@ The body Gronwall bound connects to `kuramoto_solved`:
     C(M) = K·μ(tail)/rate(M) (tail coupling / body rate) -/
 theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
@@ -126,7 +126,7 @@ This shows `kuramoto_standard_continuum` strictly generalizes the
 bounded-γ theorem `kuramoto_solved`. -/
 theorem kuramoto_standard_continuum_subsumes_bounded [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K γ_max : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     (hγ_bdd : ∀ ω, γ ω ≤ γ_max)
     (α_star : Ω → ℝ) (r_star : ℝ)

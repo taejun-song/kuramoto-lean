@@ -106,7 +106,7 @@ All three are DERIVABLE structural properties of the OA flow:
 • Body drop: BodyLeibnizProof + MonotoneLeibnizBridge -/
 theorem kuramoto_continuum_standard_full [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
     (α_star : Ω → ℝ) (r_star : ℝ)
