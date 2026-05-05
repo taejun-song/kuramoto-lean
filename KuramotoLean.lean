@@ -79,6 +79,7 @@ import KuramotoLean.MinimalInstance
 import KuramotoLean.MinimalProof
 import KuramotoLean.ModulusLyapunov
 import KuramotoLean.Montel
+import KuramotoLean.MonotoneLeibnizBridge
 import KuramotoLean.NPoleConvergence
 import KuramotoLean.NPoleGlobalStability
 import KuramotoLean.NPoleInstance
