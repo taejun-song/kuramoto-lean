@@ -123,6 +123,52 @@ theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
     _ < ε ^ 2 := by linarith [sq_pos_of_pos hε]
   exact abs_lt_of_sq_lt_sq hV_lt (le_of_lt hε)
 
+/-- V → 0 trivially implies h_approx (take S = Ω). -/
+theorem v_tendsto_zero_implies_h_approx [IsProbabilityMeasure μ]
+    (f : Ω → ℝ → ℝ)
+    (V_tendsto : Tendsto (fun t => ∫ ω, (f ω t) ^ 2 ∂μ) atTop (nhds 0)) :
+    ∀ ε > 0, ∃ (S : Set Ω),
+      MeasurableSet S ∧
+      (μ Sᶜ).toReal < ε ∧
+      Tendsto (fun t => ∫ ω in S, (f ω t) ^ 2 ∂μ) atTop (nhds 0) := by
+  intro ε hε
+  refine ⟨Set.univ, MeasurableSet.univ, ?_, ?_⟩
+  · simp only [compl_univ, measure_empty, ENNReal.toReal_zero]; exact hε
+  · simp only [Measure.restrict_univ]; exact V_tendsto
+
+/-- h_approx implies V → 0 (the converse). Together with the above, h_approx ↔ V → 0. -/
+theorem h_approx_implies_v_tendsto_zero [IsProbabilityMeasure μ]
+    (f : Ω → ℝ → ℝ) (hf_bdd : ∀ ω t, (f ω t) ^ 2 ≤ 1)
+    (hf_int : ∀ t, Integrable (fun ω => (f ω t) ^ 2) μ)
+    (h_approx : ∀ ε > 0, ∃ (S : Set Ω),
+      MeasurableSet S ∧
+      (μ Sᶜ).toReal < ε ∧
+      Tendsto (fun t => ∫ ω in S, (f ω t) ^ 2 ∂μ) atTop (nhds 0)) :
+    Tendsto (fun t => ∫ ω, (f ω t) ^ 2 ∂μ) atTop (nhds 0) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  obtain ⟨S, hS_meas, h_tail, hV_body⟩ := h_approx (ε / 2) (by linarith)
+  rw [Metric.tendsto_atTop] at hV_body
+  obtain ⟨N, hN⟩ := hV_body (ε / 2) (by linarith)
+  refine ⟨N, fun t ht => ?_⟩
+  rw [Real.dist_eq, sub_zero, abs_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
+  have hV_split : ∫ ω, (f ω t) ^ 2 ∂μ =
+      (∫ ω in S, (f ω t) ^ 2 ∂μ) + (∫ ω in Sᶜ, (f ω t) ^ 2 ∂μ) :=
+    (integral_add_compl hS_meas (hf_int t)).symm
+  have hVb : ∫ ω in S, (f ω t) ^ 2 ∂μ < ε / 2 := by
+    have h := hN t ht
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg (integral_nonneg fun _ => sq_nonneg _)] at h
+    exact h
+  have hVt : ∫ ω in Sᶜ, (f ω t) ^ 2 ∂μ < ε / 2 := calc
+    ∫ ω in Sᶜ, (f ω t) ^ 2 ∂μ
+        ≤ ∫ ω in Sᶜ, (1 : ℝ) ∂μ := by
+      apply setIntegral_mono_on (hf_int t).integrableOn
+        (integrable_const (1 : ℝ)).integrableOn
+        hS_meas.compl (fun ω _ => hf_bdd ω t)
+    _ = (μ Sᶜ).toReal := by rw [setIntegral_const]; simp [Measure.real]
+    _ < ε / 2 := h_tail
+  linarith [hV_split]
+
 /-- **Physical corollary.** Wraps kuramoto_solved_continuum with the physical
 setup where the body S = {omega | gamma(omega) <= M} has bounded gamma and
 the restricted Lyapunov converges by the bounded-gamma stability theorem. -/
