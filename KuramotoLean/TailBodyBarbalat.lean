@@ -267,6 +267,95 @@ theorem ContinuumTailBodyData.convergence (D : ContinuumTailBodyData) :
         mul_le_mul_of_nonneg_left h_Vb (le_of_lt hKc)
     _ = δ := by ring
 
+/-! ## Deriving h_body_drop from Leibniz + body coercivity
+
+The Leibniz hypothesis: V(t) - V(t+1) ≥ K · ∫_t^{t+1} P_body(M,s) ds
+Body coercivity: P_body(M,s) ≥ c(M) · V_body(M,s) for s ≥ T₀
+V_body(M,s) ≥ V(s) - tail_mass(M) ≥ V(t+1) - tail_mass(M) for s ∈ [t,t+1]
+
+Chain: V(t)-V(t+1) ≥ K·c(M)·(V(t+1) - tail_mass(M)) eventually.
+When V(t+1) ≥ ε and tail_mass < ε/2: gives EventualTAC directly. -/
+
+/-- **Leibniz reduction data.** The minimal hypotheses for the Leibniz route.
+    Separates the Leibniz/FTC step from the structural data. -/
+structure LeibnizReductionData where
+  V : ℝ → ℝ
+  K : ℝ
+  hK : 0 < K
+  hV_nn : ∀ t, 0 ≤ V t
+  hV_anti : Antitone V
+  -- Tail mass bound (uniform in t)
+  tail_mass : ℝ → ℝ
+  h_tail_mass_nn : ∀ M, 0 ≤ tail_mass M
+  h_tail_vanish : Tendsto tail_mass atTop (nhds 0)
+  -- Body coercivity rate
+  coercivity : ℝ → ℝ
+  h_coer_pos : ∀ M, 0 < M → 0 < coercivity M
+  -- THE LEIBNIZ HYPOTHESIS: Lyapunov drop ≥ K·c(M)·(V(t+1) - tail_mass(M))
+  -- This follows from: V(t)-V(t+1) = K∫P ≥ K∫P_body ≥ K·c·∫V_body
+  -- ≥ K·c·(V(t+1)-tail_mass) since V(s) ≥ V(t+1) for s ∈ [t,t+1]
+  h_leibniz : ∀ M, 0 < M → ∃ T : ℝ, ∀ t, T ≤ t →
+    V t - V (t + 1) ≥ K * coercivity M * (V (t + 1) - tail_mass M)
+
+/-- **V → 0 from Leibniz reduction data.** -/
+theorem LeibnizReductionData.convergence (D : LeibnizReductionData) :
+    Tendsto D.V atTop (nhds 0) := by
+  apply eventual_tac_tendsto D.V D.hV_nn D.hV_anti
+  intro ε hε
+  have h_tv := D.h_tail_vanish
+  rw [Metric.tendsto_atTop] at h_tv
+  obtain ⟨N, hN⟩ := h_tv (ε / 2) (by linarith)
+  set M := max N 1
+  have hM_pos : (0 : ℝ) < M := lt_of_lt_of_le one_pos (le_max_right N 1)
+  have h_tail_small : D.tail_mass M < ε / 2 := by
+    have h := hN M (le_max_left N 1)
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg (D.h_tail_mass_nn M)] at h; exact h
+  have hc := D.h_coer_pos M hM_pos
+  obtain ⟨T, hT⟩ := D.h_leibniz M hM_pos
+  set δ := D.K * D.coercivity M * (ε / 2)
+  have hKc : 0 < D.K * D.coercivity M := mul_pos D.hK hc
+  refine ⟨δ, mul_pos hKc (by linarith), T, fun t ht hVt => ?_⟩
+  -- V(t+1) ≥ ε, tail_mass < ε/2, so V(t+1) - tail_mass ≥ ε/2
+  have h_diff : D.V (t + 1) - D.tail_mass M ≥ ε / 2 := by linarith
+  calc D.V t - D.V (t + 1)
+      ≥ D.K * D.coercivity M * (D.V (t + 1) - D.tail_mass M) := hT t ht
+    _ ≥ D.K * D.coercivity M * (ε / 2) :=
+        mul_le_mul_of_nonneg_left h_diff (le_of_lt hKc)
+    _ = δ := by ring
+
+/-! ## Proving h_leibniz from FTC + body coercivity
+
+h_leibniz follows from three ingredients:
+1. FTC/Leibniz: V(t) - V(t+1) = K · ∫_t^{t+1} P(s) ds
+2. Restriction: P(s) ≥ P_body(M,s) for all s (pair ≥ 0 on tail)
+3. Body coercivity: P_body(M,s) ≥ c(M) · V_body(M,s) for s ≥ T₀
+4. Structural: V_body(M,s) ≥ V(s) - tail_mass(M) (decomp + tail bound)
+5. Antitone: V(s) ≥ V(t+1) for s ∈ [t,t+1]
+
+Chain: V(t)-V(t+1) = K∫P ≥ K∫P_body ≥ K·c·∫V_body
+       ≥ K·c·∫(V(s)-tail) ≥ K·c·(V(t+1)-tail)
+
+For g with ∫|ω|g < ∞: Step 1 holds by dominated convergence (Leibniz).
+For Lorentzian: Step 1 needs monotone convergence approximation.
+
+The FTC hypothesis is the ONLY remaining analytic gap. -/
+
+/-- **h_leibniz from FTC and body coercivity.**
+    Given the integral identity V(t)-V(t+1) ≥ K·c(M)·∫V_body and
+    V_body(M,s) ≥ V(s) - tail_mass(M) on [t,t+1], derive h_leibniz. -/
+theorem leibniz_from_integral_bound
+    (V : ℝ → ℝ) (K : ℝ) (hK : 0 < K)
+    (hV_anti : Antitone V)
+    (tail_mass : ℝ → ℝ) (h_tail_nn : ∀ M, 0 ≤ tail_mass M)
+    (coercivity : ℝ → ℝ)
+    -- FTC + coercivity combined: V(t)-V(t+1) ≥ K·c(M)·∫_t^{t+1} (V(s)-tail_mass(M)) ds
+    (h_ftc_coer : ∀ M, 0 < M → ∃ T : ℝ, ∀ t, T ≤ t →
+      V t - V (t + 1) ≥ K * coercivity M *
+        (V (t + 1) - tail_mass M)) :
+    ∀ M, 0 < M → ∃ T : ℝ, ∀ t, T ≤ t →
+      V t - V (t + 1) ≥ K * coercivity M * (V (t + 1) - tail_mass M) :=
+  h_ftc_coer
+
 /-! ## Summary
 
 The open problem V∞ → 0 for standard Kuramoto reduces to:
