@@ -35,7 +35,7 @@ private theorem leibniz_integrable_gamma
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
-    (hγ_int : Integrable γ μ) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_int : Integrable γ μ) (hγ_nn : ∀ ω, 0 ≤ γ ω)
     (hK : 0 < K) (hr_bdd : ∀ t, |r t| ≤ 1)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
@@ -99,7 +99,7 @@ private theorem leibniz_integrable_gamma
           have hr1 := hr_bdd s
           have h1 : 0 ≤ 1 - (α ω s) ^ 2 := by nlinarith [sq_nonneg (α ω s)]
           have h2 : 1 - (α ω s) ^ 2 ≤ 1 := by nlinarith [sq_nonneg (α ω s)]
-          have hγ_nn : 0 ≤ γ ω := le_of_lt (hγ_pos ω)
+          have hγ_nn : 0 ≤ γ ω := hγ_nn ω
           have hα_nn : 0 ≤ α ω s := le_of_lt hp
           have hα_le : α ω s ≤ 1 := le_of_lt hl
           have hrs_lo : -1 ≤ r s := (abs_le.mp hr1).1
@@ -125,7 +125,7 @@ private theorem q_int_of_gamma_int [IsProbabilityMeasure μ]
     (hK : 0 < K) (hr_star : 0 < r_star)
     (hα_pos : ∀ ω, 0 < α ω) (hα_lt : ∀ ω, α ω < 1)
     (hαs_pos : ∀ ω, 0 < αs ω) (hαs_lt : ∀ ω, αs ω < 1)
-    (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_nn : ∀ ω, 0 ≤ γ ω)
     (hαs_equil : ∀ ω, γ ω * αs ω = (K / 2) * r_star * (1 - (αs ω) ^ 2))
     (hα_int : Integrable (fun ω => α ω) μ)
     (hαs_int : Integrable αs μ)
@@ -137,7 +137,7 @@ private theorem q_int_of_gamma_int [IsProbabilityMeasure μ]
   have h_inv : ∀ ω, 1 / αs ω = αs ω + 2 * γ ω / (K * r_star) := by
     intro ω
     field_simp [ne_of_gt (hαs_pos ω), ne_of_gt hKr]
-    nlinarith [hαs_equil ω, sq_nonneg (αs ω), hαs_pos ω, hαs_lt ω, hγ_pos ω]
+    nlinarith [hαs_equil ω, sq_nonneg (αs ω), hαs_pos ω, hαs_lt ω, hγ_nn ω]
   have h_eq : ∀ ω, (α ω - αs ω) ^ 2 * (α ω + 1 / αs ω) =
       (α ω - αs ω) ^ 2 * (α ω + αs ω + 2 / (K * r_star) * γ ω) := by
     intro ω; congr 1; rw [h_inv]; ring
@@ -148,8 +148,8 @@ private theorem q_int_of_gamma_int [IsProbabilityMeasure μ]
         (hγ_meas.const_mul (2 / (K * r_star)))))
     (Eventually.of_forall fun ω => by
       have h_nn : (0 : ℝ) ≤ α ω + αs ω + 2 / (K * r_star) * γ ω := by
-        have := hα_pos ω; have := hαs_pos ω; have := hγ_pos ω
-        have := div_pos (by norm_num : (0:ℝ) < 2) hKr; linarith [mul_nonneg (le_of_lt this) (le_of_lt (hγ_pos ω))]
+        have := hα_pos ω; have := hαs_pos ω; have := hγ_nn ω
+        have := div_pos (by norm_num : (0:ℝ) < 2) hKr; linarith [mul_nonneg (le_of_lt this) (hγ_nn ω)]
       have h_sq_le : (α ω - αs ω) ^ 2 ≤ 1 := by
         nlinarith [hα_pos ω, hα_lt ω, hαs_pos ω, hαs_lt ω]
       have h_sum_le : α ω + αs ω + 2 / (K * r_star) * γ ω ≤
@@ -294,9 +294,10 @@ private theorem body_pair_coercive [IsProbabilityMeasure μ]
 
 theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_int : Integrable γ μ)
     (hγ_meas : AEStronglyMeasurable γ μ)
+    (hγ_int_pos : 0 < ∫ ω, γ ω ∂μ)
     (α_star : Ω → ℝ) (r_star : ℝ)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
     (hαs_int : Integrable α_star μ)
@@ -380,14 +381,8 @@ theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
       linarith [hVt_ge_L 0]
     -- Choose M for tail < L/4
     set C_γ := ∫ ω, γ ω ∂μ
-    have hCγ_nn : 0 ≤ C_γ := integral_nonneg (fun ω => (hγ ω).le)
-    have hCγ_pos : 0 < C_γ := by
-      rcases hCγ_nn.lt_or_eq with h | h
-      · exact h
-      · exfalso
-        obtain ⟨ω, hω⟩ := ((integral_eq_zero_iff_of_nonneg (fun ω => (hγ ω).le)
-          hγ_int).mp h.symm).exists
-        simp at hω; linarith [hγ ω]
+    have hCγ_nn : 0 ≤ C_γ := integral_nonneg (fun ω => hγ ω)
+    have hCγ_pos : 0 < C_γ := hγ_int_pos
     set M := max (4 * C_γ / L) 1 with hM_def
     have hM_pos : (0:ℝ) < M := lt_of_lt_of_le one_pos (le_max_right _ _)
     set body := {ω | γ ω ≤ M}
@@ -404,7 +399,7 @@ theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
               setIntegral_mono_on (integrable_const M).integrableOn
                 hγ_int.integrableOn h_meas (fun ω hω => le_of_lt hω)
           _ ≤ C_γ := setIntegral_le_integral hγ_int
-              (ae_of_all μ fun ω => le_of_lt (hγ ω))
+              (ae_of_all μ fun ω => hγ ω)
       calc (μ {ω | M < γ ω}).toReal ≤ C_γ / M := (le_div_iff₀ hM_pos).mpr h_markov
         _ ≤ C_γ / (4 * C_γ / L) := div_le_div_of_nonneg_left hCγ_nn
               (div_pos (by positivity) hL_pos) (le_max_left _ _)

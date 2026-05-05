@@ -107,7 +107,7 @@ Uses monotoneOn_of_deriv_nonneg with derivative = oaScalarRHS ≥ 0. -/
 
 theorem alpha_monotone_below_barrier
     (γ_ω M K : ℝ) (r α : ℝ → ℝ) (r_min : ℝ)
-    (hγ_pos : 0 < γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
+    (hγ_nn : 0 ≤ γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
     (hr_min : 0 < r_min) (hr_le : r_min ≤ 1)
     (hr_bound : ∀ t, 0 ≤ t → r_min ≤ r t)
     (hr_bdd : ∀ t, |r t| ≤ 1)
@@ -130,7 +130,7 @@ theorem alpha_monotone_below_barrier
     have ht_nn : 0 ≤ t := le_of_lt ht_pos
     unfold oaScalarRHS
     exact oaScalar_nonneg_below_equil γ_ω M K (r t) r_min hγ_le hK
-      (le_trans (le_of_lt hγ_pos) hγ_le) hr_min hr_le
+      (le_trans hγ_nn hγ_le) hr_min hr_le
       (hr_bound t ht_nn) (hr_bdd t) (α t) (hα_inv t ht_nn).1 (hα_inv t ht_nn).2
       (h_below t (mem_Icc.mpr ⟨le_of_lt (mem_Ioo.mp ht).1, le_of_lt (mem_Ioo.mp ht).2⟩))
 
@@ -144,7 +144,7 @@ Case 2 (α(0) > β*): If α(t) < β*, then on [τ,t] (where τ is last exit from
 
 theorem body_persistence_lower_bound
     (γ_ω M K : ℝ) (r α : ℝ → ℝ) (r_min : ℝ)
-    (hγ_pos : 0 < γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
+    (hγ_nn : 0 ≤ γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
     (hr_min : 0 < r_min) (hr_le : r_min ≤ 1)
     (hr_bound : ∀ t, 0 ≤ t → r_min ≤ r t)
     (hr_bdd : ∀ t, |r t| ≤ 1)
@@ -155,7 +155,7 @@ theorem body_persistence_lower_bound
     min (α 0) (bodyEquilibrium M K r_min) ≤ α t := by
   set β := bodyEquilibrium M K r_min
   have hβ_pos := bodyEquilibrium_pos M K r_min
-    (le_trans (le_of_lt hγ_pos) hγ_le) hK hr_min
+    (le_trans hγ_nn hγ_le) hK hr_min
   by_cases hα0_le : α 0 ≤ β
   · -- Case 1: α(0) ≤ β*. α is non-decreasing while below β*, so α(t) ≥ α(0).
     simp only [min_eq_left hα0_le]
@@ -171,7 +171,7 @@ theorem body_persistence_lower_bound
     --   Monotone on [τ,t]: α(t) ≥ α(τ). But α(τ) ≥ β* ≥ α(0). Contradiction.
     by_cases h_all_below : ∀ s ∈ Icc 0 t, α s ≤ β
     · -- All below β*: monotone on [0,t]
-      have h_mono := alpha_monotone_below_barrier γ_ω M K r α r_min hγ_pos hγ_le
+      have h_mono := alpha_monotone_below_barrier γ_ω M K r α r_min hγ_nn hγ_le
         hK hr_min hr_le hr_bound hr_bdd hα_ode hα_inv hα_cont 0 t le_rfl ht h_all_below
       linarith [h_mono (left_mem_Icc.mpr ht) (right_mem_Icc.mpr ht) ht]
     · -- α exceeds β* at some point
@@ -222,7 +222,7 @@ theorem body_persistence_lower_bound
       obtain ⟨τ, hτ_mem, hατ_eq, h_after⟩ := h_ivt
       have hτ_nn : 0 ≤ τ := le_trans hs₀_nn (mem_Icc.mp hτ_mem).1
       have hτ_le : τ ≤ t := (mem_Icc.mp hτ_mem).2
-      have h_mono := alpha_monotone_below_barrier γ_ω M K r α r_min hγ_pos hγ_le
+      have h_mono := alpha_monotone_below_barrier γ_ω M K r α r_min hγ_nn hγ_le
         hK hr_min hr_le hr_bound hr_bdd hα_ode hα_inv hα_cont τ t hτ_nn hτ_le h_after
       have h_ge : α τ ≤ α t := h_mono (left_mem_Icc.mpr hτ_le) (right_mem_Icc.mpr hτ_le) hτ_le
       linarith [hατ_eq]
@@ -272,7 +272,7 @@ theorem body_persistence_lower_bound
     obtain ⟨τ, hτ_mem, hατ_eq, h_after⟩ := h_ivt
     have hτ_nn : 0 ≤ τ := (mem_Icc.mp hτ_mem).1
     have hτ_le : τ ≤ t := (mem_Icc.mp hτ_mem).2
-    have h_mono := alpha_monotone_below_barrier γ_ω M K r α r_min hγ_pos hγ_le
+    have h_mono := alpha_monotone_below_barrier γ_ω M K r α r_min hγ_nn hγ_le
       hK hr_min hr_le hr_bound hr_bdd hα_ode hα_inv hα_cont τ t hτ_nn hτ_le h_after
     have h_ge : α τ ≤ α t := h_mono (left_mem_Icc.mpr hτ_le) (right_mem_Icc.mpr hτ_le) hτ_le
     linarith [hατ_eq]
@@ -285,7 +285,7 @@ theorem body_persistence_lower_bound
 theorem continuum_body_persistence
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (r_min M : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hr_min : 0 < r_min) (hr_le : r_min ≤ 1) (hM : 0 < M)
     (hr_bound : ∀ t, 0 ≤ t → r_min ≤ r t)
     (hr_bdd : ∀ t, |r t| ≤ 1)

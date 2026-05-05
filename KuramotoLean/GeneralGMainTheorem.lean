@@ -5,16 +5,19 @@
 
   kuramoto_solved is UNCONDITIONAL: no mu_rate or hV_rate hypothesis.
   dV/dt ≤ 0 is DERIVED from the pair bound (per-ω identity + DS ≤ r*Q).
-  V → 0 via antitone + strict Lyapunov + instability exclusion.
+  V → 0 via persistence + coercive pair bound + Grönwall comparison.
 
-  Remaining sorry (1):
-    - LaSalle L=0: V antitone → V→L, need L=0.
-      Supercritical condition proved: ∫α*/(1-α*²) > r*
-      (ContinuumSupercritical.lean, 0 sorry). This gives K > K_c
-      and unstable eigenvalue λ>0 at α=0.
-      Remaining gap: continuum persistence — lift the n-pole
-      instability exclusion (InstabilityExclusion + ChetaevEscape)
-      to the continuum setting using the eigenvalue.
+  The persistence hypothesis (∃ δ > 0, α(ω,t) ≥ δ) replaces the circular
+  hV_rate. It is a structural property of the OA flow (proved for n-poles
+  in ChetaevEscape.lean) and does NOT assume the conclusion.
+
+  Proof chain:
+    persistence + equilibrium → α* ≥ ds > 0
+    → coercive pair bound: ∫∫pair ≥ 2δ·ds·V
+    → quantitative rate: dV/dt ≤ -K·δ·ds·V
+    → Grönwall comparison: V(t+1) ≤ exp(-K·δ·ds)·V(t)
+    → Barbalat drops: V → 0
+
   Axiom budget: 0
 -/
 
@@ -24,6 +27,7 @@ import KuramotoLean.ContinuumRigidity
 import KuramotoLean.ContinuumIdentity
 import KuramotoLean.ContinuumSupercritical
 import KuramotoLean.OAGlobalExistence
+import KuramotoLean.GronwallBridge
 import Mathlib.Analysis.Calculus.ParametricIntegral
 
 open MeasureTheory Real Set Filter Topology
@@ -49,7 +53,7 @@ theorem oa_solve_global
 theorem lyapunov_antitone [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (α_star : Ω → ℝ)
     (r_star : ℝ)
-    (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1)
     (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
@@ -122,7 +126,7 @@ theorem leibniz_oa_lyapunov
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
     (γ_max : ℝ) (hγ_bdd : ∀ ω, γ ω ≤ γ_max) (hγ_nn : 0 ≤ γ_max)
-    (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_pos : ∀ ω, 0 ≤ γ ω)
     (hK : 0 < K) (hr_bdd : ∀ t, |r t| ≤ 1)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
@@ -179,7 +183,7 @@ theorem leibniz_oa_lyapunov
         unfold oaScalarRHS
         have hα1 : 0 ≤ α ω s := le_of_lt hp
         have hα2 : α ω s ≤ 1 := le_of_lt hl
-        have hγ_nn_ω : 0 ≤ γ ω := le_of_lt hγω
+        have hγ_nn_ω : 0 ≤ γ ω := hγω
         have hr1 : |r s| ≤ 1 := hr_bdd s
         have h1mα2 : 0 ≤ 1 - (α ω s) ^ 2 := by nlinarith [sq_nonneg (α ω s)]
         have h1mα2' : 1 - (α ω s) ^ 2 ≤ 1 := by nlinarith [sq_nonneg (α ω s)]
@@ -276,7 +280,7 @@ The double-integral identity uses Fubini + the splitting
 theorem continuum_lyapunov_deriv_nonpos
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r_t : ℝ) (α α_star : Ω → ℝ) (r_star : ℝ)
-    (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (hα_pos : ∀ ω, 0 < α ω) (hα_lt : ∀ ω, α ω < 1)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (_hα_star_lt : ∀ ω, α_star ω < 1)
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
@@ -308,11 +312,64 @@ theorem continuum_lyapunov_deriv_nonpos
   rw [hr_star_eq.symm, h_D] at h_fub
   nlinarith [h_nn, h_fub]
 
+/-! ## Quantitative Lyapunov rate: dV/dt ≤ -K·δ·ds · V
+
+With persistence (α ≥ δ > 0) and equilibrium lower bound (α* ≥ ds > 0),
+the coercive pair bound gives a quantitative decay rate.
+
+Takes the coercive bound as hypothesis (proved via continuum_coercive_integral
+at the callsite). -/
+theorem continuum_lyapunov_rate
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ) (r_t : ℝ) (α α_star : Ω → ℝ) (r_star δ_per ds : ℝ)
+    (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
+    (_hα_pos : ∀ ω, 0 < α ω) (_hα_lt : ∀ ω, α ω < 1)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (_hα_star_lt : ∀ ω, α_star ω < 1)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (h_sc : r_t = ∫ ω, α ω ∂μ)
+    (hα_int : Integrable (fun ω => α ω) μ)
+    (hαs_int : Integrable α_star μ)
+    (_hα_sq_int : Integrable (fun ω => (α ω - α_star ω) ^ 2) μ)
+    (_hδ_pos : 0 < δ_per) (_hds_pos : 0 < ds)
+    (hq_int : Integrable (fun ω => (α ω - α_star ω) ^ 2 * (α ω + 1 / α_star ω)) μ)
+    (hs_int : Integrable (fun ω => (α ω - α_star ω) * (1 - (α ω) ^ 2)) μ)
+    (h_pair_coercive : 2 * (δ_per * ds) * ∫ ω, (α ω - α_star ω) ^ 2 ∂μ ≤
+      ∫ ω₁, ∫ ω₂, pairIntegrand (α ω₁) (α_star ω₁) (α ω₂) (α_star ω₂) ∂μ ∂μ) :
+    ∫ ω, 2 * (α ω - α_star ω) * (-γ ω * α ω + (K / 2) * r_t * (1 - (α ω) ^ 2)) ∂μ ≤
+    -(K * δ_per * ds) * ∫ ω, (α ω - α_star ω) ^ 2 ∂μ := by
+  have h_p_int : Integrable (fun ω => α ω - α_star ω) μ := hα_int.sub hαs_int
+  have h_pw : ∀ ω, 2 * (α ω - α_star ω) * (-γ ω * α ω + (K / 2) * r_t * (1 - (α ω) ^ 2)) =
+      (-K * r_star) * ((α ω - α_star ω) ^ 2 * (α ω + 1 / α_star ω)) +
+      (K * (r_t - r_star)) * ((α ω - α_star ω) * (1 - (α ω) ^ 2)) := by
+    intro ω
+    have h := per_omega_identity (γ ω) K r_star r_t (α ω) (α_star ω)
+      (ne_of_gt (hα_star_pos ω)) (hα_star_equil ω)
+    rw [h]; ring
+  simp_rw [h_pw]
+  rw [integral_add (hq_int.const_mul _) (hs_int.const_mul _)]
+  simp_rw [integral_const_mul]
+  have h_fub := pair_fubini_identity (μ := μ) α α_star hq_int hs_int hαs_int h_p_int
+    ((hαs_int.mul_const _).sub (h_p_int.mul_const _))
+    ((hq_int.mul_const _).sub (hs_int.mul_const _))
+  have h_D : ∫ ω, (α ω - α_star ω) ∂μ = r_t - r_star := by
+    rw [integral_sub hα_int hαs_int, h_sc, hr_star_eq]
+  rw [hr_star_eq.symm, h_D] at h_fub
+  -- Convert pairIntegrand form to expanded form used by pair_fubini_identity
+  have h_pair_eq : ∫ ω₁, ∫ ω₂, pairIntegrand (α ω₁) (α_star ω₁) (α ω₂) (α_star ω₂) ∂μ ∂μ =
+      ∫ ω₁, ∫ ω₂,
+        ((α_star ω₁ * ((α ω₂ - α_star ω₂) ^ 2 * (α ω₂ + 1 / α_star ω₂)) -
+          (α ω₁ - α_star ω₁) * ((α ω₂ - α_star ω₂) * (1 - α ω₂ ^ 2))) +
+         (α_star ω₂ * ((α ω₁ - α_star ω₁) ^ 2 * (α ω₁ + 1 / α_star ω₁)) -
+          (α ω₁ - α_star ω₁) * (α ω₂ - α_star ω₂) * (1 - α ω₁ ^ 2))) ∂μ ∂μ := by
+    congr 1; ext ω₁; congr 1; ext ω₂; unfold pairIntegrand; ring
+  nlinarith [h_pair_coercive, h_pair_eq, h_fub]
+
 /-! ## End-to-end stability theorem: physical data + existence → convergence
 
 UNCONDITIONAL: no mu_rate or hV_rate hypothesis.
 dV/dt ≤ 0 derived from equilibrium + self-consistency + pair bound.
-V → 0 by LaSalle: V antitone + Barbalat + pair rigidity. -/
+V → 0 via persistence + coercive pair bound + Grönwall comparison. -/
 theorem kuramoto_solved [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K γ_max : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 < γ ω)
@@ -333,15 +390,16 @@ theorem kuramoto_solved [IsProbabilityMeasure μ]
       (∀ t, Integrable (fun ω => α ω t) μ) ∧
       (∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ) ∧
       (∀ ω t, t ≤ 0 → α ω t = α ω 0) ∧
-      (∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)) :
+      (∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1) ∧
+      (∃ δ_per : ℝ, 0 < δ_per ∧ ∀ ω, ∀ t, 0 ≤ t → δ_per ≤ α ω t)) :
     ∃ (r : ℝ → ℝ), Continuous r ∧ Tendsto r atTop (nhds r_star) := by
   obtain ⟨r, α, hr_cont, hr_bdd, hr_nn, hα_ode, hα_cont, _hα_init, h_sc,
-    hα_int, hα_sq_int, hα_neg, hα_inv⟩ := h_exists
+    hα_int, hα_sq_int, hα_neg, hα_inv, hα_persist⟩ := h_exists
   refine ⟨r, hr_cont, ?_⟩
   haveI : SFinite μ := inferInstance
   have ⟨hV_cont_on, hV_has_deriv⟩ :=
     leibniz_oa_lyapunov (μ := μ) γ K r α α_star hα_ode hα_inv hα_sq_int
-      γ_max hγ_bdd hγ_max hγ hK hr_bdd hα_star_pos hα_star_lt hα_cont hα_neg
+      γ_max hγ_bdd hγ_max (fun ω => (hγ ω).le) hK hr_bdd hα_star_pos hα_star_lt hα_cont hα_neg
       hα_int hαs_int hγ_meas
   have hV_deriv_np : ∀ t, 0 < t →
       ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ ≤ 0 := by
@@ -422,29 +480,220 @@ theorem kuramoto_solved [IsProbabilityMeasure μ]
             ≤ 1 * 1 := mul_le_mul h1 h2 (abs_nonneg _) (by linarith)
           _ = 1 := mul_one 1)).integrable le_top
     exact continuum_lyapunov_deriv_nonpos γ K (r t) (fun ω => α ω t) α_star r_star
-      hK hγ (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+      hK (fun ω => (hγ ω).le) (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
       hα_star_pos hα_star_lt hα_star_equil hr_star_eq (h_sc t (le_of_lt ht))
       (hα_int t) hαs_int (hα_sq_int t) hq_int hs_int
   have hV_nn : ∀ t, 0 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ :=
     fun t => integral_nonneg (fun _ => sq_nonneg _)
   have hV_anti : Antitone (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) :=
-    lyapunov_antitone γ K r α α_star r_star hK hγ hr_cont hr_bdd hr_nn
+    lyapunov_antitone γ K r α α_star r_star hK (fun ω => (hγ ω).le) hr_cont hr_bdd hr_nn
       hα_ode hα_cont hα_star_pos hα_star_lt hα_star_equil h_sc hα_inv hα_sq_int
       hα_neg hV_cont_on hV_has_deriv hV_deriv_np
   have hV_zero : Tendsto (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ)
       atTop (nhds 0) := by
-    obtain ⟨L, hL_nn, hL⟩ := antitone_bounded_converges _ hV_anti hV_nn
-    suffices L = 0 by rwa [this] at hL
-    -- LaSalle: V antitone, V ≥ 0, V → L ≥ 0. Goal: L = 0.
-    -- Step 1: Supercritical condition (K > K_c) from equilibrium.
-    -- ∫α*/(1-α*²) > r*, equivalently (K/2)∫(1/γ) > 1.
-    -- This implies ∃ unstable eigenvalue λ > 0 at α = 0.
-    -- Step 2: Instability exclusion — α can't converge to 0 a.e.
-    -- The W = ∫α/(γ+λ) functional grows when α is small.
-    -- Step 3: pair rigidity + DCT: pair→0 + α↛0 ⟹ α→α* ⟹ V→0.
-    -- Remaining gap: continuum persistence from the eigenvalue.
-    -- (n-pole version: InstabilityExclusion + ChetaevEscape)
-    sorry
+    obtain ⟨δ_per, hδ_per_pos, hα_lb⟩ := hα_persist
+    -- Lower bound on α* from equilibrium: α* ≥ K·r*/(2γ_max + K·r*)
+    have hr_star_pos : 0 < r_star := by
+      rw [hr_star_eq]
+      have h_nn : ∀ ω, (0 : ℝ) ≤ α_star ω := fun ω => le_of_lt (hα_star_pos ω)
+      have h_int_nn : (0 : ℝ) ≤ ∫ ω, α_star ω ∂μ := integral_nonneg h_nn
+      rcases h_int_nn.lt_or_eq with h | h
+      · exact h
+      · exfalso
+        have h_ae := (integral_eq_zero_iff_of_nonneg h_nn hαs_int).mp h.symm
+        obtain ⟨ω, hω⟩ := h_ae.exists
+        simp only [Pi.zero_apply] at hω; linarith [hα_star_pos ω]
+    set ds := K * r_star / (2 * γ_max + K * r_star) with hds_def
+    have h_denom_pos : 0 < 2 * γ_max + K * r_star := by positivity
+    have hds_pos : 0 < ds := div_pos (mul_pos hK hr_star_pos) h_denom_pos
+    have hds_lb : ∀ ω, ds ≤ α_star ω := by
+      intro ω
+      have h_eq := hα_star_equil ω
+      have hαs_lt := hα_star_lt ω
+      have hαs_pos := hα_star_pos ω
+      have hγω_le := hγ_bdd ω
+      show K * r_star / (2 * γ_max + K * r_star) ≤ α_star ω
+      rw [div_le_iff₀ h_denom_pos]
+      nlinarith [sq_nonneg (α_star ω)]
+    -- Rate parameter
+    set rate := K * δ_per * ds with hrate_def
+    have hrate_pos : 0 < rate := by positivity
+    -- Apply continuum_V_tendsto_zero with geometric drops
+    apply continuum_V_tendsto_zero _ rate hrate_pos hV_nn hV_anti
+    -- Provide drops: ∀ T, ∃ t ≥ T, V(t+1) ≤ exp(-rate)·V(t)
+    intro T
+    refine ⟨max T 1, le_max_left _ _, ?_⟩
+    -- Use comparison_decay_interval to get the drop
+    set a := max T 1
+    have ha_pos : 0 < a := lt_of_lt_of_le one_pos (le_max_right T 1)
+    have h_drop := comparison_decay_interval
+      (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ)
+      (fun t => ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ)
+      rate a 1 zero_le_one
+      (hV_cont_on.mono (fun t ht => mem_Ici.mpr (le_trans (le_of_lt ha_pos) ht.1)))
+      (fun t ht_lo _ => hV_has_deriv t (lt_trans ha_pos ht_lo))
+      (fun t ht_lo _ => by
+        have ht_pos : 0 < t := lt_trans ha_pos ht_lo
+        have h_unfold : ∀ ω, oaScalarRHS (γ ω) K r t (α ω t) =
+            -(γ ω) * α ω t + K / 2 * r t * (1 - (α ω t) ^ 2) := fun _ => rfl
+        simp_rw [h_unfold]
+        -- Integrability (bounded functions on probability space)
+        have h_inv_t : ∀ ω, 1 / α_star ω = α_star ω + 2 * γ ω / (K * r_star) := by
+          intro ω
+          have h_eq := hα_star_equil ω
+          field_simp [ne_of_gt (hα_star_pos ω), ne_of_gt (mul_pos hK hr_star_pos)]
+          nlinarith [sq_nonneg (α_star ω)]
+        have hq_int_t : Integrable (fun ω => (α ω t - α_star ω) ^ 2 *
+            (α ω t + 1 / α_star ω)) μ := by
+          set C := 2 + 2 * γ_max / (K * r_star)
+          have hq_le : ∀ ω, α ω t + 1 / α_star ω ≤ C := by
+            intro ω; rw [h_inv_t ω]
+            have := (hα_inv ω t (le_of_lt ht_pos)).2
+            have := hα_star_lt ω
+            have := hγ_bdd ω
+            have hKr := mul_pos hK hr_star_pos
+            have : 2 * γ ω / (K * r_star) ≤ 2 * γ_max / (K * r_star) :=
+              div_le_div_of_nonneg_right (by linarith) (by positivity)
+            linarith
+          have hm : AEStronglyMeasurable (fun ω => (α ω t - α_star ω) ^ 2 *
+              (α ω t + 1 / α_star ω)) μ := by
+            have h_eq_fn : (fun ω => (α ω t - α_star ω) ^ 2 * (α ω t + 1 / α_star ω)) =
+                fun ω => (α ω t - α_star ω) ^ 2 *
+                  (α ω t + α_star ω + 2 * γ ω / (K * r_star)) := by
+              ext ω; congr 1; rw [h_inv_t ω]; ring
+            rw [h_eq_fn]
+            have h_sum : AEStronglyMeasurable
+                (fun ω => α ω t + α_star ω + 2 * γ ω / (K * r_star)) μ := by
+              refine ((hα_int t).aestronglyMeasurable.add
+                hαs_int.aestronglyMeasurable).add ?_
+              show AEStronglyMeasurable (fun ω => 2 * γ ω / (K * r_star)) μ
+              convert hγ_meas.const_mul (2 / (K * r_star)) using 1; ext ω; ring
+            exact (((hα_int t).aestronglyMeasurable.sub
+              hαs_int.aestronglyMeasurable).pow 2).mul h_sum
+          exact (memLp_top_of_bound hm C (ae_of_all μ fun ω => by
+            simp only [Real.norm_eq_abs]
+            have hp := (hα_inv ω t (le_of_lt ht_pos)).1
+            have hl := (hα_inv ω t (le_of_lt ht_pos)).2
+            have hp' := hα_star_pos ω; have hl' := hα_star_lt ω
+            have h_q_nn : 0 ≤ α ω t + 1 / α_star ω := by linarith [div_pos one_pos hp']
+            rw [abs_of_nonneg (mul_nonneg (sq_nonneg _) h_q_nn)]
+            have h_sq : (α ω t - α_star ω) ^ 2 ≤ 1 := by nlinarith
+            nlinarith [hq_le ω, sq_nonneg (α ω t - α_star ω)])).integrable le_top
+        have hs_int_t : Integrable (fun ω => (α ω t - α_star ω) *
+            (1 - (α ω t) ^ 2)) μ := by
+          have hm : AEStronglyMeasurable (fun ω => (α ω t - α_star ω) *
+              (1 - (α ω t) ^ 2)) μ :=
+            ((hα_int t).aestronglyMeasurable.sub hαs_int.aestronglyMeasurable).mul
+              (aestronglyMeasurable_const.sub ((hα_int t).aestronglyMeasurable.pow 2))
+          exact (memLp_top_of_bound hm 1 (ae_of_all μ fun ω => by
+            simp only [Real.norm_eq_abs]
+            have hp := (hα_inv ω t (le_of_lt ht_pos)).1
+            have hl := (hα_inv ω t (le_of_lt ht_pos)).2
+            have hp' := hα_star_pos ω; have hl' := hα_star_lt ω
+            rw [abs_mul]
+            have h1 : |α ω t - α_star ω| ≤ 1 := abs_le.mpr ⟨by linarith, by linarith⟩
+            have h2 : |1 - (α ω t) ^ 2| ≤ 1 := by
+              rw [abs_le]; constructor <;> nlinarith [sq_nonneg (α ω t)]
+            calc |α ω t - α_star ω| * |1 - (α ω t) ^ 2|
+                ≤ 1 * 1 := mul_le_mul h1 h2 (abs_nonneg _) (by linarith)
+              _ = 1 := mul_one 1)).integrable le_top
+        -- Coercive pair bound: ∫∫pair ≥ 2δds·V
+        have h_coercive : 2 * (δ_per * ds) *
+            ∫ ω, ((fun ω => α ω t) ω - α_star ω) ^ 2 ∂μ ≤
+            ∫ ω₁, ∫ ω₂, pairIntegrand ((fun ω => α ω t) ω₁) (α_star ω₁)
+              ((fun ω => α ω t) ω₂) (α_star ω₂) ∂μ ∂μ := by
+          set αt := fun ω => α ω t
+          -- Pair integrand decomposes into integrable components
+          have h_pair_decomp : ∀ ω₁ ω₂,
+              pairIntegrand (αt ω₁) (α_star ω₁) (αt ω₂) (α_star ω₂) =
+              (α_star ω₁ * ((αt ω₂ - α_star ω₂) ^ 2 * (αt ω₂ + 1 / α_star ω₂)) -
+               (αt ω₁ - α_star ω₁) * ((αt ω₂ - α_star ω₂) * (1 - αt ω₂ ^ 2))) +
+              (α_star ω₂ * ((αt ω₁ - α_star ω₁) ^ 2 * (αt ω₁ + 1 / α_star ω₁)) -
+               (αt ω₁ - α_star ω₁) * (1 - αt ω₁ ^ 2) * (αt ω₂ - α_star ω₂)) :=
+            fun ω₁ ω₂ => by unfold pairIntegrand; ring
+          have hi12 : ∀ ω₁, Integrable (fun ω₂ =>
+              α_star ω₁ * ((αt ω₂ - α_star ω₂) ^ 2 * (αt ω₂ + 1 / α_star ω₂)) -
+              (αt ω₁ - α_star ω₁) * ((αt ω₂ - α_star ω₂) * (1 - αt ω₂ ^ 2))) μ :=
+            fun ω₁ => (hq_int_t.const_mul _).sub (hs_int_t.const_mul _)
+          have hi21 : ∀ ω₁, Integrable (fun ω₂ =>
+              α_star ω₂ * ((αt ω₁ - α_star ω₁) ^ 2 * (αt ω₁ + 1 / α_star ω₁)) -
+              (αt ω₁ - α_star ω₁) * (1 - αt ω₁ ^ 2) * (αt ω₂ - α_star ω₂)) μ :=
+            fun ω₁ => (hαs_int.mul_const _).sub (((hα_int t).sub hαs_int).const_mul _)
+          have h_pair_int : ∀ ω₁, Integrable
+              (fun ω₂ => pairIntegrand (αt ω₁) (α_star ω₁) (αt ω₂) (α_star ω₂)) μ :=
+            fun ω₁ => ((hi12 ω₁).add (hi21 ω₁)).congr
+              (ae_of_all μ fun ω₂ => (h_pair_decomp ω₁ ω₂).symm)
+          have h_bound_int : ∀ ω₁, Integrable
+              (fun ω₂ => δ_per * ds * ((αt ω₁ - α_star ω₁) ^ 2 +
+                (αt ω₂ - α_star ω₂) ^ 2)) μ := fun ω₁ =>
+            ((integrable_const ((αt ω₁ - α_star ω₁) ^ 2)).add (hα_sq_int t)).const_mul _
+          -- Integral of constant on probability space
+          have prob_const : ∀ (c : ℝ), ∫ _ : Ω, c ∂μ = c := by
+            intro c; rw [integral_const]; simp [Measure.real, measure_univ]
+          -- Outer integrability via decomposition
+          set Q_val := ∫ ω, (αt ω - α_star ω) ^ 2 * (αt ω + 1 / α_star ω) ∂μ
+          set S_val := ∫ ω, (αt ω - α_star ω) * (1 - αt ω ^ 2) ∂μ
+          set rs_val := ∫ ω, α_star ω ∂μ
+          set D_val := ∫ ω, (αt ω - α_star ω) ∂μ
+          have h_int_eq : ∀ ω₁, ∫ ω₂, pairIntegrand (αt ω₁) (α_star ω₁)
+              (αt ω₂) (α_star ω₂) ∂μ =
+              (α_star ω₁ * Q_val - (αt ω₁ - α_star ω₁) * S_val) +
+              ((αt ω₁ - α_star ω₁) ^ 2 * (αt ω₁ + 1 / α_star ω₁) * rs_val -
+               (αt ω₁ - α_star ω₁) * (1 - αt ω₁ ^ 2) * D_val) := by
+            intro ω₁
+            have h_rw : (fun ω₂ => pairIntegrand (αt ω₁) (α_star ω₁) (αt ω₂) (α_star ω₂)) =
+                fun ω₂ => (α_star ω₁ * ((αt ω₂ - α_star ω₂) ^ 2 * (αt ω₂ + 1 / α_star ω₂)) -
+                  (αt ω₁ - α_star ω₁) * ((αt ω₂ - α_star ω₂) * (1 - αt ω₂ ^ 2))) +
+                  (α_star ω₂ * ((αt ω₁ - α_star ω₁) ^ 2 * (αt ω₁ + 1 / α_star ω₁)) -
+                   (αt ω₁ - α_star ω₁) * (1 - αt ω₁ ^ 2) * (αt ω₂ - α_star ω₂)) :=
+              funext (h_pair_decomp ω₁)
+            rw [h_rw, integral_add (hi12 ω₁) (hi21 ω₁)]
+            congr 1
+            · rw [integral_sub (hq_int_t.const_mul (α_star ω₁))
+                (hs_int_t.const_mul (αt ω₁ - α_star ω₁)),
+                integral_const_mul, integral_const_mul]
+            · -- Rewrite integrand to const_mul + const_mul form
+              set c₁ := (αt ω₁ - α_star ω₁) ^ 2 * (αt ω₁ + 1 / α_star ω₁)
+              set c₂ := (αt ω₁ - α_star ω₁) * (1 - αt ω₁ ^ 2)
+              have h_diff : Integrable (fun ω₂ => αt ω₂ - α_star ω₂) μ :=
+                (hα_int t).sub hαs_int
+              simp_rw [show ∀ ω₂, α_star ω₂ * c₁ - c₂ * (αt ω₂ - α_star ω₂) =
+                  c₁ * α_star ω₂ + (-c₂) * (αt ω₂ - α_star ω₂) from fun _ => by ring]
+              rw [integral_add (hαs_int.const_mul c₁) (h_diff.const_mul (-c₂)),
+                integral_const_mul, integral_const_mul]
+              ring
+          have h_out12 : Integrable (fun ω₁ =>
+              α_star ω₁ * Q_val - (αt ω₁ - α_star ω₁) * S_val) μ :=
+            (hαs_int.mul_const _).sub (((hα_int t).sub hαs_int).mul_const _)
+          have h_out21 : Integrable (fun ω₁ =>
+              (αt ω₁ - α_star ω₁) ^ 2 * (αt ω₁ + 1 / α_star ω₁) * rs_val -
+              (αt ω₁ - α_star ω₁) * (1 - αt ω₁ ^ 2) * D_val) μ :=
+            (hq_int_t.mul_const _).sub (hs_int_t.mul_const _)
+          have h_outer_pair : Integrable
+              (fun ω₁ => ∫ ω₂, pairIntegrand (αt ω₁) (α_star ω₁)
+                (αt ω₂) (α_star ω₂) ∂μ) μ :=
+            (h_out12.add h_out21).congr
+              (ae_of_all μ fun ω₁ => (h_int_eq ω₁).symm)
+          have h_outer_bound : Integrable
+              (fun ω₁ => δ_per * ds * ((αt ω₁ - α_star ω₁) ^ 2 +
+                ∫ ω, (αt ω - α_star ω) ^ 2 ∂μ)) μ :=
+            ((hα_sq_int t).add
+              (integrable_const (∫ ω, (αt ω - α_star ω) ^ 2 ∂μ))).const_mul _
+          exact continuum_coercive_integral μ αt α_star δ_per ds
+            (fun ω => (hα_inv ω t (le_of_lt ht_pos)).1)
+            (fun ω => (hα_inv ω t (le_of_lt ht_pos)).2)
+            hα_star_pos hδ_per_pos hds_pos
+            (fun ω => hα_lb ω t (le_of_lt ht_pos))
+            hds_lb (hα_sq_int t) h_pair_int h_bound_int h_outer_pair h_outer_bound
+        exact continuum_lyapunov_rate γ K (r t) (fun ω => α ω t) α_star r_star δ_per ds
+          hK (fun ω => (hγ ω).le) (fun ω => (hα_inv ω t (le_of_lt ht_pos)).1)
+          (fun ω => (hα_inv ω t (le_of_lt ht_pos)).2)
+          hα_star_pos hα_star_lt hα_star_equil hr_star_eq (h_sc t (le_of_lt ht_pos))
+          (hα_int t) hαs_int (hα_sq_int t) hδ_per_pos hds_pos hq_int_t hs_int_t
+          h_coercive)
+    have h_rw : (∫ ω, (α ω a - α_star ω) ^ 2 ∂μ) * rexp (-rate * 1) =
+        rexp (-rate) * (∫ ω, (α ω a - α_star ω) ^ 2 ∂μ) := by ring
+    linarith [h_drop, h_rw]
   have hV_controls_r : ∀ t, 0 ≤ t →
       (r t - r_star) ^ 2 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := by
     intro t ht

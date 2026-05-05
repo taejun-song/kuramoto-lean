@@ -273,11 +273,11 @@ theorem kuramoto_solved_integrable_gamma [IsProbabilityMeasure μ]
           (aestronglyMeasurable_const.sub ((hα_int t).aestronglyMeasurable.pow 2)))
         (Eventually.of_forall h_bound)
     exact continuum_lyapunov_deriv_nonpos γ K (r t) (fun ω => α ω t) α_star r_star
-      hK hγ (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+      hK (fun ω => (hγ ω).le) (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
       hα_star_pos hα_star_lt hα_star_equil hr_star_eq (h_sc t (le_of_lt ht))
       (hα_int t) hαs_int (hα_sq_int t) hq_int hs_int
   have hV_anti : Antitone V :=
-    lyapunov_antitone γ K r α α_star r_star hK hγ hr_cont hr_bdd hr_nn
+    lyapunov_antitone γ K r α α_star r_star hK (fun ω => (hγ ω).le) hr_cont hr_bdd hr_nn
       hα_ode hα_cont hα_star_pos hα_star_lt hα_star_equil h_sc hα_inv hα_sq_int
       hα_neg hV_cont_on hV_has_deriv hV_deriv_np
   -- Step 3: V → 0 via tail-body structure.

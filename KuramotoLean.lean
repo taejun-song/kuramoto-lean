@@ -110,6 +110,7 @@ import KuramotoLean.ShiftedBarrier
 import KuramotoLean.StandardContinuumTheorem
 import KuramotoLean.ContinuumSolvedStandard
 import KuramotoLean.ContinuumSolvedFinal
+import KuramotoLean.ContinuumSolvedEndToEnd
 import KuramotoLean.ContinuumStandardFull
 import KuramotoLean.StrictLyapunov
 import KuramotoLean.SubcriticalConvergence

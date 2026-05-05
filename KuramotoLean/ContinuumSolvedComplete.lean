@@ -129,11 +129,11 @@ theorem body_persistence_resolves_problem1
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
-    (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_nn : ∀ ω, 0 ≤ γ ω)
     (ω : Ω) (hω : γ ω ≤ M) (t : ℝ) (ht : 0 ≤ t) :
     min (α ω 0) (bodyEquilibrium M K r_min) ≤ α ω t :=
   body_persistence_lower_bound (γ ω) M K r (α ω) r_min
-    (hγ_pos ω) hω hK hr_min hr_le hr_bound hr_bdd
+    (hγ_nn ω) hω hK hr_min hr_le hr_bound hr_bdd
     (fun s hs => hα_ode ω s (le_of_lt hs)) (hα_inv ω) (hα_cont ω) t ht
 
 /-! ## Body equilibrium resolves PROBLEM 3

@@ -73,7 +73,7 @@ which is FALSE for the standard model. -/
 
 theorem body_persistence_derived
     (γ_ω M K : ℝ) (r α : ℝ → ℝ) (r_min : ℝ)
-    (hγ_pos : 0 < γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
+    (hγ_nn : 0 ≤ γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
     (hr_min : 0 < r_min) (hr_le : r_min ≤ 1)
     (hr_bound : ∀ t, 0 ≤ t → r_min ≤ r t)
     (hr_bdd : ∀ t, |r t| ≤ 1)
@@ -83,7 +83,7 @@ theorem body_persistence_derived
     (t : ℝ) (ht : 0 ≤ t) :
     min (α 0) (bodyEquilibrium M K r_min) ≤ α t :=
   body_persistence_lower_bound γ_ω M K r α r_min
-    hγ_pos hγ_le hK hr_min hr_le hr_bound hr_bdd hα_ode hα_inv hα_cont t ht
+    hγ_nn hγ_le hK hr_min hr_le hr_bound hr_bdd hα_ode hα_inv hα_cont t ht
 
 /-! ## Body persistence gives uniform lower bound on body
 
@@ -100,11 +100,11 @@ theorem body_uniform_lower_bound
     (hα_ode : ∀ ω, ∀ t, 0 < t → HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
-    (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_nn : ∀ ω, 0 ≤ γ ω)
     (ω : Ω) (hω : γ ω ≤ M) (t : ℝ) (ht : 0 ≤ t) :
     min (α ω 0) (bodyEquilibrium M K r_min) ≤ α ω t :=
   body_persistence_lower_bound (γ ω) M K r (α ω) r_min
-    (hγ_pos ω) hω hK hr_min hr_le hr_bound hr_bdd
+    (hγ_nn ω) hω hK hr_min hr_le hr_bound hr_bdd
     (hα_ode ω) (hα_inv ω) (hα_cont ω) t ht
 
 /-! ## Body equilibrium as the body persistence constant
@@ -225,11 +225,11 @@ theorem body_persistence_explicit [IsProbabilityMeasure μ]
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
-    (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_nn : ∀ ω, 0 ≤ γ ω)
     (ω : Ω) (hω : γ ω ≤ M) (t : ℝ) (ht : 0 ≤ t) :
     min (α ω 0) (bodyEquilibrium M K r_min) ≤ α ω t :=
   body_persistence_lower_bound (γ ω) M K r (α ω) r_min
-    (hγ_pos ω) hω hK hr_min hr_le hr_bound hr_bdd
+    (hγ_nn ω) hω hK hr_min hr_le hr_bound hr_bdd
     (fun s hs => hα_ode ω s (le_of_lt hs)) (hα_inv ω) (hα_cont ω) t ht
 
 /-! ## Body equilibrium controls the equilibrium lower bound
