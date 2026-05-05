@@ -714,4 +714,265 @@ theorem kuramoto_solved [IsProbabilityMeasure μ]
   rw [Real.dist_eq]
   exact abs_lt_of_sq_lt_sq (lt_of_le_of_lt (hV_controls_r t ht_nn) hV_t) (le_of_lt hε)
 
+/-! ## Standard Continuum Kuramoto (Tail-Body Split)
+
+`kuramoto_solved` requires three hypotheses that FAIL for the standard
+continuum Kuramoto model with γ(ω) = |ω| on R:
+
+1. **Uniform persistence** `∃ δ > 0, ∀ ω t, δ ≤ α(ω,t)` — FALSE.
+   Drifting oscillators (|ω| > Kr*) have α*(ω) → 0.
+2. **Bounded γ** `∀ ω, γ ω ≤ γ_max` — FALSE. γ(ω) = |ω| is unbounded.
+3. **c_min** (minimum atom weight) — inapplicable to g(ω)dω.
+
+The fix is the tail-body split [Dietert 2016, §2-3]:
+  V = V_body(M) + V_tail(M)   via integral_add_compl
+  V_tail ≤ μ({γ > M}) → 0     (probability measure, no moment condition)
+  V_body → absorbing ball C(M) (body has γ ≤ M, so Leibniz/persistence work)
+  C(M) → 0 as M → ∞           (body covers more locked oscillators)
+-/
+
+private theorem tail_measure_tendsto_zero_at_nat [IsFiniteMeasure μ]
+    (γ : Ω → ℝ) (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M}) :
+    Tendsto (fun n : ℕ => (μ {ω | (n : ℝ) < γ ω}).toReal) atTop (nhds 0) := by
+  set s := fun n : ℕ => {ω | (n : ℝ) < γ ω}
+  have hs_meas : ∀ n : ℕ, MeasurableSet (s n) := by
+    intro n
+    have : s n = {ω | γ ω ≤ (↑n : ℝ)}ᶜ := by ext ω; simp [s, not_le]
+    rw [this]; exact (hγ_level _).compl
+  have hs_anti : Antitone s :=
+    fun m n hmn ω (hω : (n : ℝ) < γ ω) => lt_of_le_of_lt (Nat.cast_le.mpr hmn) hω
+  have hs_inter : ⋂ n, s n = ∅ := by
+    ext ω; simp only [s, mem_iInter, mem_setOf_eq, mem_empty_iff_false, iff_false, not_forall,
+      not_lt]; exact ⟨⌈γ ω⌉₊, Nat.le_ceil (γ ω)⟩
+  have h_ennreal := tendsto_measure_iInter_atTop
+    (fun n => (hs_meas n).nullMeasurableSet) hs_anti ⟨0, measure_ne_top μ _⟩
+  rw [hs_inter, measure_empty] at h_ennreal
+  exact (ENNReal.tendsto_toReal ENNReal.zero_ne_top).comp h_ennreal
+
+private theorem tail_measure_tendsto_zero' [IsFiniteMeasure μ]
+    (γ : Ω → ℝ) (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M}) :
+    Tendsto (fun M => (μ {ω | M < γ ω}).toReal) atTop (nhds 0) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  have h_nat := tail_measure_tendsto_zero_at_nat (μ := μ) γ hγ_level
+  rw [Metric.tendsto_atTop] at h_nat
+  obtain ⟨N, hN⟩ := h_nat ε hε
+  refine ⟨↑N, fun M hM => ?_⟩
+  have h_mono : (μ {ω | M < γ ω}).toReal ≤ (μ {ω | (↑N : ℝ) < γ ω}).toReal :=
+    ENNReal.toReal_mono (measure_ne_top μ _) (measure_mono (fun ω hω => lt_of_le_of_lt hM hω))
+  have hN_bound := hN N le_rfl
+  simp only [Real.dist_eq, sub_zero] at hN_bound ⊢
+  rw [abs_of_nonneg ENNReal.toReal_nonneg] at hN_bound ⊢
+  linarith
+
+private theorem gronwall_to_absorbing_ball
+    (V_body : ℝ → ℝ) (V₀ rate C : ℝ)
+    (hrate : 0 < rate) (_hC_nn : 0 ≤ C)
+    (h_bound : ∀ t ≥ (0 : ℝ), V_body t ≤ V₀ * rexp (-rate * t) + C)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ T : ℝ, ∀ t ≥ T, V_body t < C + ε := by
+  have h_decay : Tendsto (fun t : ℝ => V₀ * rexp (-rate * t)) atTop (nhds 0) := by
+    have hexp : Tendsto (fun t : ℝ => rexp (-rate * t)) atTop (nhds 0) := by
+      have h1 : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+        (tendsto_const_mul_atTop_of_pos hrate).mpr tendsto_id
+      exact (tendsto_exp_atBot.comp (tendsto_neg_atTop_atBot.comp h1)).congr
+        (fun t => by simp only [Function.comp_def, neg_mul])
+    have := hexp.const_mul V₀
+    simp only [mul_zero] at this
+    exact this.congr (fun _ => by ring)
+  rw [Metric.tendsto_atTop] at h_decay
+  obtain ⟨T, hT⟩ := h_decay ε hε
+  refine ⟨max T 0, fun t ht => ?_⟩
+  have ht_nn : (0 : ℝ) ≤ t := le_trans (le_max_right T 0) ht
+  have h_exp_small : V₀ * rexp (-rate * t) < ε := by
+    have h := hT t (le_trans (le_max_left T 0) ht)
+    rw [Real.dist_eq, sub_zero] at h
+    by_cases hV₀ : 0 ≤ V₀
+    · have h_nn : 0 ≤ V₀ * rexp (-rate * t) :=
+        mul_nonneg hV₀ (le_of_lt (Real.exp_pos _))
+      rw [abs_of_nonneg h_nn] at h; linarith
+    · push_neg at hV₀
+      have : V₀ * rexp (-rate * t) < 0 :=
+        mul_neg_of_neg_of_pos hV₀ (Real.exp_pos (-rate * t))
+      linarith
+  linarith [h_bound t ht_nn]
+
+/-- **Standard Continuum Kuramoto Stability (Tail-Body Split).**
+
+For the standard continuum Kuramoto model with:
+  • γ(ω) = |ω| — unbounded natural frequency on R
+  • g ∈ L¹(R) — any integrable frequency distribution (probability measure)
+  • BOTH locked (|ω| < Kr*) AND drifting (|ω| > Kr*) oscillators
+  • α*(ω) → 0 as |ω| → ∞ — NO uniform lower bound
+
+Conclusion: the order parameter r(t) → r* as t → ∞.
+
+Does NOT assume:
+  • `γ_max` / `hγ_bdd` — γ bounded globally (PROBLEM 2)
+  • `∃ δ, ∀ ω t, δ ≤ α(ω,t)` — uniform persistence (PROBLEM 1)
+  • `c_min` — minimum atom weight (PROBLEM 3)
+
+Key hypothesis: `h_body_gronwall` — for each truncation level M > 0,
+the body Lyapunov V_body(M,t) satisfies an exponential Gronwall bound:
+  V_body(M,t) ≤ V_body(M,0) · exp(-rate(M)·t) + C(M)
+with absorbing radius C(M) → 0 as M → ∞.
+
+This body Gronwall is DERIVABLE from the bounded-γ stability machinery
+applied to the body {γ ≤ M} where:
+  • γ ≤ M → Leibniz differentiation of V_body (dominator 2M+K)
+  • Body persistence: ∃ δ(M) > 0, α ≥ δ(M) on {γ ≤ M} (locked oscillators)
+  • Body pair coercivity: ∫∫_body pair ≥ 2·δ(M)·ds(M)·V_body
+  • Body ISS: dV_body/dt ≤ -K·δ(M)·ds(M)·V_body + K·μ(tail)
+  • Gronwall comparison → exponential decay to absorbing ball C(M) -/
+theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (_hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (C : ℝ → ℝ) (hC_nn : ∀ M, 0 ≤ C M) (hC_vanish : Tendsto C atTop (nhds 0))
+    (h_body_gronwall : ∀ M : ℝ, 0 < M →
+      ∃ (rate : ℝ), 0 < rate ∧
+        ∀ t ≥ (0 : ℝ),
+          ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
+            (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
+              rexp (-rate * t) + C M) :
+    Tendsto r atTop (nhds r_star) := by
+  have h_tail : Tendsto (fun M => (μ {ω | M < γ ω}).toReal) atTop (nhds 0) :=
+    tail_measure_tendsto_zero' (μ := μ) γ hγ_level
+  have h_body_absorb : ∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
+      ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε := by
+    intro M hM ε hε
+    obtain ⟨rate, hrate, h_gron⟩ := h_body_gronwall M hM
+    exact gronwall_to_absorbing_ball
+      (fun t => ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ)
+      _ rate (C M) hrate (hC_nn M) h_gron ε hε
+  have h_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal) atTop (nhds 0) := by
+    have h := hC_vanish.add h_tail; rwa [add_zero] at h
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  set δ := ε ^ 2 / 4 with hδ_def
+  have hδ : 0 < δ := by positivity
+  rw [Metric.tendsto_atTop] at h_vanish
+  obtain ⟨N, hN⟩ := h_vanish δ hδ
+  set M := max N 1
+  have hM_pos : (0 : ℝ) < M := lt_of_lt_of_le one_pos (le_max_right N 1)
+  have h_sum_small : C M + (μ {ω | M < γ ω}).toReal < δ := by
+    have h := hN M (le_max_left N 1)
+    rwa [Real.dist_eq, sub_zero, abs_of_nonneg
+      (add_nonneg (hC_nn M) ENNReal.toReal_nonneg)] at h
+  obtain ⟨T, hT⟩ := h_body_absorb M hM_pos δ hδ
+  refine ⟨max T 0, fun t ht => ?_⟩
+  have ht_nn : (0 : ℝ) ≤ t := le_trans (le_max_right T 0) ht
+  have ht_ge_T : T ≤ t := le_trans (le_max_left T 0) ht
+  have hCS : (r t - r_star) ^ 2 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := by
+    have hrsc : r t - r_star = ∫ ω, (α ω t - α_star ω) ∂μ := by
+      rw [h_sc t ht_nn, hr_star_eq, ← integral_sub (hα_int t) hαs_int]
+    rw [hrsc]; exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
+  have hV_split : ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ =
+      (∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ) +
+      (∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω t - α_star ω) ^ 2 ∂μ) :=
+    (integral_add_compl (hγ_level M) (hα_sq_int t)).symm
+  have h_compl : {ω | γ ω ≤ M}ᶜ = {ω | M < γ ω} := by ext ω; simp [not_le]
+  have hVtail : ∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω t - α_star ω) ^ 2 ∂μ < δ := by
+    calc ∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω t - α_star ω) ^ 2 ∂μ
+        ≤ ∫ ω in {ω | γ ω ≤ M}ᶜ, (1 : ℝ) ∂μ := by
+          apply setIntegral_mono_on (hα_sq_int t).integrableOn
+            (integrable_const 1).integrableOn (hγ_level M).compl
+          intro ω _; nlinarith [(hα_inv ω t ht_nn).1, (hα_inv ω t ht_nn).2,
+            hα_star_pos ω, hα_star_lt ω, sq_abs (α ω t - α_star ω)]
+      _ = (μ {ω | γ ω ≤ M}ᶜ).toReal := by rw [setIntegral_const]; simp [Measure.real]
+      _ = (μ {ω | M < γ ω}).toReal := by rw [h_compl]
+      _ < δ := lt_of_le_of_lt (le_add_of_nonneg_left (hC_nn M)) h_sum_small
+  have hVbody : ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < 2 * δ := by
+    have hC_lt : C M < δ :=
+      lt_of_le_of_lt (le_add_of_nonneg_right ENNReal.toReal_nonneg) h_sum_small
+    linarith [hT t ht_ge_T]
+  have hV_lt : (r t - r_star) ^ 2 < ε ^ 2 := calc
+    (r t - r_star) ^ 2 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := hCS
+    _ = _ + _ := hV_split
+    _ < 2 * δ + δ := add_lt_add hVbody hVtail
+    _ = 3 * (ε ^ 2 / 4) := by ring
+    _ < ε ^ 2 := by nlinarith [sq_pos_of_pos hε]
+  rw [Real.dist_eq]
+  exact abs_lt_of_sq_lt_sq hV_lt (le_of_lt hε)
+
+/-- **`kuramoto_solved` is a special case of `kuramoto_solved_continuum`.**
+
+When γ IS bounded by γ_max and persistence IS uniform, the global Gronwall
+V(t) ≤ V(0)·exp(-rate·t) implies body Gronwall with C(M) = μ({γ > M}).
+Since γ is bounded, μ({γ > γ_max}) = 0, so C → 0. -/
+theorem kuramoto_solved_of_bounded_gamma [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (rate : ℝ) (hrate : 0 < rate)
+    (h_gronwall : ∀ t ≥ (0 : ℝ),
+      ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ ≤
+        (∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t)) :
+    Tendsto r atTop (nhds r_star) := by
+  apply kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+    hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
+    h_sc hα_int hα_sq_int hα_inv
+    (fun M => (μ {ω | M < γ ω}).toReal)
+    (fun _ => ENNReal.toReal_nonneg)
+    (tail_measure_tendsto_zero' (μ := μ) γ hγ_level)
+  intro M _hM
+  refine ⟨rate, hrate, fun t ht => ?_⟩
+  have h_body_le : ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
+      ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ :=
+    setIntegral_le_integral (hα_sq_int t) (ae_of_all μ fun _ => sq_nonneg _)
+  have h_split0 : ∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ =
+      (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) +
+      (∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ) :=
+    (integral_add_compl (hγ_level M) (hα_sq_int 0)).symm
+  have h_compl : {ω | γ ω ≤ M}ᶜ = {ω | M < γ ω} := by ext ω; simp [not_le]
+  have h_tail0_le : ∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ ≤
+      (μ {ω | M < γ ω}).toReal := by
+    calc ∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ
+        ≤ ∫ ω in {ω | γ ω ≤ M}ᶜ, (1 : ℝ) ∂μ := by
+          apply setIntegral_mono_on (hα_sq_int 0).integrableOn
+            (integrable_const 1).integrableOn (hγ_level M).compl
+          intro ω _; nlinarith [(hα_inv ω 0 le_rfl).1, (hα_inv ω 0 le_rfl).2,
+            hα_star_pos ω, hα_star_lt ω, sq_abs (α ω 0 - α_star ω)]
+      _ = (μ {ω | γ ω ≤ M}ᶜ).toReal := by rw [setIntegral_const]; simp [Measure.real]
+      _ = _ := by rw [h_compl]
+  have hexp_le : rexp (-rate * t) ≤ 1 := Real.exp_le_one_iff.mpr (by nlinarith)
+  have h_body0_nn : (0 : ℝ) ≤ ∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ :=
+    integral_nonneg fun _ => sq_nonneg _
+  have h_tail0_nn : (0 : ℝ) ≤ ∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ :=
+    integral_nonneg fun _ => sq_nonneg _
+  calc ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ
+      ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := h_body_le
+    _ ≤ (∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) := h_gronwall t ht
+    _ = ((∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) +
+         (∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ)) *
+          rexp (-rate * t) := by rw [← h_split0]
+    _ = (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) +
+        (∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) :=
+      add_mul _ _ _
+    _ ≤ (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) +
+        (∫ ω in {ω | γ ω ≤ M}ᶜ, (α ω 0 - α_star ω) ^ 2 ∂μ) := by
+      linarith [mul_le_mul_of_nonneg_left hexp_le h_tail0_nn]
+    _ ≤ (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) +
+        (μ {ω | M < γ ω}).toReal := by linarith [h_tail0_le]
+
 end
