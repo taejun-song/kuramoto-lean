@@ -49,7 +49,7 @@ The hypothesis `h_approx` encodes the tail-body split:
 for any epsilon, there exists body S with V_S -> 0 and mu(S^c) < epsilon.
 
 Proof: |r-r*|^2 <= V = V_body + V_tail < (body -> 0) + (tail < epsilon) -> 0. -/
-theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
+theorem kuramoto_continuum_from_happrox [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (_hK : 0 < K) (_hγ : ∀ ω, 0 < γ ω)
     (_hγ_meas : AEStronglyMeasurable γ μ)
@@ -169,7 +169,7 @@ theorem h_approx_implies_v_tendsto_zero [IsProbabilityMeasure μ]
     _ < ε / 2 := h_tail
   linarith [hV_split]
 
-/-- **Physical corollary.** Wraps kuramoto_solved_continuum with the physical
+/-- **Physical corollary.** Wraps kuramoto_continuum_from_happrox with the physical
 setup where the body S = {omega | gamma(omega) <= M} has bounded gamma and
 the restricted Lyapunov converges by the bounded-gamma stability theorem. -/
 theorem kuramoto_continuum_physical [IsProbabilityMeasure μ]
@@ -194,7 +194,7 @@ theorem kuramoto_continuum_physical [IsProbabilityMeasure μ]
       (μ Sᶜ).toReal < ε ∧
       Tendsto (fun t => ∫ ω in S, (α ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) := by
-  exact kuramoto_solved_continuum γ K hK hγ hγ_meas α_star r_star
+  exact kuramoto_continuum_from_happrox γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     h_tail_vanish

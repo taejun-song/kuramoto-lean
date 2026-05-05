@@ -83,7 +83,7 @@ theorem kuramoto_standard_model [IsProbabilityMeasure μ]
     (h_body : ∀ M : ℝ, 0 < M → Tendsto
       (fun t => ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) := by
-  apply kuramoto_solved_continuum γ K hK hγ hγ_meas α_star r_star
+  apply kuramoto_continuum_from_happrox γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
   intro ε hε
