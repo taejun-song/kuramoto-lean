@@ -749,7 +749,7 @@ private theorem tail_measure_tendsto_zero_at_nat [IsFiniteMeasure μ]
   rw [hs_inter, measure_empty] at h_ennreal
   exact (ENNReal.tendsto_toReal ENNReal.zero_ne_top).comp h_ennreal
 
-private theorem tail_measure_tendsto_zero' [IsFiniteMeasure μ]
+theorem tail_measure_tendsto_zero' [IsFiniteMeasure μ]
     (γ : Ω → ℝ) (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M}) :
     Tendsto (fun M => (μ {ω | M < γ ω}).toReal) atTop (nhds 0) := by
   rw [Metric.tendsto_atTop]
@@ -1657,7 +1657,7 @@ theorem kuramoto_continuum_stability [IsProbabilityMeasure μ]
 /-- **Set-integral Cauchy-Schwarz.** For a probability measure μ and measurable S,
     (∫_S f dμ)² ≤ ∫_S f² dμ. Follows from the full-space Cauchy-Schwarz applied
     to f · 1_S, using (1_S)² = 1_S pointwise. -/
-private theorem sq_setIntegral_le [IsProbabilityMeasure μ]
+theorem sq_setIntegral_le [IsProbabilityMeasure μ]
     {f : Ω → ℝ} (S : Set Ω) (hS : MeasurableSet S)
     (hf_int : Integrable f μ) (hf_sq_int : Integrable (fun ω => f ω ^ 2) μ) :
     (∫ ω in S, f ω ∂μ) ^ 2 ≤ ∫ ω in S, f ω ^ 2 ∂μ := by
