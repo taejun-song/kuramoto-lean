@@ -79,7 +79,7 @@ Proof: direct application of tail_body_iss_convergence.
 
 For g with ONLY probability (no moment condition, e.g. Lorentzian):
 use kuramoto_continuum_real instead (body drop + V antitone route). -/
-theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
+theorem kuramoto_continuum_absorb [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -182,7 +182,7 @@ theorem kuramoto_solved_continuum_gronwall [IsProbabilityMeasure μ]
     -- COMBINED VANISHING
     (h_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal) atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) := by
-  apply kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+  apply kuramoto_continuum_absorb γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α h_sc hα_int hα_sq_int hα_inv C hC_nn _ h_vanish
   intro M hM ε hε

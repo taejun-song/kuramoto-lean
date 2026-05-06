@@ -111,6 +111,7 @@ import KuramotoLean.StandardContinuumTheorem
 import KuramotoLean.ContinuumSolvedStandard
 import KuramotoLean.ContinuumSolvedFinal
 import KuramotoLean.ContinuumSolvedEndToEnd
+import KuramotoLean.KuramotoSolvedContinuum
 import KuramotoLean.ContinuumStandardFull
 import KuramotoLean.StrictLyapunov
 import KuramotoLean.SubcriticalConvergence

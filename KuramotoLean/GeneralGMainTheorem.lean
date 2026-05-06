@@ -824,7 +824,7 @@ applied to the body {γ ≤ M} where:
   • Body pair coercivity: ∫∫_body pair ≥ 2·δ(M)·ds(M)·V_body
   • Body ISS: dV_body/dt ≤ -K·δ(M)·ds(M)·V_body + K·μ(tail)
   • Gronwall comparison → exponential decay to absorbing ball C(M) -/
-theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
+theorem kuramoto_continuum_gronwall [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (_hK : 0 < K) (_hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -905,7 +905,7 @@ theorem kuramoto_solved_continuum [IsProbabilityMeasure μ]
   rw [Real.dist_eq]
   exact abs_lt_of_sq_lt_sq hV_lt (le_of_lt hε)
 
-/-- **`kuramoto_solved` is a special case of `kuramoto_solved_continuum`.**
+/-- **`kuramoto_solved` is a special case of `kuramoto_continuum_gronwall`.**
 
 When γ IS bounded by γ_max and persistence IS uniform, the global Gronwall
 V(t) ≤ V(0)·exp(-rate·t) implies body Gronwall with C(M) = μ({γ > M}).
@@ -929,7 +929,7 @@ theorem kuramoto_solved_of_bounded_gamma [IsProbabilityMeasure μ]
       ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ ≤
         (∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t)) :
     Tendsto r atTop (nhds r_star) := by
-  apply kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+  apply kuramoto_continuum_gronwall γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
     h_sc hα_int hα_sq_int hα_inv
     (fun M => (μ {ω | M < γ ω}).toReal)
@@ -1025,7 +1025,7 @@ theorem kuramoto_continuum_from_body_persistence [IsProbabilityMeasure μ]
     (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
         atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) :=
-  kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+  kuramoto_continuum_gronwall γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
     h_sc hα_int hα_sq_int hα_inv
     (fun M => C M + (μ {ω | M < γ ω}).toReal)
@@ -1153,7 +1153,7 @@ theorem kuramoto_standard_model [IsProbabilityMeasure μ]
       have h := hN M hM
       simp only [Real.dist_eq, sub_zero] at h ⊢; exact h⟩
   -- Step 4: Apply tail-body split to conclude r → r*
-  exact kuramoto_solved_continuum γ K hK hγ hγ_level α_star r_star
+  exact kuramoto_continuum_gronwall γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
     h_sc hα_int hα_sq_int hα_inv
     (fun M => C M + (μ {ω | M < γ ω}).toReal)
@@ -1279,9 +1279,9 @@ theorem kuramoto_continuum_standard [IsProbabilityMeasure μ]
   rw [Real.dist_eq]
   exact abs_lt_of_sq_lt_sq hV_lt (le_of_lt hε)
 
-/-- `kuramoto_solved_continuum` is a corollary of `kuramoto_continuum_standard`:
+/-- `kuramoto_continuum_gronwall` is a corollary of `kuramoto_continuum_standard`:
 body Gronwall implies body absorbing ball. -/
-theorem kuramoto_solved_continuum_from_gronwall [IsProbabilityMeasure μ]
+theorem kuramoto_continuum_gronwall_from_standard [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -1523,7 +1523,7 @@ theorem kuramoto_continuum_from_iss [IsProbabilityMeasure μ]
                 abs_of_nonneg (hC_nn M)]
             exact le_add_of_nonneg_right ENNReal.toReal_nonneg
         _ < ε := h⟩
-  exact kuramoto_solved_continuum_from_gronwall γ K hK hγ hγ_level α_star r_star
+  exact kuramoto_continuum_gronwall_from_standard γ K hK hγ hγ_level α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α
     h_sc hα_int hα_sq_int hα_inv C hC_nn hC_vanish
     (fun M hM => by
