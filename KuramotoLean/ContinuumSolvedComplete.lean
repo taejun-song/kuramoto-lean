@@ -68,7 +68,7 @@ Combined vanishing: C(M) + μ({γ>M}) → 0 as M → ∞.
   • Student-t ν>3: C(M) ~ M^{3-ν} → 0 ✓
   • Compact support: C(M) = 0 for M large ✓
   • NOT Lorentzian (use Bernoulli closed-form instead) -/
-theorem kuramoto_continuum_stability [IsProbabilityMeasure μ]
+theorem kuramoto_continuum_stability_gronwall [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
@@ -240,8 +240,8 @@ theorem kuramoto_wired_to_complete [IsProbabilityMeasure μ]
               rexp (-rate * t) + C M := fun M hM => by
     obtain ⟨δ, hδ, hα_lb⟩ := h_bp M hM
     exact h_gronwall_from_persist M hM δ hδ hα_lb
-  -- STEP 3: call ContinuumSolvedComplete (kuramoto_continuum_stability)
-  exact kuramoto_continuum_stability γ K hK hγ hγ_meas α_star r_star
+  -- STEP 3: call ContinuumSolvedComplete (kuramoto_continuum_stability_gronwall)
+  exact kuramoto_continuum_stability_gronwall γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level C hC_nn h_body_gronwall h_combined_vanish

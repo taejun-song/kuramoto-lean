@@ -4,16 +4,21 @@
   Resolves TWO wiring issues identified by Codex review:
 
   ISSUE 1 (hγ and ω=0):
-    At ω=0: γ(0)=|0|=0 and α*(0)=1 (fully locked).  The hypothesis
-    `hα_star_lt : ∀ ω, α_star ω < 1` therefore FAILS at ω=0.
-    "Measure-zero WLOG" only justifies an `ae` quantifier, not
-    universal quantification.
+    The old theorem used `hγ_pos : ∀ ω, 0 < γ ω` (strict), which is a
+    REDUNDANT hypothesis: strict positivity is already DERIVABLE from the
+    equilibrium equation γ·α* = (K/2)·r*·(1-α*²) together with
+    `hα_star_lt : α_star ω < 1`.  (If γω = 0 then α*(ω) = 1, contradicting
+    hα_star_lt.  Hence `hα_star_lt` already implicitly forces γ > 0.)
 
-    FIX: Use `hγ_pos : ∀ ω, 0 < γ ω`, explicitly encoding that Ω
-    excludes ω=0.  For the standard model γ=|ω| on ℝ, set
-    Ω = ℝ\{0}; since g is absolutely continuous μ({0})=0, nothing
-    is lost.  `hγ : 0 ≤ γ ω` is then derived inside the proof via
-    `le_of_lt (hγ_pos ω)`, keeping all downstream calls unchanged.
+    At ω=0: γ(0)=0 forces α*(0)=1 (fully locked), which is the most-locked
+    oscillator.  The hypothesis `hα_star_lt : α_star ω < 1` simply means
+    ω=0 is not in the type Ω — consistent with using Ω = ℝ\{0} for γ=|ω|.
+
+    FIX: Use `hγ : ∀ ω, 0 ≤ γ ω` (non-negative).  The strict bound
+    `0 < γ ω` is provable when needed from `gamma_pos_from_equil`
+    (equilibrium equation + hα_star_lt + hα_star_pos), but no downstream
+    call requires it explicitly — `continuum_body_persistence` and
+    `kuramoto_continuum_stability` both need only 0 ≤ γ ω.
 
   ISSUE 2 (body persistence not wired into ContinuumSolvedComplete):
     `ContinuumSolvedComplete` (kuramoto_continuum_stability) takes h_body_gronwall
@@ -47,11 +52,11 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-- **Single wired continuum Kuramoto theorem** (resolves both wiring issues).
 
-  ISSUE 1 FIX: `hγ_pos : ∀ ω, 0 < γ ω` explicitly encodes Ω = {ω | γω > 0}.
-  For the standard model γ=|ω| on ℝ this means Ω = ℝ\{0}, which is WLOG
-  since μ({0})=0 for any absolutely continuous density g.
-  `hγ : 0 ≤ γ ω` is derived inside the proof.  This avoids the inconsistency
-  of `hα_star_lt : ∀ ω, α_star ω < 1` at ω=0 (where α*(0)=1).
+  ISSUE 1 FIX: `hγ : ∀ ω, 0 ≤ γ ω` (non-negative, not strict).
+  Strict positivity `0 < γ ω` is DERIVABLE from the equilibrium equation
+  plus `hα_star_lt`: if γω = 0 the equilibrium gives α*(ω)=1, contradicting
+  hα_star_lt, so `hγ_pos` was a redundant hypothesis.  Using `hγ : 0 ≤ γ ω`
+  is the minimal honest hypothesis; downstream calls need only 0 ≤ γ ω.
 
   ISSUE 2 FIX: proof internally calls `continuum_body_persistence`
   (BodyPersistenceFromODE) to derive δ(M) > 0 on each body {γ ≤ M}, then
@@ -60,7 +65,7 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
   No external body-persistence hypothesis needed. -/
 theorem kuramoto_continuum_wired [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
-    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
     (α_star : Ω → ℝ) (r_star : ℝ)
@@ -100,8 +105,6 @@ theorem kuramoto_continuum_wired [IsProbabilityMeasure μ]
     (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
         atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) := by
-  -- ISSUE 1 FIX: derive 0 ≤ γ ω from the explicit positivity hypothesis.
-  have hγ : ∀ ω, 0 ≤ γ ω := fun ω => le_of_lt (hγ_pos ω)
   -- ISSUE 2 FIX step (a): derive body persistence from ODE comparison on each body.
   -- `continuum_body_persistence` (BodyPersistenceFromODE) gives δ(M) > 0 such that
   -- ∀ ω ∈ {γ ≤ M}, ∀ t ≥ 0, δ(M) ≤ α(ω,t). No external persistence hypothesis.
@@ -119,25 +122,22 @@ theorem kuramoto_continuum_wired [IsProbabilityMeasure μ]
       (hα_0_body M hM)
     -- ISSUE 2 FIX step (b): instantiate Gronwall with derived δ
     exact h_gronwall_from_persist M hM δ hδ hα_lb
-  -- ISSUE 2 FIX step (c): call ContinuumSolvedComplete (kuramoto_continuum_stability)
-  exact kuramoto_continuum_stability γ K hK hγ hγ_meas α_star r_star
+  -- ISSUE 2 FIX step (c): call ContinuumSolvedComplete (kuramoto_continuum_stability_gronwall)
+  exact kuramoto_continuum_stability_gronwall γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level C hC_nn h_body_gronwall h_combined_vanish
 
-/-! ## ISSUE 1: strict γ > 0 is the honest domain condition
+/-! ## ISSUE 1 RESOLVED: γ > 0 is derivable, not assumed
 
-For any ω where γω > 0 (i.e., ω ≠ 0 for γ=|ω|), the equilibrium equation
-  γω · α*(ω) = (K/2) · r* · (1 - α*(ω)²)
-combined with γω > 0 forces α*(ω) ∈ (0,1).
+`kuramoto_continuum_wired` uses `hγ : ∀ ω, 0 ≤ γ ω` (minimal hypothesis).
+Strict positivity `0 < γ ω` is NOT an independent hypothesis — it follows
+from the equilibrium equation plus `hα_star_lt : α_star ω < 1`:
+  if γω = 0 then 0 = (K/2)·r*·(1 - α*(ω)²) with K,r* > 0, so α*(ω) = ±1.
+  Since α*(ω) > 0 (hα_star_pos), α*(ω) = 1, contradicting hα_star_lt.
+Hence the hypothesis bundle already forces γ > 0 wherever it matters.
 
-At ω=0: γ(0)=0 and α*(0)=1 (fully locked), so `hα_star_lt : ∀ ω, α_star ω < 1`
-would FAIL at ω=0.  The theorem `kuramoto_continuum_wired` avoids this by
-requiring `hγ_pos : ∀ ω, 0 < γ ω`, which for γ=|ω| means working on
-Ω = ℝ\{0}.  Since g is absolutely continuous μ({0})=0, this is WLOG.
-
-The following auxiliary theorem shows γ > 0 is derivable from the equilibrium
-whenever α*(ω) ∈ (0,1). -/
+The following lemma makes this derivation explicit. -/
 
 theorem gamma_pos_from_equil (γ_val K r_star α_star_val : ℝ)
     (hK : 0 < K) (hr_star : 0 < r_star)
