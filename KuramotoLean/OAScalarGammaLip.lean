@@ -26,7 +26,7 @@ open MeasureTheory Real Set Filter Topology Metric
 noncomputable section
 
 private lemma oaScalarRHS_lipschitzOnWith (γ K : ℝ) (r : ℝ → ℝ) (t : ℝ)
-    (hγ : 0 ≤ γ) (hK : 0 ≤ K) (hr_bdd : ∀ s, |r s| ≤ 1) :
+    (hγ : 0 ≤ γ) (hK : 0 ≤ K) (hr_bdd : |r t| ≤ 1) :
     LipschitzOnWith ⟨γ + K, by positivity⟩ (oaScalarRHS γ K r t) (Icc 0 1) := by
   rw [lipschitzOnWith_iff_dist_le_mul]
   intro x hx y hy
@@ -36,8 +36,8 @@ private lemma oaScalarRHS_lipschitzOnWith (γ K : ℝ) (r : ℝ → ℝ) (t : �
       = (x - y) * (-γ - K / 2 * r t * (x + y)) from by ring, abs_mul]
   have hx0 := hx.1; have hx1 := hx.2
   have hy0 := hy.1; have hy1 := hy.2
-  have hr_hi := le_of_abs_le (hr_bdd t)
-  have hr_lo := neg_le_of_abs_le (hr_bdd t)
+  have hr_hi := le_of_abs_le hr_bdd
+  have hr_lo := neg_le_of_abs_le hr_bdd
   have hxy_nn : 0 ≤ x + y := by linarith
   have h1rt_nn : 0 ≤ 1 + r t := by linarith
   have h1rt_hi : 0 ≤ 1 - r t := by linarith
@@ -69,7 +69,7 @@ private lemma oaScalarRHS_gamma_diff (γ₁ γ₂ K : ℝ) (r : ℝ → ℝ) (t 
 theorem oa_scalar_gamma_gronwall
     (γ₁ γ₂ K : ℝ) (r : ℝ → ℝ) (T : ℝ)
     (hγ₂ : 0 ≤ γ₂) (hK : 0 ≤ K)
-    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hr_bdd : ∀ t ∈ Icc 0 T, |r t| ≤ 1)
     (α₀ : ℝ)
     (α₁ α₂ : ℝ → ℝ)
     (hα₁_init : α₁ 0 = α₀) (hα₂_init : α₂ 0 = α₀)
@@ -94,7 +94,7 @@ theorem oa_scalar_gamma_gronwall
     (f := α₁) (f' := fun s => oaScalarRHS γ₁ K r s (α₁ s))
     (g := α₂) (g' := fun s => oaScalarRHS γ₂ K r s (α₂ s))
     (K := L) (δ := 0) (εf := εf) (εg := 0)
-    (fun s _ => oaScalarRHS_lipschitzOnWith γ₂ K r s hγ₂ hK hr_bdd)
+    (fun s hs => oaScalarRHS_lipschitzOnWith γ₂ K r s hγ₂ hK (hr_bdd s (Ico_subset_Icc_self hs)))
     hα₁_cont hα₁_ode
     (fun s hs => oaScalarRHS_gamma_diff γ₁ γ₂ K r s (α₁ s) (hα₁_bdd s hs))
     hα₁_bdd hα₂_cont hα₂_ode

@@ -57,7 +57,7 @@ private lemma r_ext_bdd (K γ₀ r₀ : ℝ) (hK : 0 < K) (hγ₀ : 0 < γ₀) (
     global solution α : ℝ → ℝ on [0,∞) satisfying:
     - α(0) = α₀
     - ContinuousOn α (Ici 0)
-    - HasDerivAt α (oaScalarRHS γ K (lorentzian_explicit K γ₀ r₀) t (α t)) t for t > 0
+    - HasDerivAt α (oaScalarRHS γ K (lorentzian_explicit K γ₀ r₀) t (α t)) t for all t ≥ 0
     - α(t) ∈ (0,1) for all t ≥ 0 -/
 theorem lorentzian_scalar_ode_global
     (γ K γ₀ r₀ α₀ : ℝ)
@@ -67,7 +67,7 @@ theorem lorentzian_scalar_ode_global
     ∃ α : ℝ → ℝ,
       α 0 = α₀ ∧
       ContinuousOn α (Ici 0) ∧
-      (∀ t, 0 < t → HasDerivAt α (oaScalarRHS γ K (lorentzian_explicit K γ₀ r₀) t (α t)) t) ∧
+      (∀ t, 0 ≤ t → HasDerivAt α (oaScalarRHS γ K (lorentzian_explicit K γ₀ r₀) t (α t)) t) ∧
       (∀ t, 0 ≤ t → 0 < α t ∧ α t < 1) := by
   -- Apply global existence with r_ext (Lorentzian r clamped to [0,∞))
   obtain ⟨α, hα_init, hα_ode, hα_cont, hα_bdd⟩ :=
@@ -79,10 +79,10 @@ theorem lorentzian_scalar_ode_global
   -- For t ≥ 0: r_ext = lorentzian_explicit, so ODE agrees
   refine ⟨α, hα_init, hα_cont, ?_, hα_bdd⟩
   intro t ht
-  have hrext : r_ext K γ₀ r₀ t = lorentzian_explicit K γ₀ r₀ t := r_ext_eq_of_nn (le_of_lt ht)
+  have hrext : r_ext K γ₀ r₀ t = lorentzian_explicit K γ₀ r₀ t := r_ext_eq_of_nn ht
   have heq : oaScalarRHS γ K (r_ext K γ₀ r₀) t (α t) =
       oaScalarRHS γ K (lorentzian_explicit K γ₀ r₀) t (α t) := by
     simp only [oaScalarRHS, hrext]
-  rw [← heq]; exact hα_ode t (le_of_lt ht)
+  rw [← heq]; exact hα_ode t ht
 
 end
