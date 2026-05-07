@@ -146,3 +146,4 @@ import KuramotoLean.FirstMomentTailVanish
 import KuramotoLean.ContinuumFullLeibniz
 import KuramotoLean.ContinuumGammaMinFirstMoment
 import KuramotoLean.KuramotoGammaMinFirstMomentConcrete
+import KuramotoLean.KuramotoFirstMomentConcrete
