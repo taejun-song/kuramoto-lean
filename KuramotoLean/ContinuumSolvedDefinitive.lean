@@ -84,7 +84,7 @@ The body Gronwall bound connects to `kuramoto_solved`:
     ds(M) = Kr*/(2M + Kr*) (body equilibrium lower bound)
     δ(M) ≥ ds(M) (from ODE forward invariance of [ds, 1))
     C(M) = K·μ(tail)/rate(M) (tail coupling / body rate) -/
-theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
+theorem kuramoto_standard_continuum_def [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_meas : AEStronglyMeasurable γ μ)
@@ -151,7 +151,7 @@ theorem kuramoto_standard_continuum_subsumes_bounded [IsProbabilityMeasure μ]
             (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
               rexp (-rate * t) + 0) :
     Tendsto r atTop (nhds r_star) :=
-  kuramoto_standard_continuum γ K hK hγ hγ_meas α_star r_star
+  kuramoto_standard_continuum_def γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level (fun _ => 0) (fun _ => le_refl 0) h_body_rate

@@ -184,7 +184,7 @@ theorem kuramoto_solved_continuum_from_ode [IsProbabilityMeasure μ]
     (h_combined_vanish : Tendsto (fun M => C M + (μ {ω | M < γ ω}).toReal)
         atTop (nhds 0)) :
     Tendsto r atTop (nhds r_star) :=
-  kuramoto_standard_continuum γ K hK hγ hγ_meas α_star r_star
+  kuramoto_standard_continuum_def γ K hK hγ hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     hγ_level C hC_nn h_body_rate h_combined_vanish
