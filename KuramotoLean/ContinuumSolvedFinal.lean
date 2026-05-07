@@ -610,4 +610,296 @@ theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
   rw [Real.dist_eq]
   exact abs_lt_of_sq_lt_sq (lt_of_le_of_lt hCS hV_t) (le_of_lt hε)
 
+/-! ## Explicit version: returns `Tendsto r atTop` for the given r directly -/
+
+/-- Variant of `kuramoto_standard_continuum` with explicit `r` and `α` (not bundled in `h_exists`),
+    returning `Tendsto r atTop (nhds r_star)` for the given `r` directly.
+    This avoids the existential extraction issue when the caller needs the specific `r`. -/
+theorem kuramoto_standard_tendsto [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (hγ_int : Integrable γ μ)
+    (hγ_meas : AEStronglyMeasurable γ μ)
+    (hγ_int_pos : 0 < ∫ ω, γ ω ∂μ)
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1) (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_neg : ∀ ω t, t ≤ 0 → α ω t = α ω 0)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_body_persist : ∀ M, 0 < M → ∃ δ : ℝ, 0 < δ ∧ ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M}) :
+    Tendsto r atTop (nhds r_star) := by
+  haveI : SFinite μ := inferInstance
+  set V := fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ
+  have hV_nn : ∀ t, 0 ≤ V t := fun t => integral_nonneg (fun _ => sq_nonneg _)
+  have ⟨hV_cont_on, hV_has_deriv⟩ :=
+    leibniz_integrable_gamma (μ := μ) γ K r α α_star hα_ode hα_inv hα_sq_int
+      hγ_int hγ hK hr_bdd hα_star_pos hα_star_lt hα_cont hα_neg hα_int hαs_int hγ_meas
+  have hr_star_pos : 0 < r_star := by
+    rw [hr_star_eq]
+    have h_nn : (0 : ℝ) ≤ ∫ ω, α_star ω ∂μ := integral_nonneg (fun ω => (hα_star_pos ω).le)
+    rcases h_nn.lt_or_eq with h | h
+    · exact h
+    · exfalso
+      obtain ⟨ω, hω⟩ := ((integral_eq_zero_iff_of_nonneg
+        (fun ω => (hα_star_pos ω).le) hαs_int).mp h.symm).exists
+      simp at hω; linarith [hα_star_pos ω]
+  have hV_deriv_np : ∀ t, 0 < t →
+      ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ ≤ 0 := by
+    intro t ht
+    have h_unfold : ∀ ω, oaScalarRHS (γ ω) K r t (α ω t) =
+        -(γ ω) * α ω t + K / 2 * r t * (1 - (α ω t) ^ 2) := fun _ => rfl
+    simp_rw [h_unfold]
+    have hq := q_int_of_gamma_int (fun ω => α ω t) α_star γ K r_star hK hr_star_pos
+      (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+      hα_star_pos hα_star_lt hγ hα_star_equil (hα_int t) hαs_int (hα_sq_int t) hγ_int hγ_meas
+    have hs := s_int_bdd (fun ω => α ω t) α_star
+      (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+      hα_star_pos hα_star_lt (hα_int t) hαs_int
+    exact continuum_lyapunov_deriv_nonpos γ K (r t) (fun ω => α ω t) α_star r_star
+      hK hγ (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+      hα_star_pos hα_star_lt hα_star_equil hr_star_eq (h_sc t (le_of_lt ht))
+      (hα_int t) hαs_int (hα_sq_int t) hq hs
+  have hV_anti : Antitone V :=
+    lyapunov_antitone γ K r α α_star r_star hK hγ hr_cont hr_bdd hr_nn
+      hα_ode hα_cont hα_star_pos hα_star_lt hα_star_equil h_sc hα_inv hα_sq_int
+      hα_neg hV_cont_on hV_has_deriv hV_deriv_np
+  have hV_zero : Tendsto V atTop (nhds 0) := by
+    obtain ⟨L, hL_nn, hV_lim⟩ := antitone_bounded_converges V hV_anti hV_nn
+    suffices hL0 : L = 0 by rwa [hL0] at hV_lim
+    by_contra hL_ne
+    have hL_pos : 0 < L := lt_of_le_of_ne hL_nn (Ne.symm hL_ne)
+    have hVt_ge_L : ∀ t, L ≤ V t :=
+      fun t => le_of_tendsto hV_lim (eventually_atTop.mpr ⟨t, fun s hs => hV_anti hs⟩)
+    have hL_le_one : L ≤ 1 := by
+      have hV0_le : V 0 ≤ 1 := by
+        have h1 : (∫ _, (1:ℝ) ∂μ) = 1 := by
+          rw [integral_const]; simp [Measure.real, measure_univ]
+        calc V 0 ≤ ∫ _, (1:ℝ) ∂μ :=
+              integral_mono (hα_sq_int 0) (integrable_const 1) (fun ω => by
+                simp only [Pi.one_apply]
+                nlinarith [(hα_inv ω 0 le_rfl).1, (hα_inv ω 0 le_rfl).2,
+                           hα_star_pos ω, hα_star_lt ω])
+          _ = 1 := h1
+      linarith [hVt_ge_L 0]
+    set C_γ := ∫ ω, γ ω ∂μ
+    have hCγ_nn : 0 ≤ C_γ := integral_nonneg (fun ω => hγ ω)
+    have hCγ_pos : 0 < C_γ := hγ_int_pos
+    set M := max (4 * C_γ / L) 1 with hM_def
+    have hM_pos : (0:ℝ) < M := lt_of_lt_of_le one_pos (le_max_right _ _)
+    set body := {ω | γ ω ≤ M}
+    have hbody_meas : MeasurableSet body := hγ_level M
+    have h_tail_small : (μ {ω | M < γ ω}).toReal ≤ L / 4 := by
+      have h_markov : (μ {ω | M < γ ω}).toReal * M ≤ C_γ := by
+        have h_meas : MeasurableSet {ω | M < γ ω} := by
+          rw [show {ω | M < γ ω} = bodyᶜ from by ext ω; simp [body, not_le]]
+          exact hbody_meas.compl
+        calc (μ {ω | M < γ ω}).toReal * M = ∫ _ in {ω | M < γ ω}, M ∂μ := by
+              rw [setIntegral_const]; simp [Measure.real, smul_eq_mul, mul_comm]
+          _ ≤ ∫ ω in {ω | M < γ ω}, γ ω ∂μ :=
+              setIntegral_mono_on (integrable_const M).integrableOn
+                hγ_int.integrableOn h_meas (fun ω hω => le_of_lt hω)
+          _ ≤ C_γ := setIntegral_le_integral hγ_int (ae_of_all μ fun ω => hγ ω)
+      calc (μ {ω | M < γ ω}).toReal ≤ C_γ / M := (le_div_iff₀ hM_pos).mpr h_markov
+        _ ≤ C_γ / (4 * C_γ / L) := div_le_div_of_nonneg_left hCγ_nn
+              (div_pos (by positivity) hL_pos) (le_max_left _ _)
+        _ = L / 4 := by field_simp
+    obtain ⟨δ_M, hδ_M_pos, hα_lb_body⟩ := h_body_persist M hM_pos
+    set ds_M := K * r_star / (2 * M + K * r_star)
+    have h_denom_pos : 0 < 2 * M + K * r_star := by positivity
+    have hds_M_pos : 0 < ds_M := div_pos (mul_pos hK hr_star_pos) h_denom_pos
+    have hds_lb_body : ∀ ω, γ ω ≤ M → ds_M ≤ α_star ω := by
+      intro ω hγω
+      rw [div_le_iff₀ h_denom_pos]
+      nlinarith [hα_star_equil ω, sq_nonneg (α_star ω), hα_star_pos ω, hα_star_lt ω]
+    set V_body := fun t => ∫ ω in body, (α ω t - α_star ω) ^ 2 ∂μ
+    have hVb_ge : ∀ t, 3 * L / 4 ≤ V_body t := by
+      intro t
+      have h_tail_le : ∫ ω in bodyᶜ, (α ω t - α_star ω) ^ 2 ∂μ ≤ L / 4 := by
+        calc ∫ ω in bodyᶜ, (α ω t - α_star ω) ^ 2 ∂μ
+            ≤ ∫ _ in bodyᶜ, (1:ℝ) ∂μ := by
+              apply setIntegral_mono_on (hα_sq_int t).integrableOn
+                (integrable_const 1).integrableOn hbody_meas.compl fun ω _ => by
+                by_cases ht : 0 ≤ t
+                · nlinarith [(hα_inv ω t ht).1, (hα_inv ω t ht).2, hα_star_pos ω, hα_star_lt ω]
+                · push_neg at ht; rw [hα_neg ω t (le_of_lt ht)]
+                  nlinarith [(hα_inv ω 0 le_rfl).1, (hα_inv ω 0 le_rfl).2,
+                             hα_star_pos ω, hα_star_lt ω]
+          _ = (μ bodyᶜ).toReal := by rw [setIntegral_const]; simp [Measure.real, smul_eq_mul]
+          _ = (μ {ω | M < γ ω}).toReal := by
+              rw [show bodyᶜ = {ω | M < γ ω} from by ext ω; simp [body, not_le]]
+          _ ≤ L / 4 := h_tail_small
+      have hVb_nn : 0 ≤ V_body t := integral_nonneg (fun _ => sq_nonneg _)
+      linarith [hVt_ge_L t, (integral_add_compl hbody_meas (hα_sq_int t)).symm]
+    have hbody_pos : μ body ≠ 0 := by
+      intro heq
+      have hmass : μ univ = μ body + μ bodyᶜ := (measure_add_measure_compl hbody_meas).symm
+      rw [measure_univ, heq, zero_add] at hmass
+      have hbc1 : (μ bodyᶜ).toReal = 1 := by
+        have h := congr_arg ENNReal.toReal hmass; simp only [ENNReal.toReal_one] at h; exact h.symm
+      have hbc2 : (μ bodyᶜ).toReal = (μ {ω | M < γ ω}).toReal := by
+        rw [show bodyᶜ = {ω | M < γ ω} from by ext ω; simp [body, not_le]]
+      linarith [h_tail_small, hL_le_one, hbc1 ▸ hbc2 ▸ h_tail_small]
+    have hbody_toReal_pos : 0 < (μ body).toReal :=
+      ENNReal.toReal_pos hbody_pos (measure_ne_top μ body)
+    set c₀ := K / 2 * (2 * δ_M * ds_M * (μ body).toReal * (3 * L / 4))
+    have hc₀_pos : 0 < c₀ := by positivity
+    have hV'_le : ∀ s, 0 < s →
+        ∫ ω, 2 * (α ω s - α_star ω) * oaScalarRHS (γ ω) K r s (α ω s) ∂μ ≤ -c₀ := by
+      intro s hs
+      have h_unfold : ∀ ω, oaScalarRHS (γ ω) K r s (α ω s) =
+          -(γ ω) * α ω s + K / 2 * r s * (1 - (α ω s) ^ 2) := fun _ => rfl
+      simp_rw [h_unfold]
+      have hq_int := q_int_of_gamma_int (fun ω => α ω s) α_star γ K r_star hK hr_star_pos
+        (fun ω => (hα_inv ω s (le_of_lt hs)).1) (fun ω => (hα_inv ω s (le_of_lt hs)).2)
+        hα_star_pos hα_star_lt hγ hα_star_equil (hα_int s) hαs_int (hα_sq_int s) hγ_int hγ_meas
+      have hs_int := s_int_bdd (fun ω => α ω s) α_star
+        (fun ω => (hα_inv ω s (le_of_lt hs)).1) (fun ω => (hα_inv ω s (le_of_lt hs)).2)
+        hα_star_pos hα_star_lt (hα_int s) hαs_int
+      have hp_int : Integrable (fun ω => α ω s - α_star ω) μ := (hα_int s).sub hαs_int
+      have h_pw : ∀ ω, 2 * (α ω s - α_star ω) *
+          (-(γ ω) * α ω s + K / 2 * r s * (1 - (α ω s) ^ 2)) =
+          (-K * r_star) * ((α ω s - α_star ω) ^ 2 * (α ω s + 1 / α_star ω)) +
+          (K * (r s - r_star)) * ((α ω s - α_star ω) * (1 - (α ω s) ^ 2)) := by
+        intro ω
+        have hγω : γ ω = K / 2 * r_star * (1 - (α_star ω) ^ 2) / α_star ω := by
+          field_simp [ne_of_gt (hα_star_pos ω)] at hα_star_equil ⊢; linarith [hα_star_equil ω]
+        rw [hγω]; field_simp [ne_of_gt (hα_star_pos ω)]; ring
+      simp_rw [h_pw]
+      rw [integral_add (hq_int.const_mul _) (hs_int.const_mul _)]
+      simp_rw [integral_const_mul]
+      set Q := ∫ ω, (α ω s - α_star ω) ^ 2 * (α ω s + 1 / α_star ω) ∂μ
+      set S := ∫ ω, (α ω s - α_star ω) * (1 - (α ω s) ^ 2) ∂μ
+      set D := r s - r_star
+      have h_D_eq : ∫ ω, (α ω s - α_star ω) ∂μ = D := by
+        simp [D]; rw [integral_sub (hα_int s) hαs_int, h_sc s (le_of_lt hs), hr_star_eq]
+      have h_out12 : Integrable (fun ω₁ =>
+          α_star ω₁ * Q - (α ω₁ s - α_star ω₁) * S) μ :=
+        (hαs_int.mul_const _).sub (hp_int.mul_const _)
+      have h_out21 : Integrable (fun ω₁ =>
+          (α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁) * (∫ ω, α_star ω ∂μ) -
+          (α ω₁ s - α_star ω₁) * (1 - (α ω₁ s) ^ 2) * (∫ ω, (α ω s - α_star ω) ∂μ)) μ :=
+        (hq_int.mul_const _).sub (hs_int.mul_const _)
+      have h_fub := pair_fubini_identity (μ := μ) (fun ω => α ω s) α_star
+        hq_int hs_int hαs_int hp_int h_out12 h_out21
+      rw [hr_star_eq.symm, h_D_eq] at h_fub
+      have h_outer_int : Integrable (fun ω₁ =>
+          ∫ ω₂, pairIntegrand (α ω₁ s) (α_star ω₁) (α ω₂ s) (α_star ω₂) ∂μ) μ := by
+        have h_eq : ∀ ω₁, ∫ ω₂, pairIntegrand (α ω₁ s) (α_star ω₁) (α ω₂ s) (α_star ω₂) ∂μ =
+            (α_star ω₁ * Q - (α ω₁ s - α_star ω₁) * S) +
+            ((α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁) * (∫ ω, α_star ω ∂μ) -
+             (α ω₁ s - α_star ω₁) * (1 - (α ω₁ s) ^ 2) * (∫ ω, (α ω s - α_star ω) ∂μ)) := by
+          intro ω₁
+          have hi12 : Integrable (fun ω₂ =>
+              α_star ω₁ * ((α ω₂ s - α_star ω₂) ^ 2 * (α ω₂ s + 1 / α_star ω₂)) -
+              (α ω₁ s - α_star ω₁) * ((α ω₂ s - α_star ω₂) * (1 - α ω₂ s ^ 2))) μ :=
+            (hq_int.const_mul _).sub (hs_int.const_mul _)
+          have hi21 : Integrable (fun ω₂ =>
+              α_star ω₂ * ((α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁)) -
+              (α ω₁ s - α_star ω₁) * (α ω₂ s - α_star ω₂) * (1 - α ω₁ s ^ 2)) μ :=
+            (hαs_int.mul_const _).sub ((hp_int.const_mul _).mul_const _)
+          have h_rw : ∀ ω₂, pairIntegrand (α ω₁ s) (α_star ω₁) (α ω₂ s) (α_star ω₂) =
+              (α_star ω₁ * ((α ω₂ s - α_star ω₂) ^ 2 * (α ω₂ s + 1 / α_star ω₂)) -
+               (α ω₁ s - α_star ω₁) * ((α ω₂ s - α_star ω₂) * (1 - α ω₂ s ^ 2))) +
+              (α_star ω₂ * ((α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁)) -
+               (α ω₁ s - α_star ω₁) * (α ω₂ s - α_star ω₂) * (1 - α ω₁ s ^ 2)) := by
+            intro ω₂; unfold pairIntegrand; ring
+          simp_rw [h_rw]; rw [integral_add hi12 hi21]
+          congr 1
+          · rw [integral_sub (hq_int.const_mul _) (hs_int.const_mul _),
+                integral_const_mul, integral_const_mul]
+          · have h_diff : Integrable (fun ω₂ => α ω₂ s - α_star ω₂) μ := hp_int
+            simp_rw [show ∀ ω₂,
+                α_star ω₂ * ((α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁)) -
+                (α ω₁ s - α_star ω₁) * (α ω₂ s - α_star ω₂) * (1 - α ω₁ s ^ 2) =
+                ((α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁)) * α_star ω₂ +
+                (-(((α ω₁ s - α_star ω₁) * (1 - α ω₁ s ^ 2)))) * (α ω₂ s - α_star ω₂)
+                from fun _ => by ring]
+            rw [integral_add (hαs_int.const_mul _) (h_diff.const_mul _),
+                integral_const_mul, integral_const_mul]; ring
+        exact (h_out12.add h_out21).congr (ae_of_all μ fun ω₁ => (h_eq ω₁).symm)
+      have h_bpc := body_pair_coercive (fun ω => α ω s) α_star γ K r_star δ_M ds_M body
+        (fun ω => (hα_inv ω s (le_of_lt hs)).1) (fun ω => (hα_inv ω s (le_of_lt hs)).2)
+        hα_star_pos hα_star_lt hδ_M_pos hds_M_pos
+        (fun ω hω => hα_lb_body ω hω s (le_of_lt hs))
+        (fun ω hω => hds_lb_body ω hω)
+        hbody_meas hq_int hs_int hαs_int hp_int (hα_sq_int s) h_outer_int
+      have h_pair_eq : ∫ ω₁, ∫ ω₂,
+          pairIntegrand (α ω₁ s) (α_star ω₁) (α ω₂ s) (α_star ω₂) ∂μ ∂μ =
+          ∫ ω₁, ∫ ω₂,
+            ((α_star ω₁ * ((α ω₂ s - α_star ω₂) ^ 2 * (α ω₂ s + 1 / α_star ω₂)) -
+              (α ω₁ s - α_star ω₁) * ((α ω₂ s - α_star ω₂) * (1 - α ω₂ s ^ 2))) +
+             (α_star ω₂ * ((α ω₁ s - α_star ω₁) ^ 2 * (α ω₁ s + 1 / α_star ω₁)) -
+              (α ω₁ s - α_star ω₁) * (α ω₂ s - α_star ω₂) * (1 - α ω₁ s ^ 2))) ∂μ ∂μ := by
+        congr 1; ext ω₁; congr 1; ext ω₂; unfold pairIntegrand; ring
+      rw [h_pair_eq] at h_bpc
+      have h_combined2 : 2 * (δ_M * ds_M) * (μ body).toReal * V_body s ≤
+          2 * (r_star * Q - D * S) := h_fub ▸ h_bpc
+      have hVbs := hVb_ge s
+      have hm_pos := hbody_toReal_pos
+      have h_lb : K * (δ_M * ds_M) * (μ body).toReal * (3 * L / 4) ≤
+          K * (r_star * Q - D * S) := by
+        have h1 : (δ_M * ds_M) * (μ body).toReal * (3 * L / 4) ≤
+            (δ_M * ds_M) * (μ body).toReal * V_body s :=
+          mul_le_mul_of_nonneg_left hVbs (mul_nonneg (mul_nonneg hδ_M_pos.le hds_M_pos.le) hm_pos.le)
+        have h2 : (δ_M * ds_M) * (μ body).toReal * V_body s ≤ r_star * Q - D * S := by linarith
+        nlinarith [mul_pos hK (mul_pos hδ_M_pos (mul_pos hds_M_pos hm_pos))]
+      linarith [show c₀ = K * (δ_M * ds_M) * (μ body).toReal * (3 * L / 4) from by ring]
+    have hW_le : ∀ n : ℕ, V (1 + ↑n) ≤ V 1 - c₀ * n := by
+      intro n; induction n with
+      | zero => simp
+      | succ k ih =>
+        have hsk : (0 : ℝ) < 1 + ↑k := by positivity
+        set W : ℝ → ℝ := fun t => V t + c₀ * t
+        have hW_anti : AntitoneOn W (Icc (1 + ↑k) (1 + ↑(k + 1))) := by
+          apply antitoneOn_of_deriv_nonpos (convex_Icc _ _)
+          · exact (hV_cont_on.mono (fun t ht => mem_Ici.mpr (le_trans (le_of_lt hsk) ht.1))).add
+              (continuousOn_const.mul continuousOn_id)
+          · intro t ht; rw [interior_Icc] at ht
+            exact ((hV_has_deriv t (lt_trans hsk ht.1)).add
+              ((hasDerivAt_id t).const_mul c₀)).differentiableAt.differentiableWithinAt
+          · intro t ht; rw [interior_Icc] at ht
+            have hWd : HasDerivAt W
+                (∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ + c₀ * 1) t :=
+              (hV_has_deriv t (lt_trans hsk ht.1)).add ((hasDerivAt_id t).const_mul c₀)
+            rw [hWd.deriv]; simp only [mul_one]
+            linarith [hV'_le t (lt_trans hsk ht.1)]
+        have := hW_anti (left_mem_Icc.mpr (by push_cast; linarith))
+          (right_mem_Icc.mpr (by push_cast; linarith)) (by push_cast; linarith)
+        simp [W] at this; push_cast at this ih ⊢; linarith
+    have : V (1 + ↑(Nat.ceil (V 1 / c₀) + 1)) < 0 := by
+      have hn : V 1 - c₀ * ↑(Nat.ceil (V 1 / c₀) + 1) < 0 := by
+        have hVc0 : V 1 / c₀ < ↑(Nat.ceil (V 1 / c₀) + 1) := by
+          have h1 := Nat.le_ceil (V 1 / c₀)
+          have h2 := Nat.lt_succ_self (Nat.ceil (V 1 / c₀))
+          exact_mod_cast lt_of_le_of_lt h1 (by exact_mod_cast h2)
+        linarith [(div_lt_iff₀ hc₀_pos).mp hVc0]
+      linarith [hW_le (Nat.ceil (V 1 / c₀) + 1)]
+    linarith [hV_nn (1 + ↑(Nat.ceil (V 1 / c₀) + 1))]
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  rw [Metric.tendsto_atTop] at hV_zero
+  obtain ⟨N, hN⟩ := hV_zero (ε ^ 2) (by positivity)
+  refine ⟨max N 0, fun t ht => ?_⟩
+  have ht_ge : N ≤ t := le_trans (le_max_left _ _) ht
+  have ht_nn : (0 : ℝ) ≤ t := le_trans (le_max_right _ _) ht
+  have hV_t := hN t ht_ge
+  simp only [Real.dist_eq, sub_zero] at hV_t
+  rw [abs_of_nonneg (hV_nn t)] at hV_t
+  have hCS : (r t - r_star) ^ 2 ≤ V t := by
+    have hrsc : r t - r_star = ∫ ω, (α ω t - α_star ω) ∂μ := by
+      rw [h_sc t ht_nn, hr_star_eq, integral_sub (hα_int t) hαs_int]
+    rw [hrsc]; exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
+  rw [Real.dist_eq]
+  exact abs_lt_of_sq_lt_sq (lt_of_le_of_lt hCS hV_t) (le_of_lt hε)
+
 end

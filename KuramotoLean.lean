@@ -157,3 +157,5 @@ import KuramotoLean.KuramotoContinuumSCFixedPoint
 import KuramotoLean.KuramotoFirstMomentEndToEnd
 import KuramotoLean.KuramotoFirstMomentConcreteV8
 import KuramotoLean.KuramotoFirstMomentEndToEndV2
+import KuramotoLean.KuramotoFirstMomentConcreteV9
+import KuramotoLean.KuramotoFirstMomentEndToEndV3
