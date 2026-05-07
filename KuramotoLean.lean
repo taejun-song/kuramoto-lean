@@ -152,3 +152,4 @@ import KuramotoLean.KuramotoFirstMomentConcreteV4
 import KuramotoLean.KuramotoROrderBounds
 import KuramotoLean.KuramotoFirstMomentConcreteV5
 import KuramotoLean.KuramotoFirstMomentConcreteV6
+import KuramotoLean.KuramotoFirstMomentConcreteV7
