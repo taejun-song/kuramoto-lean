@@ -143,3 +143,4 @@ import KuramotoLean.KuramotoGammaMinConvergence
 import KuramotoLean.KuramotoExplicitInitWired7
 import KuramotoLean.MixedPowerLorentzianAnalyticExtension
 import KuramotoLean.FirstMomentTailVanish
+import KuramotoLean.ContinuumFullLeibniz
