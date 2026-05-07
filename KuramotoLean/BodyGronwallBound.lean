@@ -182,18 +182,19 @@ theorem body_gronwall_from_persistence [IsProbabilityMeasure μ]
     (hμ_body_pos : 0 < (μ {ω | γ ω ≤ M}).toReal)
     (hV_body_cont : ContinuousOn
         (fun t => ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ) (Ici 0)) :
-    ∃ rate : ℝ, 0 < rate ∧ ∀ t ≥ (0 : ℝ),
+    let rate := K * δ * ds * (μ {ω | γ ω ≤ M}).toReal
+    0 < rate ∧ ∀ t ≥ (0 : ℝ),
       ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ ≤
         (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) *
           rexp (-rate * t) + K * (μ {ω | M < γ ω}).toReal / rate := by
   set body := {ω | γ ω ≤ M}
   set tail := {ω | M < γ ω}
   set V_body := fun t => ∫ ω in body, (α ω t - α_star ω) ^ 2 ∂μ
-  set rate := K * δ * ds * (μ body).toReal
+  intro rate
   have hrate_pos : 0 < rate := by
     simp only [rate]
     exact mul_pos (mul_pos (mul_pos hK hδ) hds) hμ_body_pos
-  refine ⟨rate, hrate_pos, ?_⟩
+  refine ⟨hrate_pos, ?_⟩
   apply body_gronwall_from_deriv V_body
     (fun t => ∫ ω in body, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ)
     rate (K * (μ tail).toReal) hrate_pos (by positivity) hV_body_cont
