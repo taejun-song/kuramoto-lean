@@ -224,7 +224,7 @@ theorem V_inf_tendsto_zero_from_r
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
     (hα_ode : ∀ ω t, 0 < t → HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (hα_bdd : ∀ ω t, 0 ≤ t → 0 ≤ α ω t ∧ α ω t ≤ 1)
-    (hα_sq_meas : ∀ t, AEStronglyMeasurable (fun ω => (α ω t - α_star ω) ^ 2) μ) :
+    (hα_sq_meas : ∀ᶠ t in atTop, AEStronglyMeasurable (fun ω => (α ω t - α_star ω) ^ 2) μ) :
     Tendsto (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0) := by
   -- For a.e. ω, γ(ω) > 0, so the per-ω convergence applies
   have h_pw : ∀ᵐ ω ∂μ, Tendsto (fun t => (α ω t - α_star ω) ^ 2) atTop (nhds 0) := by
@@ -245,7 +245,7 @@ theorem V_inf_tendsto_zero_from_r
   -- Convert: ∫(α-α*)² → ∫0 = 0
   have h_dct := tendsto_integral_filter_of_dominated_convergence
     (fun _ : Ω => (4 : ℝ))
-    (Eventually.of_forall fun t => hα_sq_meas t)
+    hα_sq_meas
     h_bound (integrable_const 4)
     (by filter_upwards [h_pw] with ω h_ω; exact h_ω)
   simp only [integral_zero] at h_dct

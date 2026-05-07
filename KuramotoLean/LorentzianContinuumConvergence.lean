@@ -54,7 +54,7 @@ theorem lorentzian_continuum_V_inf_tendsto
     (hα_ode : ∀ ω t, 0 < t →
         HasDerivAt (α ω) (oaScalarRHS (γ ω) K (lorentzian_explicit K γ₀ r₀) t (α ω t)) t)
     (hα_bdd : ∀ ω t, 0 ≤ t → 0 ≤ α ω t ∧ α ω t ≤ 1)
-    (hα_sq_meas : ∀ t, AEStronglyMeasurable (fun ω => (α ω t - α_star ω) ^ 2) μ) :
+    (hα_sq_meas : ∀ᶠ t in atTop, AEStronglyMeasurable (fun ω => (α ω t - α_star ω) ^ 2) μ) :
     Tendsto (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0) :=
   V_inf_tendsto_zero_from_r γ K hK hγ_ae_pos α_star
     (Real.sqrt (1 - 2 * γ₀ / K))
