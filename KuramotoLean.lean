@@ -153,3 +153,4 @@ import KuramotoLean.KuramotoROrderBounds
 import KuramotoLean.KuramotoFirstMomentConcreteV5
 import KuramotoLean.KuramotoFirstMomentConcreteV6
 import KuramotoLean.KuramotoFirstMomentConcreteV7
+import KuramotoLean.KuramotoContinuumSCFixedPoint
