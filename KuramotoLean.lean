@@ -138,3 +138,6 @@ import KuramotoLean.GaussianAnalyticExtension
 import KuramotoLean.LorentzianMixtureAnalyticExtension
 import KuramotoLean.GaussianMixtureAnalyticExtension
 import KuramotoLean.PowerLorentzianAnalyticExtension
+import KuramotoLean.ContinuumSolvedWired7
+import KuramotoLean.KuramotoGammaMinConvergence
+import KuramotoLean.KuramotoExplicitInitWired7
