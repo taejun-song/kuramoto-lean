@@ -134,7 +134,7 @@ theorem kuramoto_gamma_min_first_moment_concrete [IsProbabilityMeasure μ]
         (∫ ω in {ω | γ ω ≤ M}, (α ω 0 - α_star ω) ^ 2 ∂μ) * rexp (-rate * t) + C M := by
     intro M hM
     obtain ⟨hrate_pos, hbound⟩ := body_gronwall_from_persistence γ K hK hγ hγ_meas
-      α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α hr_bdd
+      α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil r α (fun t ht => hr_bdd t)
       hα_ode hα_int hα_sq_int hα_inv h_sc M hM (hγ_level M) α₀_lb hα₀_lb_pos
       (K * r_star / (2 * M + K * r_star)) (hds_pos M hM)
       (fun ω _ t ht => hα_lb ω t ht) (hds_lb M hM) (hμ_body_pos M hM) (hV_body_cont M hM)

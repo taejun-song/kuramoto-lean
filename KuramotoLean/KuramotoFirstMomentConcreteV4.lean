@@ -42,7 +42,7 @@ theorem kuramoto_first_moment_concrete_v4 [IsProbabilityMeasure μ]
     (hr_star_pos : 0 < r_star)
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
     (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
-    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hr_bdd : ∀ t, 0 < t → |r t| ≤ 1)
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
     (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)

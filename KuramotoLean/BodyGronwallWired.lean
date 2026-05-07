@@ -72,7 +72,7 @@ theorem body_gronwall_wired [IsProbabilityMeasure μ]
       hα_star_pos hα_star_lt hα_sq_int
   exact body_gronwall_from_persistence γ K hK hγ_nn hγ_meas α_star r_star
     hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
-    r α hr_bdd hα_ode hα_int hα_sq_int hα_inv h_sc
+    r α (fun t ht => hr_bdd t) hα_ode hα_int hα_sq_int hα_inv h_sc
     M hM hγ_level δ hδ ds hds_pos hα_lb hds_lb hμ_body_pos hV_body_cont
 
 end

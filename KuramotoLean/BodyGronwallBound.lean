@@ -41,7 +41,7 @@ private theorem body_leibniz_at_nn [IsProbabilityMeasure μ]
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
     (hγ_nn : ∀ ω, 0 ≤ γ ω)
-    (hK : 0 < K) (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hK : 0 < K) (hr_bdd : ∀ t, 0 < t → |r t| ≤ 1)
     (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
     (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
     (hαs_int : Integrable α_star μ)
@@ -66,7 +66,7 @@ private theorem body_leibniz_at_nn [IsProbabilityMeasure μ]
     have hl := (hα_inv ω s (le_of_lt hs_pos)).2
     have h_rhs_le : |oaScalarRHS (γ ω) K r s (α ω s)| ≤ M + K / 2 := by
       unfold oaScalarRHS
-      have hr1 := hr_bdd s
+      have hr1 := hr_bdd s hs_pos
       have hrs_lo : -1 ≤ r s := by linarith [(abs_le.mp hr1).1]
       have hrs_hi : r s ≤ 1 := (abs_le.mp hr1).2
       have h1mα2_nn : 0 ≤ 1 - (α ω s) ^ 2 := by nlinarith [sq_nonneg (α ω s)]
@@ -167,7 +167,7 @@ theorem body_gronwall_from_persistence [IsProbabilityMeasure μ]
     (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
     (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
-    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hr_bdd : ∀ t, 0 < t → |r t| ≤ 1)
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
     (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
