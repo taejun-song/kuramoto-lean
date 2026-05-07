@@ -76,7 +76,6 @@ theorem oa_scalar_pointwise_tendsto
     (hγ : 0 < γ) (hK : 0 < K) (hr_star : 0 < r_star)
     (r : ℝ → ℝ)
     (hr_tendsto : Tendsto r atTop (nhds r_star))
-    (hr_bdd_r : ∀ t, |r t| ≤ 1)
     (α : ℝ → ℝ)
     (hα_cont : ContinuousOn α (Ici 0))
     (hα_ode : ∀ t, 0 < t → HasDerivAt α (oaScalarRHS γ K r t (α t)) t)
@@ -221,7 +220,6 @@ theorem V_inf_tendsto_zero_from_r
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
     (r : ℝ → ℝ)
     (hr_tendsto : Tendsto r atTop (nhds r_star))
-    (hr_bdd : ∀ t, |r t| ≤ 1)
     (α : Ω → ℝ → ℝ)
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
     (hα_ode : ∀ ω t, 0 < t → HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
@@ -232,7 +230,7 @@ theorem V_inf_tendsto_zero_from_r
   have h_pw : ∀ᵐ ω ∂μ, Tendsto (fun t => (α ω t - α_star ω) ^ 2) atTop (nhds 0) := by
     filter_upwards [hγ_ae_pos] with ω hγ_pos
     exact oa_scalar_pointwise_tendsto (γ ω) K r_star hγ_pos hK hr_star_pos
-      r hr_tendsto hr_bdd (α ω) (hα_cont ω) (hα_ode ω)
+      r hr_tendsto (α ω) (hα_cont ω) (hα_ode ω)
       (hα_bdd ω) (α_star ω) (hα_star_equil ω)
       ⟨le_of_lt (hα_star_pos ω), le_of_lt (hα_star_lt ω)⟩
   -- Apply dominated convergence: bound is 4 (constant), a.e. converging
