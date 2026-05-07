@@ -141,3 +141,5 @@ import KuramotoLean.PowerLorentzianAnalyticExtension
 import KuramotoLean.ContinuumSolvedWired7
 import KuramotoLean.KuramotoGammaMinConvergence
 import KuramotoLean.KuramotoExplicitInitWired7
+import KuramotoLean.MixedPowerLorentzianAnalyticExtension
+import KuramotoLean.FirstMomentTailVanish
