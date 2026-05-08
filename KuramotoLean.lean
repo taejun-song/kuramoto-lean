@@ -146,6 +146,7 @@ import KuramotoLean.ContinuumFullLeibniz
 import KuramotoLean.ContinuumGammaMinFirstMoment
 import KuramotoLean.KuramotoGammaMinFirstMomentConcrete
 import KuramotoLean.KuramotoFirstMomentConcrete
+import KuramotoLean.GeneralGBodyAbsorbBypass
 import KuramotoLean.KuramotoFirstMomentConcreteV2
 import KuramotoLean.KuramotoFirstMomentConcreteV3
 import KuramotoLean.KuramotoFirstMomentConcreteV4
@@ -159,3 +160,6 @@ import KuramotoLean.KuramotoFirstMomentConcreteV8
 import KuramotoLean.KuramotoFirstMomentEndToEndV2
 import KuramotoLean.KuramotoFirstMomentConcreteV9
 import KuramotoLean.KuramotoFirstMomentEndToEndV3
+import KuramotoLean.KuramotoFirstMomentEndToEndWired
+import KuramotoLean.KuramotoFirstMomentBarbalat
+import KuramotoLean.OADeviationDecay
