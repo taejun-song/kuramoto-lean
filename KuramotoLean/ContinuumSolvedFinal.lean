@@ -29,7 +29,7 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-! ## Leibniz rule with integrable γ dominator -/
 
-private theorem leibniz_integrable_gamma
+theorem leibniz_integrable_gamma
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (α_star : Ω → ℝ)
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
@@ -120,7 +120,7 @@ private theorem leibniz_integrable_gamma
 
 /-! ## Helper: Q-integrand integrability -/
 
-private theorem q_int_of_gamma_int [IsProbabilityMeasure μ]
+theorem q_int_of_gamma_int [IsProbabilityMeasure μ]
     (α αs γ : Ω → ℝ) (K r_star : ℝ)
     (hK : 0 < K) (hr_star : 0 < r_star)
     (hα_pos : ∀ ω, 0 < α ω) (hα_lt : ∀ ω, α ω < 1)
@@ -160,7 +160,7 @@ private theorem q_int_of_gamma_int [IsProbabilityMeasure μ]
             mul_le_mul h_sq_le h_sum_le h_nn zero_le_one
         _ = 2 + 2 / (K * r_star) * γ ω := one_mul _)
 
-private theorem s_int_bdd [IsProbabilityMeasure μ]
+theorem s_int_bdd [IsProbabilityMeasure μ]
     (α αs : Ω → ℝ)
     (hα_pos : ∀ ω, 0 < α ω) (hα_lt : ∀ ω, α ω < 1)
     (hαs_pos : ∀ ω, 0 < αs ω) (hαs_lt : ∀ ω, αs ω < 1)
