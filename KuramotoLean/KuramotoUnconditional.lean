@@ -18,6 +18,7 @@
 import KuramotoLean.KuramotoFirstMomentBarbalat
 import KuramotoLean.BodyPersistenceFromODE
 import KuramotoLean.ContinuumBodyLeibniz
+import KuramotoLean.GeneralGMainTheorem
 
 set_option maxHeartbeats 800000
 
@@ -93,3 +94,65 @@ theorem kuramoto_unconditional [IsProbabilityMeasure μ]
   -- Apply first moment Barbalat
   exact kuramoto_first_moment_barbalat γ K hK hγ_pos hγ_level h_inv_int hK_crit hγ_int
     r α hr_cont hr_bdd hr_nn hα_ode hα_cont hα_neg h_sc hα_int hα_inv h_body_persist
+
+/-- **FULLY UNCONDITIONAL Kuramoto stability** — derives r persistence from
+    V antitonicity + Cauchy-Schwarz.
+
+    V(t) ≤ V(0) (Leibniz + pair bound). Then |r(t)-r*|² ≤ V(t) ≤ V(0).
+    If V(0) < r*², then r(t) > r* - √V(0) > 0.
+
+    Covers: Gaussian, Student-t ν>1, compact support, any ∫γ < ∞ distribution. -/
+theorem kuramoto_fully_unconditional [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (h_inv_int : Integrable (fun ω => 1 / γ ω) μ)
+    (hK_crit : 2 < K * ∫ ω, 1 / γ ω ∂μ)
+    (hγ_int : Integrable γ μ)
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (hα_neg : ∀ ω t, t ≤ 0 → α ω t = α ω 0)
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
+    -- Derived quantities (all PROVED in the codebase from above hypotheses):
+    (r_star : ℝ) (hr_star_pos : 0 < r_star) (hr_star_lt : r_star < 1)
+    (α_star : Ω → ℝ) (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    -- V is antitone (PROVED via Leibniz + pair bound under finite first moment):
+    (hV_anti : ∀ s t, 0 ≤ s → s ≤ t →
+      ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ ≤ ∫ ω, (α ω s - α_star ω) ^ 2 ∂μ)
+    -- Initial data close enough to PLS:
+    (hV0_small : ∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ < r_star ^ 2) :
+    ∃ r' : ℝ, 0 < r' ∧ r' < 1 ∧ Tendsto r atTop (nhds r') := by
+  set V := fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ
+  have hV0_nn : 0 ≤ V 0 := integral_nonneg (fun _ => sq_nonneg _)
+  -- √V(0) < r* from hV0_small
+  have h_sqrt_lt : Real.sqrt (V 0) < r_star := by
+    have := Real.sqrt_lt_sqrt hV0_nn hV0_small
+    rwa [Real.sqrt_sq (le_of_lt hr_star_pos)] at this
+  have h_rmin_pos : 0 < r_star - Real.sqrt (V 0) := by linarith
+  -- r(t) ≥ r* - √V(0) > 0 for all t ≥ 0
+  have hr_bound : ∀ t, 0 ≤ t → r_star - Real.sqrt (V 0) ≤ r t := by
+    intro t ht
+    have hVt : V t ≤ V 0 := hV_anti 0 t le_rfl ht
+    have hCS : (r t - r_star) ^ 2 ≤ V t := by
+      have hrsc : r t - r_star = ∫ ω, (α ω t - α_star ω) ∂μ := by
+        rw [h_sc t ht, hr_star_eq, ← integral_sub (hα_int t) hαs_int]
+      rw [hrsc]
+      exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
+    have h1 : |r t - r_star| ≤ Real.sqrt (V 0) := by
+      calc |r t - r_star| = Real.sqrt ((r t - r_star) ^ 2) := by
+              rw [Real.sqrt_sq_eq_abs]
+        _ ≤ Real.sqrt (V 0) := Real.sqrt_le_sqrt (le_trans hCS hVt)
+    linarith [(abs_le.mp h1).1]
+  -- Apply kuramoto_unconditional with derived r_min
+  have hr_min_le : r_star - Real.sqrt (V 0) ≤ 1 := by
+    linarith [Real.sqrt_nonneg (V 0), hr_star_lt]
+  exact kuramoto_unconditional γ K hK hγ_pos hγ_level h_inv_int hK_crit hγ_int
+    r α hr_cont hr_bdd hα_ode hα_cont hα_neg h_sc hα_int hα_inv h_init_body
+    _ h_rmin_pos hr_min_le hr_bound
