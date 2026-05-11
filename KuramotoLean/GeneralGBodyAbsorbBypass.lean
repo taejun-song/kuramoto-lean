@@ -161,6 +161,39 @@ absorbing-ball hypothesis `h_body_absorb` needs to be constructed.
 
 This isolates the exact remaining interface in `KuramotoGlobal`: prove
 `r_stays_positive`, then apply this theorem. -/
+theorem body_persistence_of_r_floor [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
+    (r_min : ℝ) (hr_min_pos : 0 < r_min) (hr_min_le : r_min ≤ 1)
+    (hr_floor : ∀ t, 0 ≤ t → r_min ≤ r t) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t := by
+  intro M hM
+  have hγ : ∀ ω, 0 ≤ γ ω := fun ω => le_of_lt (hγ_pos ω)
+  have hα_ode' : ∀ ω, ∀ t, 0 < t →
+      HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t :=
+    fun ω t ht => hα_ode ω t (le_of_lt ht)
+  exact @continuum_body_persistence Ω _ μ ‹_› γ K r α r_min M hK hγ
+    hr_min_pos hr_min_le hM hr_floor hr_bdd hα_ode' hα_inv hα_cont
+    (fun ω _ => (hα_inv ω 0 le_rfl).1)
+    (h_init_body M hM)
+
+/-- **Positive order-parameter floor bypasses `h_body_absorb`.**
+
+Once the dynamics supplies a uniform lower bound `r(t) ≥ r_min > 0`,
+the ODE comparison theorem `continuum_body_persistence` upgrades the initial
+body lower bounds to persistent body coherence. At that point the project can
+call `kuramoto_standard_tendsto` directly, so no separate eventual
+absorbing-ball hypothesis `h_body_absorb` needs to be constructed.
+
+This isolates the exact remaining interface in `KuramotoGlobal`: prove
+`r_stays_positive`, then apply this theorem. -/
 theorem kuramoto_standard_tendsto_of_r_floor [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
@@ -192,16 +225,10 @@ theorem kuramoto_standard_tendsto_of_r_floor [IsProbabilityMeasure μ]
     intro t ht
     rw [h_sc t ht]
     exact integral_nonneg (fun ω => le_of_lt (hα_inv ω t ht).1)
-  have h_body_persist : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
-      ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t := by
-    intro M hM
-    have hα_ode' : ∀ ω, ∀ t, 0 < t →
-        HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t :=
-      fun ω t ht => hα_ode ω t (le_of_lt ht)
-    exact @continuum_body_persistence Ω _ μ ‹_› γ K r α r_min M hK hγ
-      hr_min_pos hr_min_le hM hr_floor hr_bdd hα_ode' hα_inv hα_cont
-      (fun ω _ => (hα_inv ω 0 le_rfl).1)
-      (h_init_body M hM)
+  have h_body_persist :=
+    body_persistence_of_r_floor (μ := μ) (γ := γ) (K := K) hK hγ_pos
+      r α hr_bdd hα_ode hα_cont hα_inv h_init_body
+      r_min hr_min_pos hr_min_le hr_floor
   have hγ_int_pos : 0 < ∫ ω, γ ω ∂μ := by
     apply (integral_pos_iff_support_of_nonneg hγ hγ_int).mpr
     rw [show Function.support γ = Set.univ from
