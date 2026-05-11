@@ -23,6 +23,7 @@
 -/
 
 import KuramotoLean.KuramotoFinal
+import KuramotoLean.GeneralGBodyAbsorbBypass
 
 open MeasureTheory Real Set Filter Topology
 
@@ -150,7 +151,12 @@ theorem kuramoto_global [IsProbabilityMeasure μ]
   -- Step 1: r stays positive (from energy identity)
   obtain ⟨r_min, hr_min_pos, hr_bound⟩ := r_stays_positive γ K r α hK hγ_pos hγ_int
     hr_cont hr_bdd hα_ode hα_inv h_sc hα_int hr_pos
-  -- Step 2: V is antitone (no V(0) restriction needed)
-  -- V(t) is decreasing, so eventually V(t) < r*²
-  -- (because V(t) → L and if L ≥ r*² we get a contradiction from body persistence)
-  sorry -- Wire: r_min → body persistence → V → 0 → r → r*
+  have hr_min_le : r_min ≤ 1 := by
+    have h0_floor : r_min ≤ r 0 := hr_bound 0 le_rfl
+    have h0_upper : r 0 ≤ 1 := (abs_le.mp (hr_bdd 0)).2
+    linarith
+  exact kuramoto_standard_tendsto_of_r_floor γ K hK hγ_pos hγ_level hγ_int
+    r α hr_cont hr_bdd hα_ode hα_cont hα_neg h_sc hα_int hα_inv
+    α_star r_star hr_star_pos hr_star_lt hα_star_pos hα_star_lt hαs_int
+    hr_star_eq hα_star_equil hα_sq_int h_init_body r_min hr_min_pos
+    hr_min_le hr_bound
