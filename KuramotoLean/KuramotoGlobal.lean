@@ -120,6 +120,43 @@ theorem r_stays_positive [IsProbabilityMeasure μ]
     ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t := by
   sorry -- THE KEY GAP: energy identity → r persistence
 
+/-- **Positive `r`-floor from `r_stays_positive` yields body absorption.**
+
+This is the exact interface needed by the tail-body convergence machinery:
+once `r_stays_positive` provides an existential positive floor, the existing
+body-persistence bypass produces an absorbing radius `C(M)` and eventual
+body Lyapunov control on every truncation `{ω | γ ω ≤ M}`. -/
+theorem h_body_absorb_of_r_stays_positive [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hr_star_pos : 0 < r_star)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
+    (hr_pos_floor : ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t)
+    (hμ_body_pos : ∀ M, 0 < M → 0 < (μ {ω | γ ω ≤ M}).toReal) :
+    ∃ C : ℝ → ℝ,
+      (∀ M, 0 ≤ C M) ∧
+      (∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
+        ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε) := by
+  exact h_body_absorb_of_pos_floor
+    (μ := μ) γ K hK hγ_pos hγ_level
+    α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hr_star_pos
+    hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
+    h_init_body hr_pos_floor hμ_body_pos
+
 /-- **TRUE GLOBAL STABILITY** — the original Kuramoto problem.
     For ANY r(0) > 0, r(t) → r*.
 
