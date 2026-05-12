@@ -13,14 +13,13 @@
   - Portmanteau theorem (weak convergence characterizations).
   - Levy-Prokhorov metric on probability measures.
 
-  MATHLIB MISSING (sorry'd below):
-  - No Wasserstein / Kantorovich / optimal transport.
-  - No direct "approximate a probability measure by n-pole measures" in the measure
-    topology (only function-level simple function approximation exists).
-  - The gap: converting simple-function-level approximation to a clean n-pole
-    (weighted Dirac sum) measure statement requires a small bridge argument.
+  PROOF APPROACH (all theorems closed, 0 sorry):
+  The key insight is that ∫ f dμ lies in the closure of the convex hull of
+  range(f), by Convex.integral_mem. Elements of the convex hull are finite
+  convex combinations ∑ cₖ f(ωₖ), so approximation follows from
+  Metric.mem_closure_iff + mem_convexHull_iff_exists_fintype.
 
-  0 axioms. Sorrys mark genuine Mathlib gaps.
+  0 axioms, 0 sorry.
 -/
 
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
@@ -28,6 +27,9 @@ import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
 import Mathlib.MeasureTheory.Function.SimpleFuncDenseLp
 import Mathlib.MeasureTheory.Function.SimpleFuncDense
 import Mathlib.MeasureTheory.Measure.MeasureSpace
+import Mathlib.Analysis.Convex.Integral
+import Mathlib.Analysis.Convex.Combination
+import Mathlib.MeasureTheory.SpecificCodomains.Pi
 
 open MeasureTheory Filter Topology Finset
 open scoped ENNReal NNReal Topology MeasureTheory
@@ -45,10 +47,9 @@ variable {α : Type*} [MeasurableSpace α]
   We record the specialization to ℝ-valued functions. -/
 
 theorem simpleFunc_integral_eq_finite_sum
-    {μ : Measure α} {f : α →ₛ ℝ} (hfi : Integrable f μ) :
+    {μ : Measure α} {f : SimpleFunc α ℝ} (hfi : Integrable f μ) :
     ∫ x, f x ∂μ = ∑ y ∈ f.range, μ.real (f ⁻¹' {y}) * y := by
   rw [SimpleFunc.integral_eq_sum f hfi]
-  congr 1 with y
   simp [smul_eq_mul]
 
 /-! ## 2. Integral approximation via simple functions (from Mathlib)
@@ -62,8 +63,8 @@ theorem integral_approx_by_simpleFunc_sum
     {μ : Measure α} {f : α → ℝ}
     (hfm : Measurable f) (hfi : Integrable f μ) (ε : ℝ) (hε : 0 < ε) :
     ∃ N : ℕ,
-      |SimpleFunc.integral (SimpleFunc.approxOn f hfm (Set.range f ∪ {0}) 0
-        (by simp) N) μ - ∫ x, f x ∂μ| < ε := by
+      |(SimpleFunc.approxOn f hfm (Set.range f ∪ {0}) 0
+        (by simp) N).integral μ - ∫ x, f x ∂μ| < ε := by
   have htend := tendsto_integral_approxOn_of_measurable_of_range_subset
     hfm hfi (Set.range f ∪ {0}) le_rfl
   rw [Metric.tendsto_atTop] at htend
@@ -99,25 +100,100 @@ theorem nPoleMeasure_isProbability [MeasurableSingletonClass α]
   For any integrable f and ε > 0, there exist n, points ω_k, and weights c_k > 0
   with ∑ c_k = 1 such that |∫ f dμ - ∑ c_k f(ω_k)| < ε.
 
-  PROOF STRATEGY (sorry'd — not directly in Mathlib):
-  1. Use `SimpleFunc.approxOn` to get g_N with |∫ f dμ - ∫ g_N dμ| < ε/2.
-  2. g_N has finite range {y₁,...,y_m} with μ-measurable preimages Aⱼ = g⁻¹(yⱼ).
-  3. For each Aⱼ with μ(Aⱼ) > 0, pick a representative ωⱼ ∈ Aⱼ.
-  4. Set cⱼ = μ(Aⱼ). Then ∫ g_N dμ = ∑ⱼ cⱼ · g_N(ωⱼ) = ∑ⱼ cⱼ · yⱼ.
-  5. Triangle: |∫ f dμ - ∑ cⱼ f(ωⱼ)| ≤ |∫ f dμ - ∫ g_N dμ| + |∫ g_N dμ - ∑ cⱼ f(ωⱼ)|.
-     The second term needs |g_N(ωⱼ) - f(ωⱼ)| control, which comes from approxOn pointwise
-     convergence. This step requires choosing N large enough for BOTH integral and pointwise
-     approximation on the finite set of representatives.
+  PROOF: ∫ f dμ ∈ closure(convexHull ℝ (range f)) by Convex.integral_mem.
+  By Metric.mem_closure_iff, approximate within ε by y ∈ convexHull ℝ (range f).
+  By mem_convexHull_iff_exists_fintype, y = ∑ wᵢ • zᵢ with zᵢ ∈ range f.
+  Pick ωₖ with f(ωₖ) = zₖ. Then ∑ cₖ f(ωₖ) = y ≈ ∫ f dμ. -/
 
-  The gap is that Mathlib provides the pieces but does not assemble this particular statement.
-  The `sorry` below marks a genuine proof obligation, not a missing concept. -/
+private lemma simpleFunc_integral_as_finset_sum (μ : Measure ℝ)
+    (g : SimpleFunc ℝ ℝ) (hgi : Integrable g μ) :
+    ∫ x, g x ∂μ = ∑ y ∈ g.range, μ.real (g ⁻¹' {y}) * y := by
+  rw [SimpleFunc.integral_eq_sum g hgi]
+  simp [smul_eq_mul]
+
+private lemma simpleFunc_weights_nonneg (μ : Measure ℝ) (g : SimpleFunc ℝ ℝ) (y : ℝ) :
+    0 ≤ μ.real (g ⁻¹' {y}) :=
+  measureReal_nonneg
+
+private lemma simpleFunc_weights_sum_one (μ : Measure ℝ) [IsProbabilityMeasure μ]
+    (g : SimpleFunc ℝ ℝ) :
+    ∑ y ∈ g.range, μ.real (g ⁻¹' {y}) = 1 := by
+  simp only [Measure.real]
+  rw [← ENNReal.toReal_sum (fun _ _ => measure_ne_top μ _)]
+  rw [g.sum_range_measure_preimage_singleton]
+  simp [measure_univ]
+
+private lemma mem_range_iff_preimage_nonempty (g : SimpleFunc ℝ ℝ) (y : ℝ) :
+    y ∈ g.range → (g ⁻¹' {y}).Nonempty := by
+  intro hy
+  rw [SimpleFunc.mem_range] at hy
+  obtain ⟨x, hx⟩ := hy
+  exact ⟨x, hx ▸ Set.mem_preimage.mpr (Set.mem_singleton _)⟩
+
+private lemma simpleFunc_integral_approx_core (μ : Measure ℝ) [IsProbabilityMeasure μ]
+    (g : SimpleFunc ℝ ℝ) (hgi : Integrable g μ) :
+    ∃ (n : ℕ) (ω : Fin n → ℝ) (c : Fin n → ℝ),
+      (∀ k, 0 ≤ c k) ∧ (∑ k, c k = 1) ∧
+      ∫ x, g x ∂μ = ∑ k, c k * g (ω k) := by
+  set n := g.range.card
+  set e := g.range.orderEmbOfFin rfl with he_def
+  have he_mem : ∀ k, e k ∈ g.range := fun k => Finset.orderEmbOfFin_mem _ rfl k
+  set rep : Fin n → ℝ := fun k => (mem_range_iff_preimage_nonempty g (e k) (he_mem k)).some
+  have hrep : ∀ k, g (rep k) = e k := by
+    intro k
+    have := (mem_range_iff_preimage_nonempty g (e k) (he_mem k)).some_mem
+    exact Set.mem_preimage.mp this
+  set c : Fin n → ℝ := fun k => μ.real (g ⁻¹' {e k})
+  have he_inj : Function.Injective e := e.injective
+  have he_image : Finset.image e Finset.univ = g.range :=
+    Finset.image_orderEmbOfFin_univ g.range rfl
+  have reindex : ∀ (h : ℝ → ℝ),
+      ∑ y ∈ g.range, h y = ∑ k : Fin n, h (e k) := by
+    intro h
+    calc ∑ y ∈ g.range, h y
+        = ∑ y ∈ Finset.image e Finset.univ, h y := by rw [he_image]
+      _ = ∑ k ∈ Finset.univ, h (e k) :=
+          Finset.sum_image (fun a _ b _ hab => he_inj hab)
+      _ = ∑ k : Fin n, h (e k) := by rfl
+  refine ⟨n, rep, c, fun k => measureReal_nonneg, ?_, ?_⟩
+  · rw [← simpleFunc_weights_sum_one μ g, reindex]
+  · rw [simpleFunc_integral_as_finset_sum μ g hgi, reindex]
+    congr 1 with k
+    rw [hrep]
 
 theorem exists_discrete_approx (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (f : ℝ → ℝ) (hf : Integrable f μ) (ε : ℝ) (hε : 0 < ε) :
     ∃ (n : ℕ) (ω : Fin n → ℝ) (c : Fin n → ℝ),
       (∀ k, 0 ≤ c k) ∧ (∑ k, c k = 1) ∧
       |∫ x, f x ∂μ - ∑ k, c k * f (ω k)| < ε := by
-  sorry
+  have hmem : (∫ x, f x ∂μ) ∈ closure (convexHull ℝ (Set.range f)) := by
+    apply Convex.integral_mem (Convex.closure (convex_convexHull ℝ _)) isClosed_closure
+    · exact Eventually.of_forall fun x =>
+        subset_closure (subset_convexHull ℝ _ (Set.mem_range_self x))
+    · exact hf
+  rw [Metric.mem_closure_iff] at hmem
+  obtain ⟨y, hy_mem, hy_dist⟩ := hmem ε hε
+  rw [mem_convexHull_iff_exists_fintype] at hy_mem
+  obtain ⟨ι, _, w, z, hw_pos, hw_sum, hz_range, hz_eq⟩ := hy_mem
+  let n := Fintype.card ι
+  let e := Fintype.equivFin ι
+  have hzr : ∀ i, ∃ x, f x = z i := fun i => Set.mem_range.mp (hz_range i)
+  let ω : Fin n → ℝ := fun k => (hzr (e.symm k)).choose
+  let c : Fin n → ℝ := fun k => w (e.symm k)
+  have hω_spec (k : Fin n) : f (ω k) = z (e.symm k) := by
+    exact (hzr (e.symm k)).choose_spec
+  have hc_sum : ∑ k, c k = 1 := by
+    change ∑ k : Fin n, w (e.symm k) = 1
+    rw [Equiv.sum_comp e.symm w]; exact hw_sum
+  have happrox : |∫ x, f x ∂μ - ∑ k, c k * f (ω k)| < ε := by
+    have key : y = ∑ k : Fin n, c k * f (ω k) := by
+      have h1 : y = ∑ i : ι, w i • z i := by linarith [hz_eq]
+      rw [h1, ← Equiv.sum_comp e.symm (fun i => w i • z i)]
+      congr 1 with k
+      simp only [c, ω, smul_eq_mul]
+      rw [hω_spec k]
+    rw [key] at hy_dist; rw [dist_comm, Real.dist_eq, abs_sub_comm] at hy_dist; exact hy_dist
+  exact ⟨n, ω, c, fun k => hw_pos _, hc_sum, happrox⟩
 
 /-! ## 5. Bounded continuous function variant
 
@@ -128,7 +204,8 @@ theorem exists_discrete_approx (μ : Measure ℝ) [IsProbabilityMeasure μ]
   - density of finite discrete measures in ProbabilityMeasure ℝ
   - Wasserstein distance or optimal transport
 
-  The following states the cleaner version for bounded continuous functions. -/
+  This follows directly from exists_discrete_approx since bounded continuous
+  functions are integrable w.r.t. probability measures. -/
 
 theorem exists_discrete_approx_bdd_cont (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (f : ℝ → ℝ) (hf_cont : Continuous f) (B : ℝ) (hf_bdd : ∀ x, |f x| ≤ B)
@@ -136,14 +213,16 @@ theorem exists_discrete_approx_bdd_cont (μ : Measure ℝ) [IsProbabilityMeasure
     ∃ (n : ℕ) (ω : Fin n → ℝ) (c : Fin n → ℝ),
       (∀ k, 0 ≤ c k) ∧ (∑ k, c k = 1) ∧
       |∫ x, f x ∂μ - ∑ k, c k * f (ω k)| < ε := by
-  sorry
+  apply exists_discrete_approx μ f _ ε hε
+  exact Integrable.of_bound hf_cont.aestronglyMeasurable B
+    (Eventually.of_forall fun x => by rw [Real.norm_eq_abs]; exact hf_bdd x)
 
 /-! ## 6. Uniform approximation over a family of test functions
 
   The version needed for Kuramoto: approximate the integral simultaneously
   for a FINITE family of test functions (e.g., sin and cos components of the
-  order parameter). This follows from the single-function version by taking
-  the max of the required n's. -/
+  order parameter). Uses the same convex hull argument applied to the
+  vector-valued function F(x) = (f₁(x),...,fₘ(x)) in (Fin m → ℝ). -/
 
 theorem exists_discrete_approx_finite_family (μ : Measure ℝ) [IsProbabilityMeasure μ]
     {m : ℕ} (fs : Fin m → (ℝ → ℝ)) (hfs : ∀ j, Integrable (fs j) μ)
@@ -151,7 +230,47 @@ theorem exists_discrete_approx_finite_family (μ : Measure ℝ) [IsProbabilityMe
     ∃ (n : ℕ) (ω : Fin n → ℝ) (c : Fin n → ℝ),
       (∀ k, 0 ≤ c k) ∧ (∑ k, c k = 1) ∧
       ∀ j, |∫ x, fs j x ∂μ - ∑ k, c k * fs j (ω k)| < ε := by
-  sorry
+  let F : ℝ → (Fin m → ℝ) := fun x j => fs j x
+  have hF : Integrable F μ := integrable_pi_iff.mpr (fun j => hfs j)
+  have hmem : (∫ x, F x ∂μ) ∈ closure (convexHull ℝ (Set.range F)) :=
+    Convex.integral_mem (Convex.closure (convex_convexHull ℝ _)) isClosed_closure
+      (Eventually.of_forall fun x => subset_closure (subset_convexHull ℝ _ (Set.mem_range_self x)))
+      hF
+  rw [Metric.mem_closure_iff] at hmem
+  obtain ⟨y, hy_mem, hy_dist⟩ := hmem ε hε
+  rw [mem_convexHull_iff_exists_fintype] at hy_mem
+  obtain ⟨ι, _, w, zv, hw_pos, hw_sum, hz_range, hz_eq⟩ := hy_mem
+  have hzr : ∀ i, ∃ x, F x = zv i := fun i => Set.mem_range.mp (hz_range i)
+  let nn := Fintype.card ι
+  let ee := Fintype.equivFin ι
+  let ωf : Fin nn → ℝ := fun k => (hzr (ee.symm k)).choose
+  let cf : Fin nn → ℝ := fun k => w (ee.symm k)
+  have hωf_spec (k : Fin nn) : F (ωf k) = zv (ee.symm k) := (hzr (ee.symm k)).choose_spec
+  have hcf_sum : ∑ k, cf k = 1 := by
+    change ∑ k : Fin nn, w (ee.symm k) = 1
+    rw [Equiv.sum_comp ee.symm w]; exact hw_sum
+  have key : y = ∑ k : Fin nn, cf k • zv (ee.symm k) := by
+    conv_lhs => rw [hz_eq.symm]
+    exact (Equiv.sum_comp ee.symm (fun i => w i • zv i)).symm
+  have happrox : ∀ j, |∫ x, fs j x ∂μ - ∑ k, cf k * fs j (ωf k)| < ε := by
+    intro j
+    have h_sum_j : (∑ k : Fin nn, cf k • zv (ee.symm k)) j =
+        ∑ k : Fin nn, cf k * fs j (ωf k) := by
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      congr 1 with k
+      congr 1
+      exact (congr_fun (hωf_spec k) j).symm
+    have h_y_j : y j = ∑ k : Fin nn, cf k * fs j (ωf k) := by rw [key]; exact h_sum_j
+    have h_int_j : (∫ x, F x ∂μ) j = ∫ x, fs j x ∂μ := by
+      rw [eval_integral (fun i => hfs i) j]
+    have h_dist_j : |(∫ x, F x ∂μ) j - y j| < ε := by
+      calc |(∫ x, F x ∂μ) j - y j|
+          = ‖((∫ x, F x ∂μ) - y) j‖ := by simp [Pi.sub_apply, Real.norm_eq_abs]
+        _ ≤ ‖(∫ x, F x ∂μ) - y‖ := norm_le_pi_norm _ j
+        _ = dist (∫ x, F x ∂μ) y := (dist_eq_norm _ _).symm
+        _ < ε := hy_dist
+    rwa [h_int_j, h_y_j] at h_dist_j
+  exact ⟨nn, ωf, cf, fun k => hw_pos _, hcf_sum, happrox⟩
 
 /-! ## 7. Bridge to existing NPole infrastructure
 
@@ -195,18 +314,15 @@ theorem discrete_approx_exists (μ : Measure ℝ) [IsProbabilityMeasure μ]
   │ diracProba / continuous_diracProba — Dirac as ProbabilityMeasure│
   └──────────────────────────────────────────────────────────────────┘
 
-  MISSING from Mathlib (sorry'd):
+  ALL THEOREMS PROVED (0 sorry) using:
   ┌──────────────────────────────────────────────────────────────────┐
-  │ Density of discrete measures in ProbabilityMeasure X            │
-  │ Wasserstein distance / optimal transport                        │
-  │ Direct "∫ f dμ ≈ Σ cₖ f(ωₖ)" assembly from simple func pieces │
+  │ Convex.integral_mem             — integral ∈ closed convex hull │
+  │ mem_convexHull_iff_exists_fintype — convex hull = finite combos │
+  │ Metric.mem_closure_iff          — ε-approximation in closure    │
+  │ integrable_pi_iff               — Pi-type integrability         │
+  │ eval_integral                   — component of Pi integral      │
+  │ norm_le_pi_norm                 — sup norm ≥ component norm     │
   └──────────────────────────────────────────────────────────────────┘
-
-  The assembly gap is small: all ingredients exist in Mathlib, but the
-  specific "pick representatives from preimages" argument that converts
-  simple-function integral approximation into a discrete weighted sum
-  needs to be written. This is ~50 lines of real proof, not a deep
-  mathematical gap.
 -/
 
 end
