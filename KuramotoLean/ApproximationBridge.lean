@@ -1,18 +1,22 @@
 /-
   ApproximationBridge.lean
   ========================
-  Bridge lemmas for V_pointwise_small. Connects:
-    1. MeasureApproximation (exists_discrete_approx)
-    2. NPoleFromDiscrete (discrete_npole_convergence / FullChainData)
-    3. ODEContinuousDependence (Gronwall)
+  Bridge between the continuum and discrete (n-pole) frameworks
+  for the Kuramoto global stability proof.
 
-  Sorry inventory:
-    - npole_V_eventually_small: CLOSED (from V_tendsto_zero)
-    - npole_approx_combined: 1 sorry (the full approximation argument)
+  Contains:
+  - npole_V_eventually_small: PROVED (0 sorry)
+    V_n → 0 for any FullChainData, from full_chain_convergence.
+  - npole_approximation_gives_small_V: 1 sorry
+    The complete n-pole approximation argument.
 
-  The single remaining sorry encapsulates the standard ODE approximation
-  theory: given a continuum OA system, approximate by n-pole, bound the
-  error by Gronwall, combine with discrete convergence.
+  The single sorry encapsulates the standard approximation theory:
+    1. Approximate μ by n-pole measure (exists_discrete_approx)
+    2. Solve n-pole ODE at sample points (ODE existence + FullChainData)
+    3. V_n → 0 by full_chain_convergence (proved)
+    4. Gronwall controls |α(ωₖ,t) - αₖ(t)| (oa_continuous_dependence_on_g)
+    5. Combine: V(T) ≈ V_n(T) < ε
+  Each sub-step uses a 0-sorry theorem. The sorry is the wiring.
 -/
 
 import KuramotoLean.FullChainConvergence
@@ -27,8 +31,6 @@ open MeasureTheory Real Set Filter Topology Finset
 noncomputable section
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-
-/-! ## Closed: V_n → 0 from full_chain_convergence -/
 
 theorem npole_V_eventually_small
     {n : ℕ} (D : FullChainData n) (ε : ℝ) (hε : 0 < ε) :
@@ -46,28 +48,23 @@ theorem npole_V_eventually_small
       l2_ext_eq D.c D.α D.α_star t ht_nn] at hVt
   exact hVt
 
-/-! ## The combined approximation argument
+/-- **N-pole approximation gives V(T) < ε.**
 
-This single lemma encapsulates the entire n-pole approximation strategy.
-It is the ONLY remaining sorry in the global stability proof.
+The proof combines three 0-sorry ingredients:
+  1. `exists_discrete_approx` (MeasureApproximation): approximate ∫fdμ by ∑cₖf(ωₖ)
+  2. `full_chain_convergence` (FullChainConvergence): V_n(t) → 0 for n-pole systems
+  3. `oa_continuous_dependence_on_g` (ODEContinuousDependence): Gronwall proximity
 
-Mathematical content (all standard):
-  1. Use exists_discrete_approx to approximate ∫ f dμ by ∑ cₖ f(ωₖ).
-  2. At the sample points ωₖ, solve the n-pole ODE with γₖ = γ(ωₖ),
-     weights cₖ, coupling K. By supercriticality + Perron-Frobenius,
-     the n-pole system has a unique equilibrium α*ₖ in (0,1)ⁿ.
-  3. By full_chain_convergence (0 sorry), V_n(T) < ε/3 for large T.
-  4. By Gronwall continuous dependence (0 sorry in ODEContinuousDependence),
-     |α(ωₖ,t) - αₖ(t)| is controlled by |r - r_n| on [0,T].
-  5. The self-consistent r-difference is controlled by the measure
-     approximation error via the contraction mapping (also 0 sorry).
-  6. For n large enough, all errors are < ε/3, giving V(T) < ε.
-
-Each sub-step uses a theorem that is already proved (0 sorry).
-The sorry here is the TYPE-LEVEL WIRING: translating between the
-continuum (Ω, μ) framework and the discrete (Fin n) framework,
-and managing the quantifier order (n first, then T). -/
-
+Proof outline:
+  Given ε > 0, pick sample points ωₖ with weights cₖ approximating μ.
+  At those points, solve the n-pole ODE (γₖ = γ(ωₖ), coupling K).
+  By full_chain_convergence, ∃ T with V_n(T) = ∑cₖ(αₖ(T)-α*ₖ)² < ε/3.
+  By Gronwall continuous dependence on [0,T]:
+    |α(ωₖ,t) - αₖ(t)| ≤ C·δ where δ is the r-approximation error.
+  This gives |∑cₖ(α(ωₖ,T)-α*(ωₖ))² - V_n(T)| < ε/3.
+  By exists_discrete_approx at time T:
+    |∫(α(·,T)-α*)²dμ - ∑cₖ(α(ωₖ,T)-α*(ωₖ))²| < ε/3.
+  Triangle inequality: V(T) < ε. -/
 theorem npole_approximation_gives_small_V [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
