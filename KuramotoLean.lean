@@ -147,6 +147,7 @@ import KuramotoLean.ContinuumGammaMinFirstMoment
 import KuramotoLean.KuramotoGammaMinFirstMomentConcrete
 import KuramotoLean.KuramotoFirstMomentConcrete
 import KuramotoLean.GeneralGBodyAbsorbBypass
+import KuramotoLean.KuramotoGlobal
 import KuramotoLean.KuramotoFirstMomentConcreteV2
 import KuramotoLean.KuramotoFirstMomentConcreteV3
 import KuramotoLean.KuramotoFirstMomentConcreteV4

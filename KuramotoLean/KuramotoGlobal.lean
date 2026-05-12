@@ -62,8 +62,32 @@ theorem psiEnergy_pos_of_r_pos [IsProbabilityMeasure μ]
     (hr_pos : 0 < r 0) :
     0 < psiEnergy α μ 0 := by
   unfold psiEnergy
-  sorry -- need: r(0) > 0 → ∃ set of positive measure where α(ω,0) ≥ δ > 0
-         -- → -log(1-α²) ≥ -log(1-δ²) > 0 on that set → integral > 0
+  have h_nn : ∀ ω, 0 ≤ -Real.log (1 - α ω 0 ^ 2) := by
+    intro ω
+    have h := hα_inv ω 0 le_rfl
+    have h1 : 1 - α ω 0 ^ 2 ≤ 1 := by nlinarith [sq_nonneg (α ω 0)]
+    have h2 : 0 < 1 - α ω 0 ^ 2 := by nlinarith [h.1, h.2]
+    simp only [neg_nonneg]
+    exact neg_nonneg.mpr (Real.log_nonpos h2.le h1)
+  have h_int : Integrable (fun ω => -Real.log (1 - α ω 0 ^ 2)) μ := by
+    sorry
+  rw [integral_pos_iff_support_of_nonneg h_nn h_int]
+  have h_supp : Function.support (fun ω => -Real.log (1 - α ω 0 ^ 2)) = Set.univ := by
+    apply eq_univ_of_forall
+    intro ω
+    rw [Function.mem_support]
+    have h := hα_inv ω 0 le_rfl
+    have hα_pos : 0 < α ω 0 := h.1
+    have hα_lt : α ω 0 < 1 := h.2
+    have h_sq_pos : 0 < α ω 0 ^ 2 := by positivity
+    have h_lt_one : 1 - α ω 0 ^ 2 < 1 := by linarith
+    have h_pos : 0 < 1 - α ω 0 ^ 2 := by nlinarith [hα_pos, hα_lt]
+    intro heq
+    have : Real.log (1 - α ω 0 ^ 2) = 0 := by linarith
+    rw [Real.log_eq_zero] at this
+    rcases this with h1 | h1 | h1 <;> linarith
+  rw [h_supp, measure_univ]
+  exact one_pos
 
 /-! ## Derivative of Ψ -/
 
@@ -75,7 +99,34 @@ theorem psi_pointwise_deriv
     (hα_ode : HasDerivAt α (oaScalarRHS γ_ω K r t (α t)) t) :
     HasDerivAt (fun s => -Real.log (1 - α s ^ 2))
       (-2 * γ_ω * (α t) ^ 2 / (1 - (α t) ^ 2) + K * r t * α t) t := by
-  sorry -- chain rule: d/dt[-log(1-α²)] = 2αα̇/(1-α²), then expand α̇
+  have h1m : 0 < 1 - α t ^ 2 := by nlinarith [hα_pos, hα_lt]
+  have h1m_ne : (1 : ℝ) - α t ^ 2 ≠ 0 := ne_of_gt h1m
+  -- Step 1: α² has derivative 2 * α t * α̇
+  have hα_sq : HasDerivAt (fun s => α s ^ 2) (2 * α t * oaScalarRHS γ_ω K r t (α t)) t := by
+    have := hα_ode.pow 2
+    simp [Nat.cast_ofNat, mul_comm] at this ⊢
+    convert this using 1
+    ring
+  -- Step 2: 1 - α² has derivative -(2 * α t * α̇)
+  have h_sub : HasDerivAt (fun s => 1 - α s ^ 2)
+      (-(2 * α t * oaScalarRHS γ_ω K r t (α t))) t := by
+    exact (hasDerivAt_const t 1).sub hα_sq
+  -- Step 3: log(1 - α²) has derivative -(2 * α t * α̇) / (1 - α t ^ 2)
+  have h_log : HasDerivAt (fun s => Real.log (1 - α s ^ 2))
+      (-(2 * α t * oaScalarRHS γ_ω K r t (α t)) / (1 - α t ^ 2)) t := by
+    have := h_sub.log h1m_ne
+    convert this using 1
+  -- Step 4: -log(1 - α²) has derivative (2 * α t * α̇) / (1 - α t ^ 2)
+  have h_neg : HasDerivAt (fun s => -Real.log (1 - α s ^ 2))
+      (2 * α t * oaScalarRHS γ_ω K r t (α t) / (1 - α t ^ 2)) t := by
+    have := h_log.neg
+    convert this using 1
+    ring
+  -- Step 5: algebraic simplification to match target
+  convert h_neg using 1
+  unfold oaScalarRHS
+  field_simp
+  ring
 
 /-- The integral form: dΨ/dt = Kr² - 2∫γα²/(1-α²) g dω.
     In the complex OA (iω instead of γ), the γ term vanishes and dΨ/dt = K|r|² ≥ 0.
@@ -118,7 +169,27 @@ theorem r_stays_positive [IsProbabilityMeasure μ]
     (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
     (hr_pos : 0 < r 0) :
     ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t := by
-  sorry -- THE KEY GAP: energy identity → r persistence
+  -- Step 1: r(t) > 0 for all t ≥ 0 (integral of strictly positive functions)
+  have hr_pos_all : ∀ t, 0 ≤ t → 0 < r t := by
+    intro t ht
+    rw [h_sc t ht]
+    have h_nn : ∀ ω, 0 ≤ α ω t := fun ω => le_of_lt (hα_inv ω t ht).1
+    rw [integral_pos_iff_support_of_nonneg h_nn (hα_int t)]
+    rw [Function.support_eq_univ.mpr (fun ω => ne_of_gt (hα_inv ω t ht).1)]
+    exact measure_univ_pos
+  -- Step 2: Uniform lower bound via Ψ energy + Gronwall
+  -- Ψ(t) = ∫ -log(1-α²) dμ satisfies Ψ(t) ≥ 0 and Ψ(0) > 0.
+  -- From the ODE, dΨ/dt = Kr² - 2∫γα²/(1-α²) dμ.
+  -- Since α²/(1-α²) ≤ -log(1-α²)·(1/(1-α²)), and α < 1, we get
+  -- α²/(1-α²) ≤ -log(1-α²) · C for some bound depending on α.
+  -- More directly: α < 1 gives α²/(1-α²) ≤ α/(1-α) ≤ -log(1-α)/α · α²/(1-α²)...
+  -- The key estimate is: Ψ' ≥ Kr² - 2·(∫γ dμ)·Ψ (Gronwall-ready).
+  -- Since r² > 0 pointwise, a standard Gronwall bound gives
+  -- Ψ cannot decay faster than exp(-2∫γ dμ · t), keeping Ψ > 0.
+  -- Then Ψ > 0 implies ∃ ω with α(ω,t) bounded below, giving r(t) > 0.
+  -- The uniform bound follows from: r continuous on [0,∞), r > 0 everywhere,
+  -- and r(t) → r* > 0 (or inf over compact [0,T] is positive + eventual bound).
+  sorry
 
 /-- **Positive `r`-floor from `r_stays_positive` yields body absorption.**
 
@@ -204,7 +275,11 @@ theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
       (∀ M, 0 ≤ C M) ∧
       (∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
         ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε) := by
-  sorry
+  exact GeneralGBodyAbsorbBypass.h_body_absorb_of_eventual_r_floor
+    (μ := μ) γ K hK hγ_pos hγ_level
+    α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hr_star_pos
+    hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
+    T₀ r_min hT₀ hr_min_pos hr_floor h_body_seed hμ_body_pos
 
 /-- **TRUE GLOBAL STABILITY** — the original Kuramoto problem.
     For ANY r(0) > 0, r(t) → r*.

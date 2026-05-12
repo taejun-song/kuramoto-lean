@@ -336,6 +336,49 @@ theorem h_body_absorb_of_pos_floor [IsProbabilityMeasure μ]
     hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     h_init_body hr_pos_floor hμ_body_pos
 
+/-- **Eventual positive order-parameter floor yields the body-absorption interface.**
+
+This is the time-shifted version of `h_body_absorb_of_pos_floor`.  It is the
+exact bridge needed by the Chetaev-style restart strategy in
+`KuramotoGlobal.lean`: once one has an activation time `T₀`, a lower floor
+`r(t) ≥ r_min > 0` for all `t ≥ T₀`, and a positive body seed at that same
+time, the body-persistence / body-Gronwall machinery should produce the same
+eventual absorbing profile as in the time-zero theorem.
+
+The remaining proof obligation is the analytic time-shift argument that
+restarts the comparison principle from `T₀` instead of `0`.  We isolate that
+gap here so downstream global-stability statements can depend on a single
+precise lemma rather than duplicating the restart interface. -/
+theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hr_star_pos : 0 < r_star)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (T₀ r_min : ℝ)
+    (hT₀ : 0 ≤ T₀) (hr_min_pos : 0 < r_min)
+    (hr_floor : ∀ t, T₀ ≤ t → r_min ≤ r t)
+    (h_body_seed :
+      ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω T₀)
+    (hμ_body_pos : ∀ M, 0 < M → 0 < (μ {ω | γ ω ≤ M}).toReal) :
+    ∃ C : ℝ → ℝ,
+      (∀ M, 0 ≤ C M) ∧
+      (∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
+        ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε) := by
+  sorry
+
 /-- **Positive order-parameter floor bypasses `h_body_absorb`.**
 
 Once the dynamics supplies a uniform lower bound `r(t) ≥ r_min > 0`,
