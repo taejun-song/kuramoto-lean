@@ -406,7 +406,7 @@ theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
   have hαShift_cont : ∀ ω, ContinuousOn (αShift ω) (Ici 0) := by
     intro ω
     simpa [αShift] using shift_continuousOn_right (α ω) T₀
-      (hα_cont ω).mono (Ici_subset_Ici.mpr hT₀)
+      ((hα_cont ω).mono (Ici_subset_Ici.mpr hT₀))
   have hShift_sc : ∀ t ≥ 0, rShift t = ∫ ω, αShift ω t ∂μ := by
     intro t ht
     simpa [rShift, αShift] using h_sc (t + T₀) (by linarith)
@@ -427,8 +427,10 @@ theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
     (μ := μ) γ K hK hγ_pos hγ_level
     α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hr_star_pos
     hα_star_equil rShift αShift hrShift_bdd hαShift_ode hαShift_cont
-    hShift_sc hαShift_int hαShift_sq_int hαShift_inv h_body_seed hrShift_floor
-    hμ_body_pos
+    hShift_sc hαShift_int hαShift_sq_int hαShift_inv
+    (by intro M hM; obtain ⟨δ₀, hδ₀, hδ₀_lb⟩ := h_body_seed M hM
+        exact ⟨δ₀, hδ₀, fun ω hω => by simpa [αShift] using hδ₀_lb ω hω⟩)
+    hrShift_floor hμ_body_pos
   refine ⟨C, hC_nn, ?_⟩
   intro M hM ε hε
   obtain ⟨T, hT⟩ := hC_absorb M hM ε hε

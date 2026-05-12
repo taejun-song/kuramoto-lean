@@ -37,7 +37,7 @@ noncomputable def lorentzian_oa_flow
   Classical.choose
     (lorentzian_scalar_ode_global γ K γ₀ r₀ α₀ hγ hK hγ₀ hKγ₀ hr₀_pos hr₀_lt hα₀_pos hα₀_lt)
 
-private def lorentzian_oa_flow_spec_raw
+def lorentzian_oa_flow_spec_raw
     (K γ₀ r₀ α₀ : ℝ)
     (hK : 0 < K) (hγ₀ : 0 < γ₀) (hKγ₀ : 2 * γ₀ < K)
     (hr₀_pos : 0 < r₀) (hr₀_lt : r₀ < 1)

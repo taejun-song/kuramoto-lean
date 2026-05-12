@@ -339,21 +339,129 @@ private theorem body_persistence_lower_bound_on_window
     min (α a) (bodyEquilibrium M K r_min) ≤ α b := by
   set β := bodyEquilibrium M K r_min
   have hβ_pos : 0 < β := bodyEquilibrium_pos M K r_min (le_trans hγ_nn hγ_le) hK hr_min
-  have hαa_pos : 0 < α a := (hα_inv a ha).1
-  have h_seed : 0 < min (α a) β := lt_min hαa_pos hβ_pos
-  have h_monotone_template :
-      ∀ h_below : ∀ t, t ∈ Icc a b → α t ≤ β, MonotoneOn α (Icc a b) :=
-    fun h_below =>
-      alpha_monotone_below_barrier_on_window γ_ω M K r α a b r_min
-        ha hab hγ_nn hγ_le hK hr_min hr_le hr_window hr_bdd hα_ode hα_inv hα_cont
-        h_below
-  /-
-    Remaining gap: upgrade the local monotonicity template above into the full
-    barrier argument that handles trajectories which may cross the comparison
-    level `β` inside the window. This is exactly the finite-window analogue of
-    `BodyPersistenceFromODE.body_persistence_lower_bound`.
-  -/
-  sorry
+  by_cases hαa_le : α a ≤ β
+  · simp only [min_eq_left hαa_le]
+    by_contra h_neg
+    push_neg at h_neg
+    have hαb_lt_β : α b < β := lt_of_lt_of_le h_neg hαa_le
+    by_cases h_all_below : ∀ s ∈ Icc a b, α s ≤ β
+    · have h_mono :=
+        alpha_monotone_below_barrier_on_window γ_ω M K r α a b r_min
+          ha hab hγ_nn hγ_le hK hr_min hr_le hr_window hr_bdd hα_ode hα_inv hα_cont
+          h_all_below
+      linarith [h_mono (left_mem_Icc.mpr hab) (right_mem_Icc.mpr hab) hab]
+    · push_neg at h_all_below
+      obtain ⟨s₀, hs₀_mem, hα_s₀⟩ := h_all_below
+      have hs₀_lo : a ≤ s₀ := (mem_Icc.mp hs₀_mem).1
+      have hs₀_hi : s₀ ≤ b := (mem_Icc.mp hs₀_mem).2
+      have h_ivt : ∃ τ ∈ Icc s₀ b, α τ = β ∧ ∀ s ∈ Icc τ b, α s ≤ β := by
+        set S := Icc s₀ b ∩ α ⁻¹' (Ici β)
+        have hα_cont_sb : ContinuousOn α (Icc s₀ b) :=
+          hα_cont.mono (Icc_subset_Ici_self.trans (Ici_subset_Ici.mpr (le_trans ha hs₀_lo)))
+        have hS_ne : S.Nonempty := ⟨s₀, ⟨le_rfl, hs₀_hi⟩, le_of_lt hα_s₀⟩
+        have hS_closed : IsClosed S :=
+          hα_cont_sb.preimage_isClosed_of_isClosed isClosed_Icc isClosed_Ici
+        have hS_bdd : BddAbove S := ⟨b, fun s hs => hs.1.2⟩
+        have hc_mem : sSup S ∈ S := hS_closed.csSup_mem hS_ne hS_bdd
+        set τ := sSup S
+        have hτ_lo : s₀ ≤ τ := hc_mem.1.1
+        have hτ_hi : τ ≤ b := hc_mem.1.2
+        have hατ_ge : β ≤ α τ := hc_mem.2
+        have hτ_lt : τ < b := lt_of_le_of_ne hτ_hi (fun h => by linarith [h ▸ hατ_ge])
+        have hατ_eq : α τ = β := by
+          refine le_antisymm ?_ hατ_ge
+          by_contra h_gt
+          push_neg at h_gt
+          obtain ⟨δ', hδ', hball⟩ := Metric.continuousOn_iff.mp hα_cont_sb τ
+            (mem_Icc.mpr ⟨hτ_lo, hτ_hi⟩) (α τ - β) (by linarith)
+          set ε' := min (δ' / 2) ((b - τ) / 2)
+          have hε'_pos : 0 < ε' := lt_min (by linarith) (by linarith)
+          have hε'_lt_δ : ε' < δ' := lt_of_le_of_lt (min_le_left _ _) (by linarith)
+          have hτε_in : τ + ε' ∈ Icc s₀ b := ⟨by linarith, by linarith [min_le_right (δ' / 2) ((b - τ) / 2)]⟩
+          have hτε_dist : dist (τ + ε') τ < δ' := by
+            rw [Real.dist_eq, show τ + ε' - τ = ε' from by ring, abs_of_pos hε'_pos]
+            exact hε'_lt_δ
+          have h_close := hball (τ + ε') hτε_in hτε_dist
+          have hα_ge : β ≤ α (τ + ε') := by
+            rw [Real.dist_eq] at h_close
+            linarith [(abs_lt.mp h_close).1]
+          exact absurd (le_csSup hS_bdd ⟨hτε_in, hα_ge⟩) (not_le.mpr (by linarith : τ < τ + ε'))
+        have h_after : ∀ s ∈ Icc τ b, α s ≤ β := by
+          intro s hs
+          rcases eq_or_lt_of_le (mem_Icc.mp hs).1 with rfl | hlt
+          · exact le_of_eq hατ_eq
+          · by_contra hge
+            push_neg at hge
+            exact absurd
+              (le_csSup hS_bdd ⟨⟨by linarith [hτ_lo], (mem_Icc.mp hs).2⟩, le_of_lt hge⟩)
+              (not_le.mpr hlt)
+        exact ⟨τ, mem_Icc.mpr ⟨hτ_lo, hτ_hi⟩, hατ_eq, h_after⟩
+      obtain ⟨τ, hτ_mem, hατ_eq, h_after⟩ := h_ivt
+      have hτ_ge_a : a ≤ τ := le_trans hs₀_lo (mem_Icc.mp hτ_mem).1
+      have hτ_le : τ ≤ b := (mem_Icc.mp hτ_mem).2
+      have h_mono :=
+        alpha_monotone_below_barrier_on_window γ_ω M K r α τ b r_min
+          hτ_ge_a hτ_le hγ_nn hγ_le hK hr_min hr_le
+          (fun t ht1 ht2 => hr_window t (le_trans hτ_ge_a ht1) ht2)
+          hr_bdd hα_ode hα_inv hα_cont h_after
+      have h_ge : α τ ≤ α b := h_mono (left_mem_Icc.mpr hτ_le) (right_mem_Icc.mpr hτ_le) hτ_le
+      linarith [hατ_eq]
+  · push_neg at hαa_le
+    simp only [min_eq_right (le_of_lt hαa_le)]
+    by_contra h_neg
+    push_neg at h_neg
+    have h_ivt : ∃ τ ∈ Icc a b, α τ = β ∧ ∀ s ∈ Icc τ b, α s ≤ β := by
+      set S := Icc a b ∩ α ⁻¹' (Ici β)
+      have hα_cont_ab : ContinuousOn α (Icc a b) :=
+        hα_cont.mono (Icc_subset_Ici_self.trans (Ici_subset_Ici.mpr ha))
+      have hS_ne : S.Nonempty := ⟨a, ⟨le_rfl, hab⟩, le_of_lt hαa_le⟩
+      have hS_closed : IsClosed S :=
+        hα_cont_ab.preimage_isClosed_of_isClosed isClosed_Icc isClosed_Ici
+      have hS_bdd : BddAbove S := ⟨b, fun s hs => hs.1.2⟩
+      have hc_mem : sSup S ∈ S := hS_closed.csSup_mem hS_ne hS_bdd
+      set τ := sSup S
+      have hτ_lo : a ≤ τ := hc_mem.1.1
+      have hτ_hi : τ ≤ b := hc_mem.1.2
+      have hατ_ge : β ≤ α τ := hc_mem.2
+      have hτ_lt : τ < b := lt_of_le_of_ne hτ_hi (fun h => by linarith [h ▸ hατ_ge])
+      have hατ_eq : α τ = β := by
+        refine le_antisymm ?_ hατ_ge
+        by_contra h_gt
+        push_neg at h_gt
+        obtain ⟨δ', hδ', hball⟩ := Metric.continuousOn_iff.mp hα_cont_ab τ
+          (mem_Icc.mpr ⟨hτ_lo, hτ_hi⟩) (α τ - β) (by linarith)
+        set ε' := min (δ' / 2) ((b - τ) / 2)
+        have hε'_pos : 0 < ε' := lt_min (by linarith) (by linarith)
+        have hε'_lt_δ : ε' < δ' := lt_of_le_of_lt (min_le_left _ _) (by linarith)
+        have hτε_in : τ + ε' ∈ Icc a b := ⟨by linarith, by linarith [min_le_right (δ' / 2) ((b - τ) / 2)]⟩
+        have hτε_dist : dist (τ + ε') τ < δ' := by
+          rw [Real.dist_eq, show τ + ε' - τ = ε' from by ring, abs_of_pos hε'_pos]
+          exact hε'_lt_δ
+        have h_close := hball (τ + ε') hτε_in hτε_dist
+        have hα_ge : β ≤ α (τ + ε') := by
+          rw [Real.dist_eq] at h_close
+          linarith [(abs_lt.mp h_close).1]
+        exact absurd (le_csSup hS_bdd ⟨hτε_in, hα_ge⟩) (not_le.mpr (by linarith : τ < τ + ε'))
+      have h_after : ∀ s ∈ Icc τ b, α s ≤ β := by
+        intro s hs
+        rcases eq_or_lt_of_le (mem_Icc.mp hs).1 with rfl | hlt
+        · exact le_of_eq hατ_eq
+        · by_contra hge
+          push_neg at hge
+          exact absurd
+            (le_csSup hS_bdd ⟨⟨by linarith [hτ_lo], (mem_Icc.mp hs).2⟩, le_of_lt hge⟩)
+            (not_le.mpr hlt)
+      exact ⟨τ, mem_Icc.mpr ⟨hτ_lo, hτ_hi⟩, hατ_eq, h_after⟩
+    obtain ⟨τ, hτ_mem, hατ_eq, h_after⟩ := h_ivt
+    have hτ_ge_a : a ≤ τ := (mem_Icc.mp hτ_mem).1
+    have hτ_le : τ ≤ b := (mem_Icc.mp hτ_mem).2
+    have h_mono :=
+      alpha_monotone_below_barrier_on_window γ_ω M K r α τ b r_min
+        hτ_ge_a hτ_le hγ_nn hγ_le hK hr_min hr_le
+        (fun t ht1 ht2 => hr_window t (le_trans hτ_ge_a ht1) ht2)
+        hr_bdd hα_ode hα_inv hα_cont h_after
+    have h_ge : α τ ≤ α b := h_mono (left_mem_Icc.mpr hτ_le) (right_mem_Icc.mpr hτ_le) hτ_le
+    linarith [hατ_eq]
 
 /-- **Windowed positive `r`-floor propagates a body seed to the restart time.**
 
