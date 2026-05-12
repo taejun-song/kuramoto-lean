@@ -401,7 +401,7 @@ private theorem body_persistence_lower_bound_on_window
       have hτ_le : τ ≤ b := (mem_Icc.mp hτ_mem).2
       have h_mono :=
         alpha_monotone_below_barrier_on_window γ_ω M K r α τ b r_min
-          hτ_ge_a hτ_le hγ_nn hγ_le hK hr_min hr_le
+          (le_trans ha hτ_ge_a) hτ_le hγ_nn hγ_le hK hr_min hr_le
           (fun t ht1 ht2 => hr_window t (le_trans hτ_ge_a ht1) ht2)
           hr_bdd hα_ode hα_inv hα_cont h_after
       have h_ge : α τ ≤ α b := h_mono (left_mem_Icc.mpr hτ_le) (right_mem_Icc.mpr hτ_le) hτ_le
@@ -457,7 +457,7 @@ private theorem body_persistence_lower_bound_on_window
     have hτ_le : τ ≤ b := (mem_Icc.mp hτ_mem).2
     have h_mono :=
       alpha_monotone_below_barrier_on_window γ_ω M K r α τ b r_min
-        hτ_ge_a hτ_le hγ_nn hγ_le hK hr_min hr_le
+        (le_trans ha hτ_ge_a) hτ_le hγ_nn hγ_le hK hr_min hr_le
         (fun t ht1 ht2 => hr_window t (le_trans hτ_ge_a ht1) ht2)
         hr_bdd hα_ode hα_inv hα_cont h_after
     have h_ge : α τ ≤ α b := h_mono (left_mem_Icc.mpr hτ_le) (right_mem_Icc.mpr hτ_le) hτ_le
