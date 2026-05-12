@@ -336,6 +336,19 @@ theorem h_body_absorb_of_pos_floor [IsProbabilityMeasure μ]
     hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     h_init_body hr_pos_floor hμ_body_pos
 
+private theorem shift_continuousOn_right (f : ℝ → ℝ) (T₀ : ℝ)
+    (hf : ContinuousOn f (Ici T₀)) :
+    ContinuousOn (fun t => f (t + T₀)) (Ici 0) :=
+  hf.comp (continuous_add_const T₀).continuousOn
+    (fun _ ht => mem_Ici.mpr (by linarith [mem_Ici.mp ht]))
+
+private theorem shift_hasDerivAt_right
+    (f : ℝ → ℝ) (f' : ℝ → ℝ) (T₀ t : ℝ)
+    (hf : HasDerivAt f (f' (t + T₀)) (t + T₀)) :
+    HasDerivAt (fun s => f (s + T₀)) (f' (t + T₀)) t := by
+  have hcomp := hf.comp t ((hasDerivAt_id t).add_const T₀)
+  simpa only [mul_one] using hcomp
+
 /-- **Eventual positive order-parameter floor yields the body-absorption interface.**
 
 This is the time-shifted version of `h_body_absorb_of_pos_floor`.  It is the
@@ -377,7 +390,53 @@ theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
       (∀ M, 0 ≤ C M) ∧
       (∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
         ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε) := by
-  sorry
+  let rShift : ℝ → ℝ := fun t => r (t + T₀)
+  let αShift : Ω → ℝ → ℝ := fun ω t => α ω (t + T₀)
+  have hrShift_bdd : ∀ t, |rShift t| ≤ 1 := by
+    intro t
+    simp [rShift, hr_bdd]
+  have hαShift_ode : ∀ ω, ∀ t ≥ 0,
+      HasDerivAt (αShift ω) (oaScalarRHS (γ ω) K rShift t (αShift ω t)) t := by
+    intro ω t ht
+    have hbase : HasDerivAt (α ω)
+        (oaScalarRHS (γ ω) K r (t + T₀) (α ω (t + T₀))) (t + T₀) :=
+      hα_ode ω (t + T₀) (by linarith)
+    simpa [αShift, rShift] using shift_hasDerivAt_right (α ω)
+      (fun s => oaScalarRHS (γ ω) K r s (α ω s)) T₀ t hbase
+  have hαShift_cont : ∀ ω, ContinuousOn (αShift ω) (Ici 0) := by
+    intro ω
+    simpa [αShift] using shift_continuousOn_right (α ω) T₀
+      (hα_cont ω).mono (Ici_subset_Ici.mpr hT₀)
+  have hShift_sc : ∀ t ≥ 0, rShift t = ∫ ω, αShift ω t ∂μ := by
+    intro t ht
+    simpa [rShift, αShift] using h_sc (t + T₀) (by linarith)
+  have hαShift_int : ∀ t, Integrable (fun ω => αShift ω t) μ := by
+    intro t
+    simpa [αShift] using hα_int (t + T₀)
+  have hαShift_sq_int : ∀ t, Integrable (fun ω => (αShift ω t - α_star ω) ^ 2) μ := by
+    intro t
+    simpa [αShift] using hα_sq_int (t + T₀)
+  have hαShift_inv : ∀ ω t, 0 ≤ t → 0 < αShift ω t ∧ αShift ω t < 1 := by
+    intro ω t ht
+    simpa [αShift] using hα_inv ω (t + T₀) (by linarith)
+  have hrShift_floor : ∃ r0 : ℝ, 0 < r0 ∧ ∀ t, 0 ≤ t → r0 ≤ rShift t := by
+    refine ⟨r_min, hr_min_pos, ?_⟩
+    intro t ht
+    simpa [rShift] using hr_floor (t + T₀) (by linarith)
+  obtain ⟨C, hC_nn, hC_absorb⟩ := h_body_absorb_of_pos_floor
+    (μ := μ) γ K hK hγ_pos hγ_level
+    α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hr_star_pos
+    hα_star_equil rShift αShift hrShift_bdd hαShift_ode hαShift_cont
+    hShift_sc hαShift_int hαShift_sq_int hαShift_inv h_body_seed hrShift_floor
+    hμ_body_pos
+  refine ⟨C, hC_nn, ?_⟩
+  intro M hM ε hε
+  obtain ⟨T, hT⟩ := hC_absorb M hM ε hε
+  refine ⟨T + T₀, ?_⟩
+  intro t ht
+  have hshift : T ≤ t - T₀ := by linarith
+  have hbound := hT (t - T₀) hshift
+  simpa [αShift, sub_add_cancel] using hbound
 
 /-- **Positive order-parameter floor bypasses `h_body_absorb`.**
 
