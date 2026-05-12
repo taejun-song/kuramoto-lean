@@ -9,7 +9,7 @@
   - oa_self_consistent_r_stability: Gronwall fixed-point bound on r-difference
   - oa_continuous_dependence_on_g: full continuous dependence on g
 
-  4 sorry.
+  2 sorry (order_param_diff_bound, oa_self_consistent_r_stability).
 -/
 
 import KuramotoLean.OAScalarGammaLip
@@ -33,6 +33,32 @@ theorem order_param_diff_bound
     |∫ ω, α₁ ω * g₁ ω ∂μ - ∫ ω, α₂ ω * g₂ ω ∂μ| ≤
       ∫ ω, |α₁ ω - α₂ ω| ∂μ + ∫ ω, |g₁ ω - g₂ ω| ∂μ := by
   sorry
+
+/-! ## Lipschitz bound (local copy; the original is private in OAScalarGammaLip) -/
+
+private lemma oaScalarRHS_lipschitzOnWith' (γ K : ℝ) (r : ℝ → ℝ) (t : ℝ)
+    (hγ : 0 ≤ γ) (hK : 0 ≤ K) (hr_bdd : |r t| ≤ 1) :
+    LipschitzOnWith ⟨γ + K, by positivity⟩ (oaScalarRHS γ K r t) (Icc 0 1) := by
+  rw [lipschitzOnWith_iff_dist_le_mul]
+  intro x hx y hy
+  simp only [Real.dist_eq]
+  unfold oaScalarRHS
+  rw [show -γ * x + K / 2 * r t * (1 - x ^ 2) - (-γ * y + K / 2 * r t * (1 - y ^ 2))
+      = (x - y) * (-γ - K / 2 * r t * (x + y)) from by ring, abs_mul]
+  have hx0 := hx.1; have hx1 := hx.2; have hy0 := hy.1; have hy1 := hy.2
+  have hr_hi := le_of_abs_le hr_bdd; have hr_lo := neg_le_of_abs_le hr_bdd
+  have hxy_nn : 0 ≤ x + y := by linarith
+  have h1rt_nn : 0 ≤ 1 + r t := by linarith
+  have h1rt_hi : 0 ≤ 1 - r t := by linarith
+  have hcoeff : |-γ - K / 2 * r t * (x + y)| ≤ γ + K := by
+    rw [abs_le]; constructor <;>
+      nlinarith [mul_nonneg h1rt_nn hxy_nn,
+                 mul_nonneg (by linarith : 0 ≤ K / 2) (mul_nonneg h1rt_nn hxy_nn),
+                 mul_nonneg h1rt_hi hxy_nn,
+                 mul_nonneg (by linarith : 0 ≤ K / 2) (mul_nonneg h1rt_hi hxy_nn)]
+  calc |x - y| * |-γ - K / 2 * r t * (x + y)|
+      ≤ |x - y| * (γ + K) := mul_le_mul_of_nonneg_left hcoeff (abs_nonneg _)
+    _ = (γ + K) * |x - y| := by ring
 
 /-! ## Per-ω Gronwall estimate with r-mismatch -/
 
@@ -76,10 +102,29 @@ theorem oa_scalar_r_gronwall
     (hg_bdd : ∀ t ∈ Ico (0 : ℝ) T, g t ∈ Icc (0 : ℝ) 1)
     (t : ℝ) (ht : t ∈ Icc 0 T) :
     dist (f t) (g t) ≤ gronwallBound 0 (γ + K) (K / 2 * εr) t := by
-  -- Treat f as an ε-approximate solution to v₂ = oaScalarRHS γ K r₂.
-  -- The mismatch is |F(γ,K,r₁,t,f(t)) - F(γ,K,r₂,t,f(t))| ≤ K/2 * εr.
-  -- Then apply dist_le_of_approx_trajectories_ODE_of_mem.
-  sorry
+  have hgK_nn : (0 : ℝ) ≤ γ + K := by linarith
+  set L : NNReal := ⟨γ + K, hgK_nn⟩
+  have hδ : dist (f 0) (g 0) ≤ 0 := by rw [hf_init, hg_init]; simp
+  have f_bound : ∀ s ∈ Ico (0 : ℝ) T,
+      dist (oaScalarRHS γ K r₁ s (f s)) (oaScalarRHS γ K r₂ s (f s)) ≤ K / 2 * εr := by
+    intro s hs
+    rw [Real.dist_eq]
+    exact le_trans (oaScalarRHS_r_diff γ K r₁ r₂ s (f s) hK (hf_bdd s hs))
+      (mul_le_mul_of_nonneg_left (hεr s (Ico_subset_Icc_self hs)) (by linarith))
+  have key := dist_le_of_approx_trajectories_ODE_of_mem (E := ℝ)
+    (v := fun s x => oaScalarRHS γ K r₂ s x)
+    (s := fun _ => Icc (0 : ℝ) 1) (a := 0) (b := T)
+    (f := f) (f' := fun s => oaScalarRHS γ K r₁ s (f s))
+    (g := g) (g' := fun s => oaScalarRHS γ K r₂ s (g s))
+    (K := L) (δ := 0) (εf := K / 2 * εr) (εg := 0)
+    (fun s hs => oaScalarRHS_lipschitzOnWith' γ K r₂ s (by linarith) hK
+      (hr₂_bdd s (Ico_subset_Icc_self hs)))
+    hf_cont hf_ode f_bound hf_bdd
+    hg_cont hg_ode (fun _ _ => by rw [dist_self]) hg_bdd hδ
+  have ht_icc := key t ht
+  have hL_eq : (↑L : ℝ) = γ + K := rfl
+  simp only [hL_eq, add_zero, sub_zero] at ht_icc
+  exact ht_icc
 
 /-! ## Self-consistent system: combined estimate -/
 
@@ -129,7 +174,7 @@ theorem oa_continuous_dependence_on_g [IsProbabilityMeasure μ]
     (g₁ g₂ : Ω → ℝ) (δ : ℝ) (_hδ : 0 ≤ δ)
     (hg_diff : ∫ ω, |g₁ ω - g₂ ω| ∂μ ≤ δ)
     (r₁ r₂ : ℝ → ℝ) (α₁ α₂ : Ω → ℝ → ℝ)
-    (hr₁_bdd : ∀ t ∈ Icc 0 T, |r₁ t| ≤ 1)
+    (_hr₁_bdd : ∀ t ∈ Icc 0 T, |r₁ t| ≤ 1)
     (hr₂_bdd : ∀ t ∈ Icc 0 T, |r₂ t| ≤ 1)
     (h_sc₁ : ∀ t ∈ Icc 0 T, r₁ t = ∫ ω, α₁ ω t * g₁ ω ∂μ)
     (h_sc₂ : ∀ t ∈ Icc 0 T, r₂ t = ∫ ω, α₂ ω t * g₂ ω ∂μ)
@@ -154,17 +199,39 @@ theorem oa_continuous_dependence_on_g [IsProbabilityMeasure μ]
     oa_self_consistent_r_stability γ K T hK hT hγ_pos γ_max hγ_max
       g₁ g₂ δ hg_diff r₁ r₂ α₁ α₂ h_sc₁ h_sc₂ hα₁_ode hα₂_ode
       hα_same_init hα₁_inv hα₂_inv hsmall_T
-  -- Step 2: per-ω Gronwall with εr
   intro ω s hs
-  have hω_gronwall := oa_scalar_r_gronwall (γ ω) K r₁ r₂ T
-    (le_of_lt (hγ_pos ω)) (le_of_lt hK) hr₁_bdd hr₂_bdd εr hεr_bound
-    (α₁ ω 0) (α₁ ω) (α₂ ω)
-    rfl (hα_same_init ω).symm
-    (hα₁_ode ω) (hα₂_ode ω)
-    (hα₁_cont ω) (hα₂_cont ω) (hα₁_inv ω) (hα₂_inv ω) s hs
-  rw [Real.dist_eq] at hω_gronwall
-  -- Monotonicity: gronwallBound with γ(ω)+K ≤ gronwallBound with γ_max+K
-  sorry
+  have hgmK_nn : (0 : ℝ) ≤ γ_max + K := by linarith [hγ_pos ω, hγ_max ω]
+  have hgmK_pos : 0 < γ_max + K := by linarith [hγ_pos ω, hγ_max ω]
+  set L : NNReal := ⟨γ_max + K, hgmK_nn⟩
+  have hδ0 : dist (α₁ ω 0) (α₂ ω 0) ≤ 0 := by rw [hα_same_init ω]; simp
+  have hgwK_nn : (0 : ℝ) ≤ γ ω + K := by linarith [hγ_pos ω]
+  have hle : (⟨γ ω + K, hgwK_nn⟩ : NNReal) ≤ L := by
+    change (γ ω + K : ℝ) ≤ (γ_max + K : ℝ)
+    linarith [hγ_max ω]
+  have hlip : ∀ u ∈ Ico (0 : ℝ) T,
+      LipschitzOnWith L (oaScalarRHS (γ ω) K r₂ u) (Icc 0 1) := by
+    intro u hu
+    exact (oaScalarRHS_lipschitzOnWith' (γ ω) K r₂ u (le_of_lt (hγ_pos ω)) (le_of_lt hK)
+      (hr₂_bdd u (Ico_subset_Icc_self hu))).weaken hle
+  have f_bound : ∀ u ∈ Ico (0 : ℝ) T,
+      dist (oaScalarRHS (γ ω) K r₁ u (α₁ ω u))
+           (oaScalarRHS (γ ω) K r₂ u (α₁ ω u)) ≤ K / 2 * εr := by
+    intro u hu
+    rw [Real.dist_eq]
+    exact le_trans (oaScalarRHS_r_diff (γ ω) K r₁ r₂ u (α₁ ω u) (le_of_lt hK) (hα₁_inv ω u hu))
+      (mul_le_mul_of_nonneg_left (hεr_bound u (Ico_subset_Icc_self hu)) (by linarith))
+  have key := dist_le_of_approx_trajectories_ODE_of_mem (E := ℝ)
+    (v := fun u x => oaScalarRHS (γ ω) K r₂ u x)
+    (s := fun _ => Icc (0 : ℝ) 1) (a := 0) (b := T)
+    (f := α₁ ω) (f' := fun u => oaScalarRHS (γ ω) K r₁ u (α₁ ω u))
+    (g := α₂ ω) (g' := fun u => oaScalarRHS (γ ω) K r₂ u (α₂ ω u))
+    (K := L) (δ := 0) (εf := K / 2 * εr) (εg := 0)
+    hlip (hα₁_cont ω) (hα₁_ode ω) f_bound (hα₁_inv ω)
+    (hα₂_cont ω) (hα₂_ode ω) (fun _ _ => by rw [dist_self]) (hα₂_inv ω) hδ0
+  have := key s hs
+  rw [Real.dist_eq] at this
+  simp only [add_zero, sub_zero] at this
+  exact this
 
 /-- Contraction regime exists: for any K, γ_max, there exists T > 0 small
     enough that K/2 · T · exp((γ_max+K)·T) < 1. -/
