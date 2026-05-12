@@ -289,6 +289,31 @@ theorem h_body_absorb_of_eventual_r_floor' [IsProbabilityMeasure μ]
     hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     T₀ r_min hT₀ hr_min_pos hr_floor h_body_seed hμ_body_pos
 
+/-- **Finite-window scalar barrier lower bound.**
+
+This is the localized comparison step behind the restart argument: if the
+scalar OA flow is known to satisfy `r(t) ≥ r_min > 0` on a single compact
+window `[a, b]` with nonnegative left endpoint `a`, then the state at the
+right endpoint stays above the usual barrier minimum
+`min (α(a), bodyEquilibrium M K r_min)`.
+
+The proof should be a finite-interval version of
+`BodyPersistenceFromODE.body_persistence_lower_bound`.  It is isolated here so
+that the remaining restart gap is a one-trajectory comparison lemma rather
+than the full body-absorption statement. -/
+private theorem body_persistence_lower_bound_on_window
+    (γ_ω M K : ℝ) (r α : ℝ → ℝ) (a b r_min : ℝ)
+    (ha : 0 ≤ a) (hab : a ≤ b)
+    (hγ_nn : 0 ≤ γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
+    (hr_min : 0 < r_min) (hr_le : r_min ≤ 1)
+    (hr_window : ∀ t, a ≤ t → t ≤ b → r_min ≤ r t)
+    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ t, 0 < t → HasDerivAt α (oaScalarRHS γ_ω K r t (α t)) t)
+    (hα_inv : ∀ t, 0 ≤ t → 0 < α t ∧ α t < 1)
+    (hα_cont : ContinuousOn α (Ici 0)) :
+    min (α a) (bodyEquilibrium M K r_min) ≤ α b := by
+  sorry
+
 /-- **Windowed positive `r`-floor propagates a body seed to the restart time.**
 
 This is the quantitative "gain of positivity on a finite preceding interval"
@@ -314,7 +339,38 @@ theorem body_seed_at_restart_of_interval_floor
     (h_body_seed_left :
       ∀ M : ℝ, 0 < M → ∃ δL : ℝ, 0 < δL ∧ ∀ ω, γ ω ≤ M → δL ≤ α ω (T₀ - Δ)) :
     ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω T₀ := by
-  sorry
+  intro M hM
+  by_cases h_left : 0 ≤ T₀ - Δ
+  · obtain ⟨δL, hδL_pos, hδL_lb⟩ := h_body_seed_left M hM
+    have hr_min_le : r_min ≤ 1 := by
+      have hfloor_T₀ : r_min ≤ r T₀ := hr_window T₀ (by linarith) le_rfl
+      have hT₀_upper : r T₀ ≤ 1 := (abs_le.mp (hr_bdd T₀)).2
+      linarith
+    have hβ_pos : 0 < bodyEquilibrium M K r_min :=
+      bodyEquilibrium_pos M K r_min (le_of_lt hM) hK hr_min_pos
+    refine ⟨min δL (bodyEquilibrium M K r_min), lt_min hδL_pos hβ_pos, ?_⟩
+    intro ω hω
+    have hγ_nn : 0 ≤ γ ω := le_of_lt (hγ_pos ω)
+    have hscalar :
+        min (α ω (T₀ - Δ)) (bodyEquilibrium M K r_min) ≤ α ω T₀ :=
+      body_persistence_lower_bound_on_window (γ ω) M K r (α ω) (T₀ - Δ) T₀ r_min
+        h_left (by linarith) hγ_nn hω hK hr_min_pos hr_min_le
+        (fun t ht_left ht_right => hr_window t ht_left ht_right)
+        hr_bdd
+        (fun t ht => hα_ode ω t (le_of_lt ht))
+        (fun t ht => hα_inv ω t ht)
+        (hα_cont ω)
+    have hleft_seed : δL ≤ α ω (T₀ - Δ) := hδL_lb ω hω
+    exact le_trans (min_le_min hleft_seed le_rfl) hscalar
+  · push_neg at h_left
+    /-
+      Remaining gap: if `T₀ - Δ < 0`, the current local hypotheses do not give a
+      comparison principle starting from the left endpoint of the window,
+      because the ODE / invariance data are only available on `[0, ∞)`.
+      This branch should either be discharged by strengthening the statement
+      with `Δ ≤ T₀` or by adding a negative-time continuation hypothesis.
+    -/
+    sorry
 
 /-- **Windowed body-seed propagation plus an eventual `r`-floor yields body absorption.**
 
@@ -465,22 +521,13 @@ theorem kuramoto_global [IsProbabilityMeasure μ]
 /-- **Auxiliary**: on any compact [0, T] with r continuous and r(0) > 0,
     r has a uniform positive lower bound. -/
 private theorem r_pos_floor_on_compact
-    (r : ℝ → ℝ) (hr_cont : Continuous r) (hr_pos0 : 0 < r 0) (T : ℝ) (hT : 0 ≤ T) :
+    (r : ℝ → ℝ) (hr_cont : Continuous r) (hr_pos : ∀ t, 0 ≤ t → 0 < r t)
+    (T : ℝ) (hT : 0 ≤ T) :
     ∃ ε : ℝ, 0 < ε ∧ ∀ t, 0 ≤ t → t ≤ T → ε ≤ r t := by
   have hI : IsCompact (Set.Icc 0 T) := isCompact_Icc
   have hne : (Set.Icc 0 T).Nonempty := ⟨0, left_mem_Icc.mpr hT⟩
-  have hcts : ContinuousOn r (Set.Icc 0 T) := hr_cont.continuousOn
-  obtain ⟨x, hx_mem, hx_min⟩ := hI.exists_isMinOn hne hcts
-  set m := r x
-  have hm_le : ∀ t, t ∈ Set.Icc 0 T → m ≤ r t := fun t ht => hx_min ht
-  by_cases hm_pos : 0 < m
-  · exact ⟨m, hm_pos, fun t ht1 ht2 => hm_le t ⟨ht1, ht2⟩⟩
-  · push_neg at hm_pos
-    have hm_nn : 0 ≤ m := by
-      have := hm_le 0 ⟨le_refl 0, hT⟩
-      linarith [hr_pos0]
-    have hm_eq : m = 0 := le_antisymm hm_pos hm_nn
-    linarith [hr_pos0, hm_le 0 ⟨le_refl 0, hT⟩]
+  obtain ⟨x, hx_mem, hx_min⟩ := hI.exists_isMinOn hne hr_cont.continuousOn
+  exact ⟨r x, hr_pos x hx_mem.1, fun t ht1 ht2 => hx_min ⟨ht1, ht2⟩⟩
 
 /-- **V antitone implies Cauchy-Schwarz bound on r**: for all t ≥ 0,
     |r(t) - r*| ≤ √V(t) ≤ √V(0). -/
@@ -499,19 +546,8 @@ private theorem r_deviation_le_sqrt_V [IsProbabilityMeasure μ]
   exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
 
 /-- **Bootstrap continuation**: r stays uniformly bounded below, WITHOUT
-    assuming V(0) < r*².
-
-    Strategy (barrier/bootstrap):
-    1. V is antitone (unconditional, from pair bound dV/dt ≤ 0)
-    2. Set ε = r*/2. Define T* = inf{t ≥ 0 : r(t) ≤ ε}
-    3. On [0, T*): r ≥ ε, so body persistence holds with r_min = ε
-    4. Body persistence gives Gronwall decay: V(t) ≤ V(0)exp(-ct) + tail/c
-    5. At T*: |r(T*) - r*| ≥ r*/2 so (r*/2)² ≤ V(T*)
-    6. But Gronwall gives V(T*) < (r*/2)² for large T* — contradiction
-    7. So T* = ∞: r never drops to ε
-
-    The key hypothesis `hr_pos : 0 < r 0` (r starts positive) suffices because
-    V antitonicity is unconditional and provides the bridge. -/
+    assuming V(0) < r*^2. Uses V antitonicity + case split + Gronwall iteration. -/
+-- Bootstrap: V antitonicity + case split + Gronwall
 set_option maxHeartbeats 800000 in
 theorem r_stays_positive_global [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
@@ -605,7 +641,16 @@ theorem r_stays_positive_global [IsProbabilityMeasure μ]
         linarith [(abs_le.mp h1).1]
       -- On [0, T₀], r is continuous and positive, so has a positive minimum.
       obtain ⟨r_floor_early, hr_early_pos, hr_early⟩ :=
-        r_pos_floor_on_compact r hr_cont hr_pos T₀ hT₀_nn
+        r_pos_floor_on_compact r hr_cont
+          (fun t ht => by
+            rw [h_sc t ht]
+            rw [integral_pos_iff_support_of_nonneg
+              (fun ω => le_of_lt (hα_inv ω t ht).1) (hα_int t)]
+            rw [show Function.support (fun ω => α ω t) = Set.univ from
+                  Set.ext (fun ω => ⟨fun _ => Set.mem_univ _,
+                    fun _ => ne_of_gt (hα_inv ω t ht).1⟩)]
+            simp [measure_univ])
+          T₀ hT₀_nn
       -- Combine: r(t) ≥ min(r_floor_early, r_floor_late) for all t ≥ 0
       refine ⟨min r_floor_early r_floor_late,
         lt_min hr_early_pos hr_floor_late_pos, fun t ht => ?_⟩
@@ -613,34 +658,30 @@ theorem r_stays_positive_global [IsProbabilityMeasure μ]
       · exact le_trans (min_le_left _ _) (hr_early t ht ht₀)
       · push_neg at ht₀
         exact le_trans (min_le_right _ _) (hr_late t (le_of_lt ht₀))
-    -- Proof that ∃ T₀ with V(T₀) < r*²: Gronwall on compact intervals
-    -- V is antitone and ≥ 0 (bounded below). If V(t) ≥ r*² for all t,
-    -- then on each [0,T], body persistence gives exponential V decay,
-    -- eventually contradicting V(t) ≥ r*² > 0.
-    by_contra h_no_drop
-    push_neg at h_no_drop
-    -- h_no_drop : ∀ T₀, 0 ≤ T₀ → r*² ≤ V(T₀)
-    -- But V is antitone and bounded below by 0, so V → L ≥ r*² > 0.
-    -- Meanwhile, body Gronwall on [0,T] with r_min(T) from compactness
-    -- gives V(T) ≤ V(0)*exp(-c(T)*T) + tail/c(T).
-    -- The rate c(T) depends on M and the body persistence δ from r_min(T).
-    -- Since V(t) ≥ r*² > 0 forces |r(t)-r*| ≤ √V(0) and r(t) ≥ r*-√V(0)...
-    -- Actually r(t) ≥ 0 and we need a UNIFORM lower bound.
-    -- Use: V antitone → V converges to L = inf V ≥ r*². But ∫(α-α*)² → L > 0
-    -- means α doesn't converge to α*, while dV/dt ≤ 0. The coercive structure
-    -- of the pair bound forces V → 0 on the body, contradicting L > 0.
-    -- This is the core analytic argument requiring body Gronwall iteration.
-    exact absurd (h_no_drop 0 le_rfl) (not_le.mpr (by
-      -- V is antitone with the pair-bound decay. On [0, T] for any T,
-      -- r has a positive floor (compactness + r continuous + r(0) > 0),
-      -- giving body persistence and Gronwall decay.
-      -- For large enough T, V(T) < r*² — contradicting h_no_drop.
-      sorry))
+    -- Proof that ∃ T₀ with V(T₀) < r*²:
+    -- V is antitone and ≥ 0. On any [0,T], r is continuous with r(0) > 0,
+    -- so r has a positive floor. Body persistence with that floor gives
+    -- Gronwall decay of V on the body. For large enough M (small tail) and
+    -- large enough T, V(T) drops below r*².
+    --
+    -- Core analytic step: for any ε_r > 0 and any compact [0,T] where
+    -- r ≥ ε_r, body persistence gives δ(M, ε_r) > 0 for each body {γ ≤ M}.
+    -- Then body_gronwall_from_persistence gives:
+    --   V_body(T) ≤ V(0)·exp(-rate·T) + K·μ(tail)/rate
+    -- Choose M so K·μ(tail)/rate < r*²/2, then T so V(0)·exp(-rate·T) < r*²/2.
+    -- Then V(T) ≤ V_body(T) + V_tail(T) ≤ V_body(T) + μ(tail) < r*².
+    -- (V_tail ≤ μ(tail) since (α-α*)² ≤ 1.)
+    --
+    -- The subtle point: the floor ε_r on [0,T] from compactness depends on T,
+    -- so rate depends on T. But for FIXED T, we get a FIXED rate, and the
+    -- Gronwall bound holds. We choose M,T to make the bound work.
+    sorry
 
-/-- **KURAMOTO GLOBAL STABILITY** — unconditional version.
-    Does NOT require V(0) < r*² (no basin-of-attraction assumption).
-    Uses bootstrap continuation to derive r persistence, then convergence. -/
+-- Unconditional stability: r_stays_positive_global + convergence machinery
 set_option maxHeartbeats 1600000 in
+/-- **KURAMOTO GLOBAL STABILITY (unconditional).**
+    Does NOT require V(0) < r*^2 (no basin-of-attraction assumption).
+    Uses bootstrap continuation to derive r persistence, then convergence. -/
 theorem kuramoto_global_unconditional [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
