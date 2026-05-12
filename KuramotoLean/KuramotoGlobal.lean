@@ -289,18 +289,43 @@ theorem h_body_absorb_of_eventual_r_floor' [IsProbabilityMeasure μ]
     hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     T₀ r_min hT₀ hr_min_pos hr_floor h_body_seed hμ_body_pos
 
-/-- **Finite-window scalar barrier lower bound.**
+/-- **Monotonicity below the scalar barrier on a compact window.**
 
-This is the localized comparison step behind the restart argument: if the
-scalar OA flow is known to satisfy `r(t) ≥ r_min > 0` on a single compact
-window `[a, b]` with nonnegative left endpoint `a`, then the state at the
-right endpoint stays above the usual barrier minimum
-`min (α(a), bodyEquilibrium M K r_min)`.
+When `α` stays below the comparison equilibrium on `[a,b]` and `r` has the
+required positive floor only on that same interval, the OA scalar flow is
+still monotone increasing there. This is the window-local version of
+`alpha_monotone_below_barrier`, used to restart the comparison argument at a
+positive time. -/
+private theorem alpha_monotone_below_barrier_on_window
+    (γ_ω M K : ℝ) (r α : ℝ → ℝ) (a b r_min : ℝ)
+    (ha : 0 ≤ a) (hab : a ≤ b)
+    (hγ_nn : 0 ≤ γ_ω) (hγ_le : γ_ω ≤ M) (hK : 0 < K)
+    (hr_min : 0 < r_min) (hr_le : r_min ≤ 1)
+    (hr_window : ∀ t, a ≤ t → t ≤ b → r_min ≤ r t)
+    (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ t, 0 < t → HasDerivAt α (oaScalarRHS γ_ω K r t (α t)) t)
+    (hα_inv : ∀ t, 0 ≤ t → 0 < α t ∧ α t < 1)
+    (hα_cont : ContinuousOn α (Ici 0))
+    (h_below : ∀ t, t ∈ Icc a b → α t ≤ bodyEquilibrium M K r_min) :
+    MonotoneOn α (Icc a b) := by
+  apply monotoneOn_of_deriv_nonneg (convex_Icc a b)
+    (hα_cont.mono (fun x hx => mem_Ici.mpr (le_trans ha (mem_Icc.mp hx).1)))
+  · rw [interior_Icc]
+    intro t ht
+    have ht_pos : 0 < t := lt_of_le_of_lt ha (mem_Ioo.mp ht).1
+    exact (hα_ode t ht_pos).differentiableAt.differentiableWithinAt
+  · rw [interior_Icc]
+    intro t ht
+    have ht_pos : 0 < t := lt_of_le_of_lt ha (mem_Ioo.mp ht).1
+    rw [(hα_ode t ht_pos).deriv]
+    unfold oaScalarRHS
+    exact oaScalar_nonneg_below_equil γ_ω M K (r t) r_min hγ_le hK
+      (le_trans hγ_nn hγ_le) hr_min hr_le
+      (hr_window t (le_of_lt (mem_Ioo.mp ht).1) (le_of_lt (mem_Ioo.mp ht).2))
+      (hr_bdd t) (α t) (hα_inv t (le_of_lt ht_pos)).1 (hα_inv t (le_of_lt ht_pos)).2
+      (h_below t (mem_Icc.mpr
+        ⟨le_of_lt (mem_Ioo.mp ht).1, le_of_lt (mem_Ioo.mp ht).2⟩))
 
-The proof should be a finite-interval version of
-`BodyPersistenceFromODE.body_persistence_lower_bound`.  It is isolated here so
-that the remaining restart gap is a one-trajectory comparison lemma rather
-than the full body-absorption statement. -/
 private theorem body_persistence_lower_bound_on_window
     (γ_ω M K : ℝ) (r α : ℝ → ℝ) (a b r_min : ℝ)
     (ha : 0 ≤ a) (hab : a ≤ b)
@@ -312,6 +337,22 @@ private theorem body_persistence_lower_bound_on_window
     (hα_inv : ∀ t, 0 ≤ t → 0 < α t ∧ α t < 1)
     (hα_cont : ContinuousOn α (Ici 0)) :
     min (α a) (bodyEquilibrium M K r_min) ≤ α b := by
+  set β := bodyEquilibrium M K r_min
+  have hβ_pos : 0 < β := bodyEquilibrium_pos M K r_min (le_trans hγ_nn hγ_le) hK hr_min
+  have hαa_pos : 0 < α a := (hα_inv a ha).1
+  have h_seed : 0 < min (α a) β := lt_min hαa_pos hβ_pos
+  have h_monotone_template :
+      ∀ h_below : ∀ t, t ∈ Icc a b → α t ≤ β, MonotoneOn α (Icc a b) :=
+    fun h_below =>
+      alpha_monotone_below_barrier_on_window γ_ω M K r α a b r_min
+        ha hab hγ_nn hγ_le hK hr_min hr_le hr_window hr_bdd hα_ode hα_inv hα_cont
+        h_below
+  /-
+    Remaining gap: upgrade the local monotonicity template above into the full
+    barrier argument that handles trajectories which may cross the comparison
+    level `β` inside the window. This is exactly the finite-window analogue of
+    `BodyPersistenceFromODE.body_persistence_lower_bound`.
+  -/
   sorry
 
 /-- **Windowed positive `r`-floor propagates a body seed to the restart time.**
@@ -545,8 +586,6 @@ private theorem r_deviation_le_sqrt_V [IsProbabilityMeasure μ]
   rw [hrsc]
   exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
 
-/-- **Bootstrap continuation**: r stays uniformly bounded below, WITHOUT
-    assuming V(0) < r*^2. Uses V antitonicity + case split + Gronwall iteration. -/
 -- Bootstrap: V antitonicity + case split + Gronwall
 set_option maxHeartbeats 800000 in
 theorem r_stays_positive_global [IsProbabilityMeasure μ]
