@@ -22,6 +22,7 @@
 import KuramotoLean.FullChainConvergence
 import KuramotoLean.ContinuumSolvedFinal
 import KuramotoLean.GeneralGMainTheorem
+import KuramotoLean.ApproximationBridge
 
 open MeasureTheory Real Set Filter Topology
 
@@ -107,8 +108,11 @@ theorem V_pointwise_small [IsProbabilityMeasure μ]
     (_hr_star_eq : _r_star = ∫ ω, α_star ω ∂μ)
     (_hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * _r_star * (1 - (α_star ω) ^ 2))
     (_hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ) :
-    ∀ ε > 0, ∃ T : ℝ, ∫ ω, (α ω T - α_star ω) ^ 2 ∂μ < ε := by
-  sorry
+    ∀ ε > 0, ∃ T : ℝ, ∫ ω, (α ω T - α_star ω) ^ 2 ∂μ < ε :=
+  npole_approximation_gives_small_V (μ := μ) γ K hK hγ_pos hγ_int r α
+    _hr_cont _hr_bdd _hα_ode _hα_cont _h_sc _hα_int _hα_inv
+    α_star _r_star _hr_star_pos _hα_star_pos _hα_star_lt _hαs_int
+    _hr_star_eq _hα_star_equil _hα_sq_int
 
 /-! ## Main theorem -/
 
