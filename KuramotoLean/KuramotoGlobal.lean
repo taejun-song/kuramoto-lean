@@ -67,8 +67,7 @@ theorem psiEnergy_pos_of_r_pos [IsProbabilityMeasure μ]
     have h := hα_inv ω 0 le_rfl
     have h1 : 1 - α ω 0 ^ 2 ≤ 1 := by nlinarith [sq_nonneg (α ω 0)]
     have h2 : 0 < 1 - α ω 0 ^ 2 := by nlinarith [h.1, h.2]
-    simp only [neg_nonneg]
-    exact neg_nonneg.mpr (Real.log_nonpos h2.le h1)
+    linarith [Real.log_nonpos h2.le h1]
   have h_int : Integrable (fun ω => -Real.log (1 - α ω 0 ^ 2)) μ := by
     sorry
   rw [integral_pos_iff_support_of_nonneg h_nn h_int]
@@ -103,30 +102,25 @@ theorem psi_pointwise_deriv
   have h1m_ne : (1 : ℝ) - α t ^ 2 ≠ 0 := ne_of_gt h1m
   -- Step 1: α² has derivative 2 * α t * α̇
   have hα_sq : HasDerivAt (fun s => α s ^ 2) (2 * α t * oaScalarRHS γ_ω K r t (α t)) t := by
-    have := hα_ode.pow 2
-    simp [Nat.cast_ofNat, mul_comm] at this ⊢
-    convert this using 1
-    ring
+    have h := hα_ode.pow 2
+    simp only [Nat.cast_ofNat] at h
+    convert h using 1; ring
   -- Step 2: 1 - α² has derivative -(2 * α t * α̇)
   have h_sub : HasDerivAt (fun s => 1 - α s ^ 2)
       (-(2 * α t * oaScalarRHS γ_ω K r t (α t))) t := by
-    exact (hasDerivAt_const t 1).sub hα_sq
+    have h := (hasDerivAt_const t (1:ℝ)).sub hα_sq
+    convert h using 1; ring
   -- Step 3: log(1 - α²) has derivative -(2 * α t * α̇) / (1 - α t ^ 2)
   have h_log : HasDerivAt (fun s => Real.log (1 - α s ^ 2))
       (-(2 * α t * oaScalarRHS γ_ω K r t (α t)) / (1 - α t ^ 2)) t := by
-    have := h_sub.log h1m_ne
-    convert this using 1
+    exact h_sub.log h1m_ne
   -- Step 4: -log(1 - α²) has derivative (2 * α t * α̇) / (1 - α t ^ 2)
   have h_neg : HasDerivAt (fun s => -Real.log (1 - α s ^ 2))
       (2 * α t * oaScalarRHS γ_ω K r t (α t) / (1 - α t ^ 2)) t := by
-    have := h_log.neg
-    convert this using 1
-    ring
-  -- Step 5: algebraic simplification to match target
+    have h := h_log.neg
+    convert h using 1; ring
   convert h_neg using 1
-  unfold oaScalarRHS
-  field_simp
-  ring
+  unfold oaScalarRHS; field_simp
 
 /-- The integral form: dΨ/dt = Kr² - 2∫γα²/(1-α²) g dω.
     In the complex OA (iω instead of γ), the γ term vanishes and dΨ/dt = K|r|² ≥ 0.
@@ -172,23 +166,20 @@ theorem r_stays_positive [IsProbabilityMeasure μ]
   -- Step 1: r(t) > 0 for all t ≥ 0 (integral of strictly positive functions)
   have hr_pos_all : ∀ t, 0 ≤ t → 0 < r t := by
     intro t ht
-    rw [h_sc t ht]
-    have h_nn : ∀ ω, 0 ≤ α ω t := fun ω => le_of_lt (hα_inv ω t ht).1
-    rw [integral_pos_iff_support_of_nonneg h_nn (hα_int t)]
-    rw [Function.support_eq_univ.mpr (fun ω => ne_of_gt (hα_inv ω t ht).1)]
-    exact measure_univ_pos
-  -- Step 2: Uniform lower bound via Ψ energy + Gronwall
-  -- Ψ(t) = ∫ -log(1-α²) dμ satisfies Ψ(t) ≥ 0 and Ψ(0) > 0.
-  -- From the ODE, dΨ/dt = Kr² - 2∫γα²/(1-α²) dμ.
-  -- Since α²/(1-α²) ≤ -log(1-α²)·(1/(1-α²)), and α < 1, we get
-  -- α²/(1-α²) ≤ -log(1-α²) · C for some bound depending on α.
-  -- More directly: α < 1 gives α²/(1-α²) ≤ α/(1-α) ≤ -log(1-α)/α · α²/(1-α²)...
-  -- The key estimate is: Ψ' ≥ Kr² - 2·(∫γ dμ)·Ψ (Gronwall-ready).
-  -- Since r² > 0 pointwise, a standard Gronwall bound gives
-  -- Ψ cannot decay faster than exp(-2∫γ dμ · t), keeping Ψ > 0.
-  -- Then Ψ > 0 implies ∃ ω with α(ω,t) bounded below, giving r(t) > 0.
-  -- The uniform bound follows from: r continuous on [0,∞), r > 0 everywhere,
-  -- and r(t) → r* > 0 (or inf over compact [0,T] is positive + eventual bound).
+    rw [h_sc t ht,
+      integral_pos_iff_support_of_nonneg (fun ω => le_of_lt (hα_inv ω t ht).1) (hα_int t)]
+    have h_supp : Function.support (fun ω => α ω t) = Set.univ :=
+      eq_univ_of_forall (fun ω => Function.mem_support.mpr (ne_of_gt (hα_inv ω t ht).1))
+    rw [h_supp, measure_univ]
+    exact one_pos
+  -- Step 2: Uniform lower bound
+  -- The Ψ energy functional Ψ(t) = ∫ -log(1-α²) dμ satisfies:
+  --   dΨ/dt = Kr² - 2∫γα²/(1-α²) dμ ≥ -2(∫γ dμ)·Ψ  (since α²/(1-α²) ≤ Ψ pointwise)
+  -- So Ψ(t) ≥ Ψ(0)·exp(-2∫γ dμ · t) > 0 for all t.
+  -- This gives α bounded below on a set of positive measure, hence r(t) > 0 pointwise.
+  -- For the UNIFORM bound: r is continuous and tends to r* > 0 (by the convergence
+  -- theory). On compact [0,T] the minimum is positive; for t ≥ T the limit gives
+  -- r(t) ≥ r*/2. The infimum is the min of these two.
   sorry
 
 /-- **Positive `r`-floor from `r_stays_positive` yields body absorption.**
@@ -247,7 +238,7 @@ The intended use is:
 The theorem is intentionally stated before the proof is complete so the
 remaining analytic gap is localized to the time-shifted barrier argument rather
 than hidden in informal discussion. -/
-theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
+theorem h_body_absorb_of_eventual_r_floor' [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
@@ -275,7 +266,7 @@ theorem h_body_absorb_of_eventual_r_floor [IsProbabilityMeasure μ]
       (∀ M, 0 ≤ C M) ∧
       (∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
         ∫ ω in {ω | γ ω ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε) := by
-  exact GeneralGBodyAbsorbBypass.h_body_absorb_of_eventual_r_floor
+  exact h_body_absorb_of_eventual_r_floor
     (μ := μ) γ K hK hγ_pos hγ_level
     α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hr_star_pos
     hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
