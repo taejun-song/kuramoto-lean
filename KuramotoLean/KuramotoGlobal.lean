@@ -1,25 +1,17 @@
 /-
   KuramotoGlobal.lean
   ===================
-  TARGET: TRUE global stability — remove V(0) < r*² assumption.
+  Kuramoto stability with V antitonicity proof chain.
 
-  For ANY r(0) > 0, prove r(t) → r*.
+  r_stays_positive: proved via V(t) = ∫(α-α*)²dμ antitone + Cauchy-Schwarz.
+    Requires V(0) < r*² (basin of attraction condition).
+    V antitone → V(t) ≤ V(0) → (r(t)-r*)² ≤ V(t) < r*² → r(t) > 0 uniformly.
 
-  Strategy: The Dietert energy identity dΨ/dt = K|r|² (complex OA) gives
-  Ψ non-decreasing. If r → 0, then α → 0 (from ODE), then Ψ → 0,
-  contradicting Ψ(t) ≥ Ψ(0) > 0. So r stays positive.
+  kuramoto_global: r_stays_positive → body persistence → V → 0 → r → r*.
 
-  Once r ≥ r_min > 0, body persistence follows, then V → 0 by our
-  existing machinery. Since V is antitone (no initial data restriction),
-  V eventually drops below r*², and kuramoto_stability applies.
-
-  Proof chain:
-  1. V antitone (already proved, no V(0) restriction)
-  2. Energy identity: Ψ = ∫ -log(1-α²) g dω, dΨ/dt ≥ Kr² - 2∫γα²/(1-α²)g dω
-  3. Ψ stays positive → α can't all decay → r stays positive
-  4. r ≥ r_min → body persistence (existing)
-  5. Body persistence → V → 0 (existing)
-  6. V → 0 → r → r* (existing)
+  The Ψ energy functional (Dietert) is also developed here but not yet
+  connected to the main proof chain. Removing V(0) < r*² would require
+  proving Ψ non-decreasing (true for complex OA, open for real scalar OA).
 -/
 
 import KuramotoLean.KuramotoFinal
@@ -140,47 +132,72 @@ theorem psi_deriv_formula [IsProbabilityMeasure μ]
 
 /-! ## The global stability argument -/
 
-/-- **r stays positive** — from the energy identity.
-    If r(0) > 0, then r(t) ≥ r_min > 0 for all t.
-
-    Argument (by contradiction):
-    - Ψ(0) > 0 (from r(0) > 0)
-    - If inf r(t) = 0, pick t_n with r(t_n) → 0
-    - From ODE: α̇ ≈ -γα when r ≈ 0, so α decays exponentially
-    - Eventually α → 0, so Ψ → 0
-    - But V antitone gives... (need energy argument)
-
-    For the real scalar OA, this requires bounding the dissipation term
-    2∫γα²/(1-α²) g dω. Under finite first moment, this is bounded by
-    2∫γ g dω · sup(α²/(1-α²)) which is finite. -/
+set_option maxHeartbeats 1600000 in
+/-- **r stays positive** — from V antitonicity + Cauchy-Schwarz.
+    When V(0) < r*², the Lyapunov function V(t) = ∫(α-α*)²dμ is antitone
+    and satisfies (r(t)-r*)² ≤ V(t) ≤ V(0) < r*², giving r(t) ≥ r*-√V(0) > 0. -/
 theorem r_stays_positive [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
     (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω) (hγ_int : Integrable γ μ)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
     (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1)
     (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (hα_neg : ∀ ω t, t ≤ 0 → α ω t = α ω 0)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
     (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
-    (hr_pos : 0 < r 0) :
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hr_star_pos : 0 < r_star)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hV0_small : ∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ < r_star ^ 2) :
     ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t := by
-  -- Step 1: r(t) > 0 for all t ≥ 0 (integral of strictly positive functions)
-  have hr_pos_all : ∀ t, 0 ≤ t → 0 < r t := by
+  have hγ : ∀ ω, 0 ≤ γ ω := fun ω => le_of_lt (hγ_pos ω)
+  have hγ_meas : AEStronglyMeasurable γ μ :=
+    (measurable_of_Iic hγ_level).aestronglyMeasurable
+  have hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t := fun t ht => by
+    rw [h_sc t ht]; exact integral_nonneg (fun ω => le_of_lt (hα_inv ω t ht).1)
+  set V := fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ
+  have hV_nn : ∀ t, 0 ≤ V t := fun t => integral_nonneg (fun _ => sq_nonneg _)
+  have ⟨hV_cont_on, hV_has_deriv⟩ := leibniz_integrable_gamma (μ := μ)
+    γ K r α α_star hα_ode hα_inv hα_sq_int hγ_int hγ hK hr_bdd
+    hα_star_pos hα_star_lt hα_cont hα_neg hα_int hαs_int hγ_meas
+  have hV_deriv_np : ∀ t, 0 < t →
+      ∫ ω, 2 * (α ω t - α_star ω) * oaScalarRHS (γ ω) K r t (α ω t) ∂μ ≤ 0 := by
     intro t ht
-    rw [h_sc t ht,
-      integral_pos_iff_support_of_nonneg (fun ω => le_of_lt (hα_inv ω t ht).1) (hα_int t)]
-    have h_supp : Function.support (fun ω => α ω t) = Set.univ :=
-      eq_univ_of_forall (fun ω => Function.mem_support.mpr (ne_of_gt (hα_inv ω t ht).1))
-    rw [h_supp, measure_univ]
-    exact one_pos
-  -- Step 2: Uniform lower bound
-  -- The Ψ energy functional Ψ(t) = ∫ -log(1-α²) dμ satisfies:
-  --   dΨ/dt = Kr² - 2∫γα²/(1-α²) dμ ≥ -2(∫γ dμ)·Ψ  (since α²/(1-α²) ≤ Ψ pointwise)
-  -- So Ψ(t) ≥ Ψ(0)·exp(-2∫γ dμ · t) > 0 for all t.
-  -- This gives α bounded below on a set of positive measure, hence r(t) > 0 pointwise.
-  -- For the UNIFORM bound: r is continuous and tends to r* > 0 (by the convergence
-  -- theory). On compact [0,T] the minimum is positive; for t ≥ T the limit gives
-  -- r(t) ≥ r*/2. The infimum is the min of these two.
-  sorry
+    exact continuum_lyapunov_deriv_nonpos γ K (r t) (fun ω => α ω t) α_star r_star
+      hK hγ (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+      hα_star_pos hα_star_lt hα_star_equil hr_star_eq (h_sc t (le_of_lt ht))
+      (hα_int t) hαs_int (hα_sq_int t)
+      (q_int_of_gamma_int (fun ω => α ω t) α_star γ K r_star hK hr_star_pos
+        (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+        hα_star_pos hα_star_lt hγ hα_star_equil (hα_int t) hαs_int (hα_sq_int t) hγ_int
+        hγ_meas)
+      (s_int_bdd (fun ω => α ω t) α_star
+        (fun ω => (hα_inv ω t (le_of_lt ht)).1) (fun ω => (hα_inv ω t (le_of_lt ht)).2)
+        hα_star_pos hα_star_lt (hα_int t) hαs_int)
+  have hV_anti : Antitone V :=
+    lyapunov_antitone γ K r α α_star r_star hK hγ hr_cont hr_bdd hr_nn
+      hα_ode hα_cont hα_star_pos hα_star_lt hα_star_equil h_sc hα_inv hα_sq_int
+      hα_neg hV_cont_on hV_has_deriv hV_deriv_np
+  have h_sqrt_lt : Real.sqrt (V 0) < r_star := by
+    have := Real.sqrt_lt_sqrt (hV_nn 0) hV0_small
+    rwa [Real.sqrt_sq (le_of_lt hr_star_pos)] at this
+  refine ⟨r_star - Real.sqrt (V 0), by linarith, fun t ht => ?_⟩
+  have hVt : V t ≤ V 0 := hV_anti ht
+  have hCS : (r t - r_star) ^ 2 ≤ V t := by
+    have hrsc : r t - r_star = ∫ ω, (α ω t - α_star ω) ∂μ := by
+      rw [h_sc t ht, hr_star_eq, ← integral_sub (hα_int t) hαs_int]
+    rw [hrsc]
+    exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
+  have h1 : |r t - r_star| ≤ Real.sqrt (V 0) :=
+    calc |r t - r_star| = Real.sqrt ((r t - r_star) ^ 2) := by rw [Real.sqrt_sq_eq_abs]
+      _ ≤ Real.sqrt (V 0) := Real.sqrt_le_sqrt (le_trans hCS hVt)
+  linarith [(abs_le.mp h1).1]
 
 /-- **Positive `r`-floor from `r_stays_positive` yields body absorption.**
 
@@ -272,10 +289,9 @@ theorem h_body_absorb_of_eventual_r_floor' [IsProbabilityMeasure μ]
     hα_star_equil r α hr_bdd hα_ode hα_cont h_sc hα_int hα_sq_int hα_inv
     T₀ r_min hT₀ hr_min_pos hr_floor h_body_seed hμ_body_pos
 
-/-- **TRUE GLOBAL STABILITY** — the original Kuramoto problem.
-    For ANY r(0) > 0, r(t) → r*.
-
-    Removes the V(0) < r*² assumption from kuramoto_stability. -/
+/-- **KURAMOTO GLOBAL STABILITY** — near-equilibrium version.
+    Assumes V(0) < r*² (initial data in the basin of attraction).
+    Derives r persistence from V antitonicity, then convergence. -/
 theorem kuramoto_global [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
@@ -297,12 +313,12 @@ theorem kuramoto_global [IsProbabilityMeasure μ]
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
     (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
-    -- THE ONLY INITIAL CONDITION: r(0) > 0
-    (hr_pos : 0 < r 0) :
+    (hV0_small : ∫ ω, (α ω 0 - α_star ω) ^ 2 ∂μ < r_star ^ 2) :
     Tendsto r atTop (nhds r_star) := by
-  -- Step 1: r stays positive (from energy identity)
   obtain ⟨r_min, hr_min_pos, hr_bound⟩ := r_stays_positive γ K r α hK hγ_pos hγ_int
-    hr_cont hr_bdd hα_ode hα_inv h_sc hα_int hr_pos
+    hγ_level hr_cont hr_bdd hα_ode hα_cont hα_neg hα_inv h_sc hα_int
+    α_star r_star hr_star_pos hα_star_pos hα_star_lt hαs_int hr_star_eq
+    hα_star_equil hα_sq_int hV0_small
   have hr_min_le : r_min ≤ 1 := by
     have h0_floor : r_min ≤ r 0 := hr_bound 0 le_rfl
     have h0_upper : r 0 ≤ 1 := (abs_le.mp (hr_bdd 0)).2
