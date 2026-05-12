@@ -9,7 +9,7 @@
   - oa_self_consistent_r_stability: Gronwall fixed-point bound on r-difference
   - oa_continuous_dependence_on_g: full continuous dependence on g
 
-  2 sorry (order_param_diff_bound, oa_self_consistent_r_stability).
+  0 sorry.
 -/
 
 import KuramotoLean.OAScalarGammaLip
@@ -25,14 +25,56 @@ noncomputable section
 theorem order_param_diff_bound
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (α₁ α₂ : Ω → ℝ) (g₁ g₂ : Ω → ℝ)
-    (_hα₁_bdd : ∀ ω, |α₁ ω| ≤ 1) (_hα₂_bdd : ∀ ω, |α₂ ω| ≤ 1)
+    (hα₁_bdd : ∀ ω, |α₁ ω| ≤ 1) (hα₂_bdd : ∀ ω, |α₂ ω| ≤ 1)
+    (hg₁_bdd : ∀ ω, |g₁ ω| ≤ 1)
+    (hα₁_int : Integrable α₁ μ) (hα₂_int : Integrable α₂ μ)
     (_hg₁_int : Integrable g₁ μ) (_hg₂_int : Integrable g₂ μ)
-    (_hα₁g₁_int : Integrable (fun ω => α₁ ω * g₁ ω) μ)
-    (_hα₂g₂_int : Integrable (fun ω => α₂ ω * g₂ ω) μ)
-    (_hα₁g₂_int : Integrable (fun ω => α₁ ω * g₂ ω) μ) :
+    (hα₁g₁_int : Integrable (fun ω => α₁ ω * g₁ ω) μ)
+    (hα₂g₂_int : Integrable (fun ω => α₂ ω * g₂ ω) μ)
+    (hα₂g₁_int : Integrable (fun ω => α₂ ω * g₁ ω) μ) :
     |∫ ω, α₁ ω * g₁ ω ∂μ - ∫ ω, α₂ ω * g₂ ω ∂μ| ≤
       ∫ ω, |α₁ ω - α₂ ω| ∂μ + ∫ ω, |g₁ ω - g₂ ω| ∂μ := by
-  sorry
+  -- Split: α₁g₁ - α₂g₂ = (α₁ - α₂)g₁ + α₂(g₁ - g₂)
+  have h_split : ∀ ω, α₁ ω * g₁ ω - α₂ ω * g₂ ω =
+      (α₁ ω - α₂ ω) * g₁ ω + α₂ ω * (g₁ ω - g₂ ω) := fun ω => by ring
+  have h_diff_int : Integrable (fun ω => α₁ ω * g₁ ω - α₂ ω * g₂ ω) μ :=
+    hα₁g₁_int.sub hα₂g₂_int
+  have h_term1_int : Integrable (fun ω => (α₁ ω - α₂ ω) * g₁ ω) μ := by
+    have : (fun ω => (α₁ ω - α₂ ω) * g₁ ω) =
+        (fun ω => α₁ ω * g₁ ω - α₂ ω * g₁ ω) := by ext ω; ring
+    rw [this]; exact hα₁g₁_int.sub hα₂g₁_int
+  have h_term2_int : Integrable (fun ω => α₂ ω * (g₁ ω - g₂ ω)) μ := by
+    have : (fun ω => α₂ ω * (g₁ ω - g₂ ω)) =
+        (fun ω => α₂ ω * g₁ ω - α₂ ω * g₂ ω) := by ext ω; ring
+    rw [this]; exact hα₂g₁_int.sub hα₂g₂_int
+  rw [show ∫ ω, α₁ ω * g₁ ω ∂μ - ∫ ω, α₂ ω * g₂ ω ∂μ =
+      ∫ ω, (α₁ ω * g₁ ω - α₂ ω * g₂ ω) ∂μ from
+      (integral_sub hα₁g₁_int hα₂g₂_int).symm]
+  conv_lhs => rw [show (fun ω => α₁ ω * g₁ ω - α₂ ω * g₂ ω) =
+      (fun ω => (α₁ ω - α₂ ω) * g₁ ω + α₂ ω * (g₁ ω - g₂ ω)) from
+      by ext ω; ring]
+  have h_gdiff_int : Integrable (fun ω => g₁ ω - g₂ ω) μ := _hg₁_int.sub _hg₂_int
+  have h_ae_nn1 : 0 ≤ᶠ[ae μ] fun ω => |(α₁ ω - α₂ ω) * g₁ ω| :=
+    ae_of_all _ (fun ω => abs_nonneg _)
+  have h_ae_nn2 : 0 ≤ᶠ[ae μ] fun ω => |α₂ ω * (g₁ ω - g₂ ω)| :=
+    ae_of_all _ (fun ω => abs_nonneg _)
+  calc |∫ ω, ((α₁ ω - α₂ ω) * g₁ ω + α₂ ω * (g₁ ω - g₂ ω)) ∂μ|
+      ≤ |∫ ω, (α₁ ω - α₂ ω) * g₁ ω ∂μ| + |∫ ω, α₂ ω * (g₁ ω - g₂ ω) ∂μ| := by
+        rw [integral_add h_term1_int h_term2_int]; exact abs_add_le _ _
+    _ ≤ ∫ ω, |(α₁ ω - α₂ ω) * g₁ ω| ∂μ + ∫ ω, |α₂ ω * (g₁ ω - g₂ ω)| ∂μ := by
+        apply add_le_add
+        · rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
+        · rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
+    _ ≤ ∫ ω, |α₁ ω - α₂ ω| ∂μ + ∫ ω, |g₁ ω - g₂ ω| ∂μ := by
+        apply add_le_add
+        · apply integral_mono h_term1_int.norm
+          · exact (hα₁_int.sub hα₂_int).norm
+          · intro ω; simp only [Real.norm_eq_abs]
+            exact (abs_mul _ _).le.trans (mul_le_of_le_one_right (abs_nonneg _) (hg₁_bdd ω))
+        · apply integral_mono h_term2_int.norm
+          · exact h_gdiff_int.norm
+          · intro ω; simp only [Real.norm_eq_abs]
+            exact (abs_mul _ _).le.trans (mul_le_of_le_one_left (abs_nonneg _) (hα₂_bdd ω))
 
 /-! ## Lipschitz bound (local copy; the original is private in OAScalarGammaLip) -/
 
@@ -128,6 +170,39 @@ theorem oa_scalar_r_gronwall
 
 /-! ## Self-consistent system: combined estimate -/
 
+/-- Algebraic contraction lemma: if x ≤ q*x + d with 0 ≤ q < 1 then x ≤ d/(1-q). -/
+private lemma le_div_of_contraction {x q d : ℝ} (hq1 : q < 1) (_hq0 : 0 ≤ q)
+    (_hd : 0 ≤ d) (h : x ≤ q * x + d) : x ≤ d / (1 - q) := by
+  have h1q : 0 < 1 - q := by linarith
+  rw [le_div_iff₀ h1q]
+  linarith
+
+/-- gronwallBound 0 L ε t ≤ ε * t * exp(L * T) for 0 ≤ t ≤ T and 0 < L. -/
+private lemma gronwallBound_zero_le_linear {L ε t T : ℝ}
+    (hL : 0 < L) (ht : 0 ≤ t) (htT : t ≤ T) (hε : 0 ≤ ε) :
+    gronwallBound 0 L ε t ≤ ε * t * exp (L * T) := by
+  rw [gronwallBound_of_K_ne_0 (ne_of_gt hL)]
+  simp only [zero_mul, zero_add]
+  have hLt_nn : 0 ≤ L * t := by positivity
+  have heLt : 0 ≤ exp (L * t) - 1 := by linarith [add_one_le_exp (L * t)]
+  have hkey : exp (L * t) - 1 ≤ L * t * exp (L * t) := by
+    -- From exp(-y) ≥ 1 - y, multiply by exp(y): 1 ≥ exp(y) - y*exp(y)
+    have h_neg := add_one_le_exp (-(L * t))
+    have h_exp := exp_pos (L * t)
+    -- h_neg: -(L*t) + 1 ≤ exp(-(L*t)) i.e. 1 - L*t ≤ exp(-L*t)
+    -- multiply both sides by exp(L*t):
+    -- (1 - L*t)*exp(L*t) ≤ exp(-L*t)*exp(L*t) = 1
+    have := mul_le_mul_of_nonneg_right h_neg h_exp.le
+    rw [← exp_add, neg_add_cancel, exp_zero] at this
+    nlinarith
+  calc ε / L * (exp (L * t) - 1)
+      ≤ ε / L * (L * t * exp (L * t)) :=
+        mul_le_mul_of_nonneg_left hkey (div_nonneg hε hL.le)
+    _ = ε * t * exp (L * t) := by field_simp
+    _ ≤ ε * t * exp (L * T) := by
+        apply mul_le_mul_of_nonneg_left (exp_le_exp.mpr _) (mul_nonneg hε ht)
+        exact mul_le_mul_of_nonneg_left htT hL.le
+
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-- Gronwall fixed-point bound on r-difference.
@@ -137,30 +212,108 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     where q = K/2 · T · exp((γ_max + K)·T) < 1. -/
 theorem oa_self_consistent_r_stability [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K T : ℝ)
-    (_hK : 0 < K) (_hT : 0 < T)
-    (_hγ_pos : ∀ ω, 0 < γ ω)
-    (γ_max : ℝ) (_hγ_max : ∀ ω, γ ω ≤ γ_max)
-    (_g₁ _g₂ : Ω → ℝ) (δ : ℝ)
-    (_hg_diff : ∫ ω, |_g₁ ω - _g₂ ω| ∂μ ≤ δ)
+    (hK : 0 < K) (hT : 0 < T)
+    (hγ_pos : ∀ ω, 0 < γ ω)
+    (γ_max : ℝ) (hγ_max : ∀ ω, γ ω ≤ γ_max)
+    (g₁ g₂ : Ω → ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
+    (hg_diff : ∫ ω, |g₁ ω - g₂ ω| ∂μ ≤ δ)
     (r₁ r₂ : ℝ → ℝ) (α₁ α₂ : Ω → ℝ → ℝ)
-    (_h_sc₁ : ∀ t ∈ Icc 0 T, r₁ t = ∫ ω, α₁ ω t * _g₁ ω ∂μ)
-    (_h_sc₂ : ∀ t ∈ Icc 0 T, r₂ t = ∫ ω, α₂ ω t * _g₂ ω ∂μ)
-    (_hα₁_ode : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T,
+    (hr₁_bdd : ∀ t ∈ Icc 0 T, |r₁ t| ≤ 1)
+    (hr₂_bdd : ∀ t ∈ Icc 0 T, |r₂ t| ≤ 1)
+    (h_sc₁ : ∀ t ∈ Icc 0 T, r₁ t = ∫ ω, α₁ ω t * g₁ ω ∂μ)
+    (h_sc₂ : ∀ t ∈ Icc 0 T, r₂ t = ∫ ω, α₂ ω t * g₂ ω ∂μ)
+    (hα₁_ode : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T,
         HasDerivWithinAt (α₁ ω) (oaScalarRHS (γ ω) K r₁ t (α₁ ω t)) (Ici t) t)
-    (_hα₂_ode : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T,
+    (hα₂_ode : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T,
         HasDerivWithinAt (α₂ ω) (oaScalarRHS (γ ω) K r₂ t (α₂ ω t)) (Ici t) t)
-    (_hα_same_init : ∀ ω, α₁ ω 0 = α₂ ω 0)
-    (_hα₁_inv : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T, α₁ ω t ∈ Icc (0 : ℝ) 1)
-    (_hα₂_inv : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T, α₂ ω t ∈ Icc (0 : ℝ) 1)
+    (hα_same_init : ∀ ω, α₁ ω 0 = α₂ ω 0)
+    (hα₁_cont : ∀ ω, ContinuousOn (α₁ ω) (Icc 0 T))
+    (hα₂_cont : ∀ ω, ContinuousOn (α₂ ω) (Icc 0 T))
+    (hα₁_inv : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T, α₁ ω t ∈ Icc (0 : ℝ) 1)
+    (hα₂_inv : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T, α₂ ω t ∈ Icc (0 : ℝ) 1)
+    (hα₁_bdd : ∀ ω, ∀ t ∈ Icc 0 T, |α₁ ω t| ≤ 1)
+    (hα₂_bdd : ∀ ω, ∀ t ∈ Icc 0 T, |α₂ ω t| ≤ 1)
+    (hg₁_bdd : ∀ ω, |g₁ ω| ≤ 1)
+    (hg₂_bdd : ∀ ω, |g₂ ω| ≤ 1)
+    (hα₁_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₁ ω t) μ)
+    (hα₂_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₂ ω t) μ)
+    (hα₁g₁_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₁ ω t * g₁ ω) μ)
+    (hα₂g₂_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₂ ω t * g₂ ω) μ)
+    (hα₂g₁_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₂ ω t * g₁ ω) μ)
+    (hg₁_int : Integrable g₁ μ) (hg₂_int : Integrable g₂ μ)
+    (hr_cont : ContinuousOn (fun t => r₁ t - r₂ t) (Icc 0 T))
     (hsmall_T : K / 2 * T * exp ((γ_max + K) * T) < 1) :
     ∀ t ∈ Icc 0 T,
       |r₁ t - r₂ t| ≤ δ / (1 - K / 2 * T * exp ((γ_max + K) * T)) := by
-  -- Sketch: define Φ(ε) = sup|r₁-r₂| on [0,T].
-  -- Per-ω Gronwall gives |α₁(ω,t)-α₂(ω,t)| ≤ (K/2)·ε/(γ+K)·(exp((γ+K)t)-1)
-  -- ≤ K/2 · ε · t · exp((γ_max+K)·T) (linearizing gronwallBound).
-  -- Integrating: |r₁(t)-r₂(t)| ≤ q·ε + δ where q = K/2·T·exp((γ_max+K)·T).
-  -- Fixed point: ε ≤ q·ε + δ, so ε ≤ δ/(1-q).
-  sorry
+  set q := K / 2 * T * exp ((γ_max + K) * T)
+  set L := γ_max + K
+  have : Nonempty Ω := by
+    by_contra h
+    rw [not_nonempty_iff] at h
+    have := @MeasureTheory.IsProbabilityMeasure.measure_univ _ _ μ _
+    simp [Set.univ_eq_empty_iff.mpr h] at this
+  have hL : 0 < L := by linarith [hγ_pos (Classical.arbitrary Ω), hγ_max (Classical.arbitrary Ω)]
+  have hq0 : 0 ≤ q := by positivity
+  have h1q : 0 < 1 - q := by linarith
+  -- Step 1: The function |r₁ - r₂| is continuous on [0,T], compact, so attains its max
+  have hIcc_compact : IsCompact (Icc (0:ℝ) T) := isCompact_Icc
+  have hIcc_ne : (Icc (0:ℝ) T).Nonempty := ⟨0, left_mem_Icc.mpr hT.le⟩
+  have h_abs_cont : ContinuousOn (fun t => |r₁ t - r₂ t|) (Icc 0 T) :=
+    continuous_abs.comp_continuousOn hr_cont
+  obtain ⟨t_max, ht_max_mem, ht_max_ge⟩ :=
+    hIcc_compact.exists_isMaxOn hIcc_ne h_abs_cont
+  set M := |r₁ t_max - r₂ t_max|
+  have hM_bound : ∀ t ∈ Icc 0 T, |r₁ t - r₂ t| ≤ M := fun t ht =>
+    ht_max_ge ht
+  -- Step 2: One-step contraction — for each t, |r₁(t) - r₂(t)| ≤ q * M + δ
+  have h_contraction : ∀ t ∈ Icc 0 T, |r₁ t - r₂ t| ≤ q * M + δ := by
+    intro t ht
+    -- Per-ω Gronwall: |α₁(ω,t) - α₂(ω,t)| ≤ gronwallBound 0 (γ(ω)+K) (K/2*M) t
+    -- ≤ gronwallBound 0 L (K/2*M) t ≤ K/2*M*t*exp(L*T) ≤ q*M
+    have hMnn : 0 ≤ M := abs_nonneg _
+    have hα_diff : ∀ ω, |α₁ ω t - α₂ ω t| ≤ q * M := by
+      intro ω
+      have hgw : 0 < γ ω := hγ_pos ω
+      have hgwK : 0 < γ ω + K := by linarith
+      -- Use oa_scalar_r_gronwall for each ω
+      have h_grw := oa_scalar_r_gronwall (γ ω) K r₁ r₂ T (le_of_lt hgw)
+        (le_of_lt hK) hr₁_bdd hr₂_bdd M hM_bound (α₁ ω 0) (α₁ ω) (α₂ ω)
+        rfl (hα_same_init ω).symm (hα₁_ode ω) (hα₂_ode ω)
+        (hα₁_cont ω) (hα₂_cont ω) (hα₁_inv ω) (hα₂_inv ω) t ht
+      rw [Real.dist_eq] at h_grw
+      have hgwK : 0 < γ ω + K := by linarith
+      calc |α₁ ω t - α₂ ω t|
+          ≤ gronwallBound 0 (γ ω + K) (K / 2 * M) t := h_grw
+        _ ≤ K / 2 * M * t * exp ((γ ω + K) * t) :=
+            gronwallBound_zero_le_linear hgwK ht.1 (le_refl t) (by positivity)
+        _ ≤ K / 2 * M * t * exp (L * T) := by
+            apply mul_le_mul_of_nonneg_left _ (mul_nonneg (mul_nonneg (by linarith : 0 ≤ K / 2) hMnn) ht.1)
+            exact exp_le_exp.mpr (mul_le_mul (by linarith [hγ_max ω]) ht.2 ht.1 (by linarith [hγ_max ω]))
+        _ ≤ K / 2 * M * T * exp (L * T) := by
+            have hexp := exp_pos (L * T)
+            have htT := ht.2
+            nlinarith [mul_nonneg (mul_nonneg (by linarith : 0 ≤ K / 2) hMnn) (le_of_lt hexp)]
+        _ = q * M := by ring
+    -- Now: |r₁(t) - r₂(t)| = |∫α₁g₁ - ∫α₂g₂| ≤ ∫|α₁-α₂| + ∫|g₁-g₂|
+    rw [h_sc₁ t ht, h_sc₂ t ht]
+    calc |∫ ω, α₁ ω t * g₁ ω ∂μ - ∫ ω, α₂ ω t * g₂ ω ∂μ|
+        ≤ ∫ ω, |α₁ ω t - α₂ ω t| ∂μ + ∫ ω, |g₁ ω - g₂ ω| ∂μ :=
+          order_param_diff_bound μ (fun ω => α₁ ω t) (fun ω => α₂ ω t) g₁ g₂
+            (fun ω => hα₁_bdd ω t ht) (fun ω => hα₂_bdd ω t ht) hg₁_bdd
+            (hα₁_int t ht) (hα₂_int t ht) hg₁_int hg₂_int
+            (hα₁g₁_int t ht) (hα₂g₂_int t ht) (hα₂g₁_int t ht)
+      _ ≤ ∫ _, q * M ∂μ + δ := by
+          apply add_le_add
+          · exact integral_mono_of_nonneg (ae_of_all _ (fun _ => abs_nonneg _))
+              (integrable_const _) (ae_of_all _ (fun ω => hα_diff ω))
+          · exact hg_diff
+      _ = q * M + δ := by
+          rw [integral_const]; simp [measure_univ]
+  -- Step 3: Apply to M to get M ≤ q*M + δ, hence M ≤ δ/(1-q)
+  have hM_le : M ≤ δ / (1 - q) :=
+    le_div_of_contraction hsmall_T hq0 hδ (h_contraction t_max ht_max_mem)
+  intro t ht
+  exact le_trans (hM_bound t ht) hM_le
 
 /-- **Main continuous dependence theorem.**
     Two self-consistent OA systems with distributions g₁, g₂ and same IC:
@@ -171,10 +324,10 @@ theorem oa_continuous_dependence_on_g [IsProbabilityMeasure μ]
     (hK : 0 < K) (hT : 0 < T)
     (hγ_pos : ∀ ω, 0 < γ ω)
     (γ_max : ℝ) (hγ_max : ∀ ω, γ ω ≤ γ_max)
-    (g₁ g₂ : Ω → ℝ) (δ : ℝ) (_hδ : 0 ≤ δ)
+    (g₁ g₂ : Ω → ℝ) (δ : ℝ) (hδ_nn : 0 ≤ δ)
     (hg_diff : ∫ ω, |g₁ ω - g₂ ω| ∂μ ≤ δ)
     (r₁ r₂ : ℝ → ℝ) (α₁ α₂ : Ω → ℝ → ℝ)
-    (_hr₁_bdd : ∀ t ∈ Icc 0 T, |r₁ t| ≤ 1)
+    (hr₁_bdd : ∀ t ∈ Icc 0 T, |r₁ t| ≤ 1)
     (hr₂_bdd : ∀ t ∈ Icc 0 T, |r₂ t| ≤ 1)
     (h_sc₁ : ∀ t ∈ Icc 0 T, r₁ t = ∫ ω, α₁ ω t * g₁ ω ∂μ)
     (h_sc₂ : ∀ t ∈ Icc 0 T, r₂ t = ∫ ω, α₂ ω t * g₂ ω ∂μ)
@@ -187,6 +340,16 @@ theorem oa_continuous_dependence_on_g [IsProbabilityMeasure μ]
     (hα_same_init : ∀ ω, α₁ ω 0 = α₂ ω 0)
     (hα₁_inv : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T, α₁ ω t ∈ Icc (0 : ℝ) 1)
     (hα₂_inv : ∀ ω, ∀ t ∈ Ico (0 : ℝ) T, α₂ ω t ∈ Icc (0 : ℝ) 1)
+    (hα₁_bdd : ∀ ω, ∀ t ∈ Icc 0 T, |α₁ ω t| ≤ 1)
+    (hα₂_bdd : ∀ ω, ∀ t ∈ Icc 0 T, |α₂ ω t| ≤ 1)
+    (hg₁_bdd : ∀ ω, |g₁ ω| ≤ 1) (hg₂_bdd : ∀ ω, |g₂ ω| ≤ 1)
+    (hα₁_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₁ ω t) μ)
+    (hα₂_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₂ ω t) μ)
+    (hα₁g₁_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₁ ω t * g₁ ω) μ)
+    (hα₂g₂_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₂ ω t * g₂ ω) μ)
+    (hα₂g₁_int : ∀ t ∈ Icc 0 T, Integrable (fun ω => α₂ ω t * g₁ ω) μ)
+    (hg₁_int : Integrable g₁ μ) (hg₂_int : Integrable g₂ μ)
+    (hr_cont : ContinuousOn (fun t => r₁ t - r₂ t) (Icc 0 T))
     (hsmall_T : K / 2 * T * exp ((γ_max + K) * T) < 1) :
     ∀ ω, ∀ t ∈ Icc 0 T,
       |α₁ ω t - α₂ ω t| ≤
@@ -197,8 +360,10 @@ theorem oa_continuous_dependence_on_g [IsProbabilityMeasure μ]
   set εr := δ / (1 - q)
   have hεr_bound : ∀ t ∈ Icc 0 T, |r₁ t - r₂ t| ≤ εr :=
     oa_self_consistent_r_stability γ K T hK hT hγ_pos γ_max hγ_max
-      g₁ g₂ δ hg_diff r₁ r₂ α₁ α₂ h_sc₁ h_sc₂ hα₁_ode hα₂_ode
-      hα_same_init hα₁_inv hα₂_inv hsmall_T
+      g₁ g₂ δ hδ_nn hg_diff r₁ r₂ α₁ α₂ hr₁_bdd hr₂_bdd h_sc₁ h_sc₂
+      hα₁_ode hα₂_ode hα_same_init hα₁_cont hα₂_cont hα₁_inv hα₂_inv
+      hα₁_bdd hα₂_bdd hg₁_bdd hg₂_bdd hα₁_int hα₂_int
+      hα₁g₁_int hα₂g₂_int hα₂g₁_int hg₁_int hg₂_int hr_cont hsmall_T
   intro ω s hs
   have hgmK_nn : (0 : ℝ) ≤ γ_max + K := by linarith [hγ_pos ω, hγ_max ω]
   have hgmK_pos : 0 < γ_max + K := by linarith [hγ_pos ω, hγ_max ω]
