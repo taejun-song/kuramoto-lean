@@ -41,6 +41,7 @@ structure SymmetricFreq (Ω : Type*) [MeasurableSpace Ω] (μ : Measure Ω) wher
   hω_sym : ∀ ω, ω_freq (neg ω) = -ω_freq ω
   hneg_inv : Function.Involutive neg
   hneg_meas : MeasurePreserving neg μ μ
+  hneg_measurable : Measurable neg
 
 /-! ## Key algebraic lemma: conjugating the OA RHS -/
 
@@ -88,11 +89,18 @@ theorem eta_real_of_symmetric [IsProbabilityMeasure μ]
         ∫ ω, starRingEnd ℂ (starRingEnd ℂ (z ω) * ↑(S.g ω)) ∂μ from
       integral_conj.symm]
   simp only [map_mul, starRingEnd_self_apply, Complex.conj_ofReal]
-  -- Now LHS = ∫ z·g, RHS = ∫ conj(z)·g. Use substitution ω ↦ neg(ω)
-  -- Since neg is measure-preserving: ∫ f(neg(ω)) dμ = ∫ f(ω) dμ
-  -- Then z(neg(ω)) = conj(z(ω)) by hz_sym and g(neg(ω)) = g(ω) by hg_sym
-  -- So ∫ conj(z)·g = ∫ conj(z(neg ω))·g(neg ω) = ∫ z·g   ✓
-  sorry
+  -- Now goal: ∫ z·g = ∫ conj(z)·g
+  -- Substitute ω ↦ neg(ω) in RHS using measure-preserving
+  conv_rhs =>
+    rw [show ∫ ω, starRingEnd ℂ (z ω) * ↑(S.g ω) ∂μ =
+        ∫ ω, starRingEnd ℂ (z (S.neg ω)) * ↑(S.g (S.neg ω)) ∂μ from by
+      have hemb : MeasurableEmbedding S.neg :=
+        (MeasurableEquiv.ofInvolutive S.neg S.hneg_inv S.hneg_measurable).measurableEmbedding
+      have := S.hneg_meas.integral_comp hemb
+        (fun ω => starRingEnd ℂ (z ω) * ↑(S.g ω))
+      simpa [Function.comp_def, S.hneg_inv] using this.symm]
+  congr 1; ext ω
+  rw [hz_sym, S.hg_sym, starRingEnd_self_apply]
 
 /-! ## Symmetry invariance of the OA flow -/
 
