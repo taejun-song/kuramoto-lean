@@ -168,3 +168,4 @@ import KuramotoLean.ComplexOAEnergy
 import KuramotoLean.ComplexOAStability
 import KuramotoLean.FullKuramotoTheorem
 import KuramotoLean.ComplexOASymmetry
+import KuramotoLean.ComplexOAConvergence
