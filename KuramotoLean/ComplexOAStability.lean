@@ -85,6 +85,15 @@ theorem complex_oa_subsumes_real
     (z : Ω → ℝ → ℝ) (g : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ)
     (h_sc : ∀ t, r t = ∫ ω, z ω t * g ω ∂μ) :
     ∀ t, (∫ ω, starRingEnd ℂ ((z ω t : ℂ)) * (g ω : ℂ) ∂μ).re = r t := by
-  sorry
+  intro t
+  -- For real z, conj(z) = z, so ∫conj(z)·g = ∫z·g, and Re of a real integral = the integral
+  simp only [Complex.conj_ofReal]
+  have h_eq : (fun ω => (z ω t : ℂ) * (g ω : ℂ)) = (fun ω => ((z ω t * g ω : ℝ) : ℂ)) := by
+    ext ω; push_cast; ring
+  rw [h_eq]
+  have : (∫ ω, ((z ω t * g ω : ℝ) : ℂ) ∂μ) = ((∫ ω, z ω t * g ω ∂μ : ℝ) : ℂ) :=
+    integral_ofReal (𝕜 := ℂ)
+  rw [this, Complex.ofReal_re]
+  exact (h_sc t).symm
 
 end
