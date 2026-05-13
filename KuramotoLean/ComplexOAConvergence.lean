@@ -39,18 +39,19 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
       ż(ω,t) = -iω·z + (K/2)(η̄ - η·z²), η = ∫z̄·g dω
 
     The rotation term -iω CANCELS in V' (proved: rotation_zero_in_error).
-    After cancellation, V' has the same algebraic structure as the
-    real scalar case. The pair bound (proved for real) extends directly.
 
-    This theorem takes V antitone and V → 0 as hypotheses.
-    These follow from the real pair bound argument applied to the
-    coupling terms (after rotation cancels), together with body
-    persistence and Barbalat. The extension is VALID because:
-    - rotation_zero_in_error proves the rotation contribution = 0
-    - The remaining coupling terms are algebraically identical
-    - The pair bound is a pointwise SOS inequality (field-independent)
+    This theorem takes V antitone and V → 0 as HYPOTHESES.
+    These are NOT yet machine-checked for the complex OA:
+    - hV_anti requires extending the pair bound to complex z (open)
+    - h_V_to_zero requires body persistence + Barbalat for complex OA
 
-    Conclusion: |η(t)|² → r*² (order parameter converges). -/
+    What IS machine-checked:
+    - rotation_zero_in_error: rotation contributes 0 to V'
+    - psi_deriv_eq_K_eta_sq: dΨ/dt = K|η|² ≥ 0
+    - complex_oa_symmetry_preserved: symmetry invariant, η ∈ ℝ
+    - The convergence V→0 ⟹ |η|→r* (this theorem, 0 sorry)
+
+    Conclusion: |η(t)|² → r*² (conditional on V antitone + V→0). -/
 theorem complex_oa_full_convergence [IsProbabilityMeasure μ]
     (D : ComplexOAData Ω μ)
     (hΨ_mono : Monotone (fun t => psiComplex (fun ω => D.z ω t) μ))
@@ -63,30 +64,24 @@ theorem complex_oa_full_convergence [IsProbabilityMeasure μ]
     Tendsto (fun t => Complex.normSq (D.η t)) atTop (nhds (D.r_star ^ 2)) :=
   complex_oa_stability D hΨ_mono hV_anti hV0 h_cs h_V_to_zero
 
-/-- **WHY THE HYPOTHESES ARE JUSTIFIED.**
+/-- **STATUS OF HYPOTHESES.**
 
-    The hypotheses `hV_anti` and `h_V_to_zero` are NOT arbitrary assumptions.
-    They follow from:
+    `hV_anti` (V antitone) and `h_V_to_zero` (V → 0) are NOT proved
+    for the complex OA. They are open problems.
 
-    1. `rotation_zero_in_error`: Re(w̄·(-iω·w)) = 0, proved in ComplexOAPairBound.
-       This shows the rotation term vanishes in V' after equilibrium subtraction.
+    What IS proved that motivates them:
+    1. `rotation_zero_in_error`: the rotation contributes 0 to V'.
+       After equilibrium subtraction, V' depends only on K-coupling terms.
+    2. For the REAL scalar model, the K-coupling terms give V' ≤ 0
+       via the pair bound (228+ files, 0 sorry).
 
-    2. After rotation cancels, V' = K·[coupling terms] with the SAME algebraic
-       structure as the real scalar case (ContinuumSolvedFinal.lean).
+    What is NOT proved:
+    3. The pair bound for complex z ∈ D (the SOS inequality may not
+       extend pointwise to complex arguments).
+    4. Body persistence for |z| in the complex OA (d|z|²/dt depends
+       on Re(ηz), not just |z|, so the scalar barrier is not direct).
 
-    3. The pair bound (L2Lyapunov.lean) proves the coupling terms give V' ≤ 0.
-       The bound is a pointwise SOS inequality that works for complex z.
-
-    4. V' ≤ 0 gives V antitone (hV_anti).
-
-    5. Body persistence (BodyPersistenceFromODE.lean) works for |z| since
-       d|z|²/dt = K·Re(ηz)(1-|z|²) — same scalar barrier argument.
-
-    6. Body coercivity + Barbalat gives V → 0 (h_V_to_zero).
-
-    The full formal proof of steps 2-6 for complex z would repeat the
-    228+ file real proof with z replacing α. The rotation cancellation
-    (step 1) is the key NEW fact that makes this extension valid. -/
-theorem justification_for_hypotheses : True := trivial
+    Closing these requires new mathematics beyond this formalization. -/
+theorem status_of_hypotheses : True := trivial
 
 end
