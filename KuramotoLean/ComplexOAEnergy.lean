@@ -15,8 +15,10 @@
 import KuramotoLean.ComplexOA
 import Mathlib.Analysis.Calculus.Deriv.Comp
 import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
 
 open MeasureTheory Complex Real Set Filter Topology
+open scoped ComplexConjugate
 
 noncomputable section
 
@@ -83,7 +85,31 @@ theorem complex_eta_integral_identity
     (hz_int : Integrable (fun ω => (g ω : ℂ) * z ω) μ)
     (hre_int : Integrable (fun ω => (η * z ω).re * g ω) μ) :
     ∫ ω, (η * z ω).re * g ω ∂μ = Complex.normSq η := by
-  sorry
+  -- η̄ = ∫ g·z (conjugate of η = ∫z̄·g with g real)
+  have h_conj : starRingEnd ℂ η = ∫ ω, (g ω : ℂ) * z ω ∂μ := by
+    rw [hη_def]
+    rw [show (starRingEnd ℂ) (∫ ω, starRingEnd ℂ (z ω) * ↑(g ω) ∂μ) =
+        ∫ ω, starRingEnd ℂ (starRingEnd ℂ (z ω) * ↑(g ω)) ∂μ from
+      (integral_conj).symm]
+    congr 1; ext ω; simp [map_mul, mul_comm]
+  -- ∫Re(η·z)·g = Re(η · ∫g·z) = Re(η·η̄) = |η|²
+  -- Step 1: factor g inside the complex multiplication
+  have h_eq : (fun ω => (η * z ω).re * g ω) =
+      (fun ω => (η * ((g ω : ℂ) * z ω)).re) := by
+    ext ω; simp [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]; ring
+  rw [h_eq]
+  -- Step 2: pull Re and η through the integral
+  have h2 : ∫ ω, (η * ((g ω : ℂ) * z ω)).re ∂μ =
+      (η * ∫ ω, (g ω : ℂ) * z ω ∂μ).re := by
+    conv_lhs =>
+      arg 2; ext ω
+      rw [show (η * ((g ω : ℂ) * z ω)).re = Complex.reCLM (η * ((g ω : ℂ) * z ω)) from by simp]
+    rw [ContinuousLinearMap.integral_comp_comm _ (hz_int.const_mul η)]
+    simp only [Complex.reCLM_apply]
+    congr 1
+    show ∫ ω, η * ((g ω : ℂ) * z ω) ∂μ = η * ∫ ω, (g ω : ℂ) * z ω ∂μ
+    exact integral_const_mul η (fun ω => (g ω : ℂ) * z ω)
+  rw [h2, ← h_conj, Complex.mul_conj, Complex.ofReal_re]
 
 /-! ## The energy identity -/
 
