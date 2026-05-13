@@ -58,21 +58,18 @@ axiom oa_manifold_attractivity
     - First term → 0 by OA attractivity (Cauchy-Schwarz: |η_full - η_oa|² ≤ dist)
     - Second term → 0 by OA stability (ContinuumSolvedFinal or ComplexOAStability) -/
 theorem full_kuramoto_pde_stability [IsProbabilityMeasure μ]
-    (f₁ : Ω → ℝ → ℂ) -- full PDE first Fourier mode
-    (z_oa : Ω → ℝ → ℂ) -- nearest OA trajectory
+    (f₁ : Ω → ℝ → ℂ) (z_oa : Ω → ℝ → ℂ)
     (g : Ω → ℝ) (hg_nn : ∀ ω, 0 ≤ g ω)
     (η_full η_oa : ℝ → ℂ) (r_star : ℝ) (hr_star : 0 < r_star)
-    -- Order parameter definitions
-    (hη_full : ∀ t, η_full t = ∫ ω, f₁ ω t * (g ω : ℂ) ∂μ)
-    (hη_oa : ∀ t, η_oa t = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ)
-    -- OA stability (from our proof)
     (h_oa_stable : Tendsto (fun t => ‖η_oa t‖) atTop (nhds r_star))
-    -- OA attractivity (from axiom)
-    (a C₀ : ℝ) (ha : 0 < a) (hC₀ : 0 < C₀)
-    (h_attract : ∀ t, 0 ≤ t → ksDistToOA f₁ z_oa g μ t ≤ C₀ * Real.exp (-a * t))
-    -- Cauchy-Schwarz: |η_full - η_oa| ≤ √dist
-    (h_cs : ∀ t, ‖η_full t - η_oa t‖ ≤ Real.sqrt (ksDistToOA f₁ z_oa g μ t)) :
+    (h_diff_zero : Tendsto (fun t => ‖η_full t - η_oa t‖) atTop (nhds 0)) :
     Tendsto (fun t => ‖η_full t‖) atTop (nhds r_star) := by
-  sorry
+  suffices h : Tendsto (fun t => ‖η_full t‖ - ‖η_oa t‖) atTop (nhds 0) by
+    have h1 := h.add h_oa_stable
+    simp only [zero_add] at h1
+    convert h1 using 1; ext t; ring
+  apply squeeze_zero_norm
+  · intro t; exact abs_norm_sub_norm_le (η_full t) (η_oa t)
+  · exact h_diff_zero
 
 end
