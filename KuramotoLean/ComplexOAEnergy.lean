@@ -29,7 +29,22 @@ theorem hasDerivAt_normSq_comp (z : ℝ → ℂ) (z' : ℂ) (t : ℝ)
     (hz : HasDerivAt z z' t) :
     HasDerivAt (fun s => Complex.normSq (z s))
       (2 * (starRingEnd ℂ (z t) * z').re) t := by
-  sorry
+  have h_re : HasDerivAt (fun s => (z s).re) z'.re t := by
+    have h := Complex.reCLM.hasFDerivAt.comp_hasDerivAt t hz
+    simp [ContinuousLinearMap.comp_apply, Function.comp_def] at h
+    exact h
+  have h_im : HasDerivAt (fun s => (z s).im) z'.im t := by
+    have h := Complex.imCLM.hasFDerivAt.comp_hasDerivAt t hz
+    simp [ContinuousLinearMap.comp_apply, Function.comp_def] at h
+    exact h
+  have h3 : HasDerivAt (fun s => (z s).re ^ 2) (2 * (z t).re * z'.re) t := by
+    have := h_re.pow 2; convert this using 1; ring
+  have h4 : HasDerivAt (fun s => (z s).im ^ 2) (2 * (z t).im * z'.im) t := by
+    have := h_im.pow 2; convert this using 1; ring
+  have h5 := h3.add h4
+  convert h5 using 1
+  · ext s; simp [Complex.normSq_apply, sq]
+  · simp [Complex.mul_re, Complex.conj_re, Complex.conj_im]; ring
 
 /-! ## Pointwise Ψ derivative -/
 
