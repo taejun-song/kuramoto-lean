@@ -67,14 +67,36 @@ structure ComplexOAData (Ω : Type*) [MeasurableSpace Ω] (μ : Measure Ω) wher
 
     The Ψ monotonicity provides a path to removing the V(0) < r*²
     condition: Ψ(t) ≥ Ψ(0) > 0 prevents the population from
-    returning to incoherence (z → 0 everywhere). -/
+    returning to incoherence (z → 0 everywhere).
+
+    Takes `h_V_to_zero` (body/tail Barbalat chain, proved for real case
+    in ContinuumSolvedFinal) and `h_cs` (Cauchy-Schwarz) as hypotheses. -/
 theorem complex_oa_stability [IsProbabilityMeasure μ]
     (D : ComplexOAData Ω μ)
     (hΨ_mono : Monotone (fun t => psiComplex (fun ω => D.z ω t) μ))
     (hV_anti : Antitone (fun t => complexV (fun ω => D.z ω t) D.z_star D.g μ))
-    (hV0 : complexV (fun ω => D.z ω 0) D.z_star D.g μ < D.r_star ^ 2) :
+    (hV0 : complexV (fun ω => D.z ω 0) D.z_star D.g μ < D.r_star ^ 2)
+    -- Cauchy-Schwarz: (|η| - r*)² ≤ V(t)
+    (h_cs : ∀ t, (Complex.normSq (D.η t) - D.r_star ^ 2) ^ 2 ≤
+        complexV (fun ω => D.z ω t) D.z_star D.g μ)
+    -- The body/tail Barbalat chain gives V → 0
+    (h_V_to_zero : Tendsto (fun t => complexV (fun ω => D.z ω t) D.z_star D.g μ)
+        atTop (nhds 0)) :
     Tendsto (fun t => Complex.normSq (D.η t)) atTop (nhds (D.r_star ^ 2)) := by
-  sorry
+  suffices h : Tendsto (fun t => Complex.normSq (D.η t) - D.r_star ^ 2) atTop (nhds 0) by
+    have h1 : Tendsto (fun t => Complex.normSq (D.η t) - D.r_star ^ 2 + D.r_star ^ 2)
+        atTop (nhds (0 + D.r_star ^ 2)) :=
+      h.add tendsto_const_nhds
+    simp only [sub_add_cancel, zero_add] at h1; exact h1
+  apply squeeze_zero_norm
+  · intro t
+    calc |Complex.normSq (D.η t) - D.r_star ^ 2|
+        = Real.sqrt ((Complex.normSq (D.η t) - D.r_star ^ 2) ^ 2) := by
+          rw [Real.sqrt_sq_eq_abs]
+      _ ≤ Real.sqrt (complexV (fun ω => D.z ω t) D.z_star D.g μ) :=
+          Real.sqrt_le_sqrt (h_cs t)
+  · rw [← Real.sqrt_zero]
+    exact h_V_to_zero.sqrt
 
 /-! ## Connection to real scalar OA -/
 
