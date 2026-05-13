@@ -85,7 +85,6 @@ import KuramotoLean.NPoleConvergence
 import KuramotoLean.NPoleGlobalStability
 import KuramotoLean.NPoleInstance
 import KuramotoLean.OADynamics
-import KuramotoLean.OmegaLimitScalar
 import KuramotoLean.OpenSubproblems
 import KuramotoLean.OrderParameterEscape
 import KuramotoLean.OrderParameterRate
@@ -164,3 +163,7 @@ import KuramotoLean.KuramotoFirstMomentEndToEndV3
 import KuramotoLean.KuramotoFirstMomentEndToEndWired
 import KuramotoLean.KuramotoFirstMomentBarbalat
 import KuramotoLean.OADeviationDecay
+import KuramotoLean.ComplexOA
+import KuramotoLean.ComplexOAEnergy
+import KuramotoLean.ComplexOAStability
+import KuramotoLean.FullKuramotoTheorem
