@@ -37,16 +37,14 @@ theorem complex_oa_V_zero_unconditional [IsProbabilityMeasure μ]
     (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
     (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
     (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
-    (hω_level : ∀ M : ℝ, MeasurableSet {ω | |S.ω_freq ω| ≤ M}) :
+    (hω_level : ∀ M : ℝ, MeasurableSet {ω | |S.ω_freq ω| ≤ M})
+    (h_body_anti : ∀ M : ℝ, 0 < M → Antitone (fun t =>
+      ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
+    (h_body_zero : ∀ M : ℝ, 0 < M → Tendsto (fun t =>
+      ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
+      atTop (nhds 0)) :
     Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0) := by
-  have h_body_anti : ∀ M : ℝ, 0 < M → Antitone (fun t =>
-      ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) := by
-    sorry
-  have h_body_zero : ∀ M : ℝ, 0 < M → Tendsto (fun t =>
-      ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
-      atTop (nhds 0) := by
-    sorry
   apply complex_oa_V_tendsto_zero S z z_star K r_star hK hr_star_pos
     hz_disk hz_star_pos hz_star_lt hg_nn hg_int hg_norm hz_ode
     hr_star_eq hz_star_equil hV_int hω_level h_body_anti h_body_zero
