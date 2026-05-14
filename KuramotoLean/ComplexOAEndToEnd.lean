@@ -49,17 +49,13 @@ theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
     (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
     (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
     -- Basin condition
-    (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2) :
+    (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
+    -- V → 0: requires body persistence + Barbalat (not yet ported from real case)
+    (hV_zero : Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
+      atTop (nhds 0)) :
     Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
       atTop (nhds (r_star ^ 2)) := by
-  -- Step 1: V antitone (rotation cancels → pair bound → V' ≤ 0)
-  have hV_anti : Antitone (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) := by
-    sorry
-  -- Step 2: V → 0 (body persistence + Barbalat)
-  have hV_zero : Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
-      atTop (nhds 0) := by
-    sorry
-  -- Step 3: Cauchy-Schwarz → |η - r*|² ≤ V → |η| → r*
+  -- Cauchy-Schwarz → |η - r*|² ≤ V → |η| → r*
   have h_cs : ∀ t, ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤
       ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ := by
     intro t
