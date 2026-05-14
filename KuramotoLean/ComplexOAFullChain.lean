@@ -1,10 +1,14 @@
 /-
-  Complex OA Full Chain — Close ALL Hypotheses
-  ================================================
-  Proves V→0 unconditionally (no h_body_anti, h_body_zero, h_tail
-  hypotheses). Derives everything from ODE data.
+  Complex OA Full Chain
+  =====================
+  Packages the proved body/tail convergence ingredients into the final
+  `V → 0` statement for the complex OA.
 
-  2 sorry remain: the body-antitone and body-decay steps are still open.
+  The earlier "unconditional" wrapper claimed to derive the body-antitone
+  and body-decay inputs directly from the ODE data, but those two complex
+  steps are still open elsewhere in the development. This file now states
+  the valid bridge theorem with those inputs explicit and proves the tail
+  estimate from integrability of `g`.
 -/
 
 import KuramotoLean.ComplexOAVZero
@@ -16,7 +20,7 @@ noncomputable section
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
-/-- V→0 with NO body/tail hypotheses. Derives all three from ODE data. -/
+/-- V→0 from explicit body/tail hypotheses, with the tail estimate derived here. -/
 theorem complex_oa_V_zero_unconditional [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ)
     (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ)
@@ -33,18 +37,17 @@ theorem complex_oa_V_zero_unconditional [IsProbabilityMeasure μ]
     (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
     (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
     (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
-    (hω_level : ∀ M : ℝ, MeasurableSet {ω | |S.ω_freq ω| ≤ M}) :
+    (hω_level : ∀ M : ℝ, MeasurableSet {ω | |S.ω_freq ω| ≤ M})
+    (h_body_anti : ∀ M : ℝ, 0 < M → Antitone (fun t =>
+      ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
+    (h_body_zero : ∀ M : ℝ, 0 < M → Tendsto (fun t =>
+      ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
+      atTop (nhds 0)) :
     Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0) := by
   apply complex_oa_V_tendsto_zero S z z_star K r_star hK hr_star_pos
     hz_disk hz_star_pos hz_star_lt hg_nn hg_int hg_norm hz_ode
-    hr_star_eq hz_star_equil hV_int hω_level
-  -- h_body_anti: body V antitone (bounded ω → bounded rotation → pair bound)
-  · intro M hM
-    sorry
-  -- h_body_zero: body V → 0 (body persistence + Gronwall)
-  · intro M hM
-    sorry
+    hr_star_eq hz_star_equil hV_int hω_level h_body_anti h_body_zero
   -- h_tail: tail integral < ε (|z-z*|² ≤ 4 + tail g → 0)
   · intro ε hε
     let tailSet : ℝ → Set Ω := fun M => {ω | M < |S.ω_freq ω|}
@@ -57,11 +60,17 @@ theorem complex_oa_V_zero_unconditional [IsProbabilityMeasure μ]
         exact (hω_level n).compl
       have h_tail_anti : Antitone fun n : ℕ => tailSet n := by
         intro m n hmn ω hω
+        change (m : ℝ) < |S.ω_freq ω|
         exact lt_of_le_of_lt (Nat.cast_le.mpr hmn) hω
       have h_tail_inter : ⋂ n : ℕ, tailSet n = ∅ := by
         ext ω
-        simp only [tailSet, mem_iInter, mem_setOf_eq, mem_empty_iff_false, not_forall, not_lt]
-        exact ⟨⌈|S.ω_freq ω|⌉₊, Nat.le_ceil _⟩
+        constructor
+        · intro hω
+          have hω' : ((⌈|S.ω_freq ω|⌉₊ : ℝ) < |S.ω_freq ω|) := by
+            exact (mem_iInter.mp hω) ⌈|S.ω_freq ω|⌉₊
+          exact (not_lt_of_ge (Nat.le_ceil _)) hω'
+        · intro hω
+          cases hω
       simpa [h_tail_inter] using
         Antitone.tendsto_setIntegral h_tail_meas h_tail_anti hg_int.integrableOn
     have h_tail_g :
@@ -119,13 +128,24 @@ theorem complex_oa_V_zero_unconditional [IsProbabilityMeasure μ]
     have h_tail_nonneg :
         0 ≤ ∫ ω in tailSet M, 4 * S.g ω ∂μ :=
       integral_nonneg fun ω => mul_nonneg (by norm_num) (hg_nn ω)
-    have h_small := hM M le_rfl
-    rw [Real.dist_eq, sub_zero, abs_of_nonneg h_tail_nonneg] at h_small
+    have h_small : 4 * ∫ ω in tailSet M, S.g ω ∂μ < ε := by
+      have h_small0 := hM M le_rfl
+      have h_tail_nonneg' : 0 ≤ 4 * ∫ ω in tailSet M, S.g ω ∂μ := by
+        rw [← integral_const_mul]
+        exact h_tail_nonneg
+      rw [Real.dist_eq, sub_zero, abs_of_nonneg h_tail_nonneg'] at h_small0
+      exact h_small0
+    have h_tail_dom' :
+        ∫ ω in {ω | M < |S.ω_freq ω|}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ ≤
+          ∫ ω in {ω | M < |S.ω_freq ω|}, 4 * S.g ω ∂μ := by
+      simpa [tailSet] using h_tail_dom
+    have h_small' : 4 * ∫ ω in {ω | M < |S.ω_freq ω|}, S.g ω ∂μ < ε := by
+      simpa [tailSet] using h_small
     calc
-      ∫ ω in tailSet M, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
-          ≤ ∫ ω in tailSet M, 4 * S.g ω ∂μ := h_tail_dom
-      _ = 4 * ∫ ω in tailSet M, S.g ω ∂μ := by
+      ∫ ω in {ω | M < |S.ω_freq ω|}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
+          ≤ ∫ ω in {ω | M < |S.ω_freq ω|}, 4 * S.g ω ∂μ := h_tail_dom'
+      _ = 4 * ∫ ω in {ω | M < |S.ω_freq ω|}, S.g ω ∂μ := by
           rw [integral_const_mul]
-      _ < ε := h_small
+      _ < ε := h_small'
 
 end
