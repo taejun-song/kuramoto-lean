@@ -42,7 +42,7 @@ theorem complex_pair_pointwise_false :
     ¬ ∀ (r_t r_star : ℝ) (z z_star : ℂ),
       (r_t - r_star) / 2 * (starRingEnd ℂ (z - z_star) * (1 - z ^ 2)).re -
         r_star / 2 * Complex.normSq (z - z_star) * (z + z_star).re ≤ 0 := by
-  push_neg
+  push Not
   exact ⟨-1, 1, 0, 1, by norm_num⟩
 
 /-! ## V' integrand definition -/
@@ -65,16 +65,24 @@ def Sc (z z_star : Ω → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : ℝ :=
 def Dc (z z_star : Ω → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : ℝ :=
   ∫ ω, (starRingEnd ℂ (z ω - z_star ω)).re * g ω ∂μ
 
-/-- V' = K · [-r* · Q_c + D_c · S_c] after rotation cancels. -/
-theorem complex_V_deriv_eq_QDS (K r_star : ℝ) (z z_star : Ω → ℂ) (g : Ω → ℝ)
-    (r_t : ℝ) (hD : r_t - r_star = Dc z z_star g μ) :
-    ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * g ω ∂μ =
-      K * (-r_star / 2 * Qc z z_star g μ + Dc z z_star g μ / 2 * Sc z z_star g μ) := by
-  rw [hD]
-  simp [complexVDerivIntegrand, Qc, Sc, Dc, sub_eq_add_neg, mul_add, mul_comm, mul_left_comm,
-    mul_assoc, add_comm, add_left_comm, add_assoc, left_distrib, right_distrib]
+/-! ## Status of the complex pair step
 
-/-! ## The Fubini identity: r*Q - D·S = (1/2)∫∫ pair -/
+The two missing theorems in the original draft claimed a fully general complex
+Fubini identity, a fully general nonnegativity result, and a fully general
+`V' = K[-r*Q + DS]` identity. Those claims are not supported by the current
+hypotheses:
+
+* `complex_V_deriv_eq_QDS` needs explicit integrability/linearity hypotheses.
+* `complex_pair_fubini` used a free `r_star` on the left-hand side but no
+  corresponding quantity on the right-hand side.
+* `complex_pair_nonneg` only assumed `‖z‖ < 1` and `z_star ≠ 0`, which is too
+  weak; concrete numerical examples give a negative pair integrand.
+
+What is actually derivable from the current file is the final assembly step:
+if a suitable `V'` identity, pair identity, and pair nonnegativity statement
+are supplied, then the Lyapunov derivative is nonpositive. We record exactly
+that below.
+-/
 
 /-- The complex pair integrand for (ω₁, ω₂). -/
 def complexPairIntegrand (z z_star : Ω → ℂ) (ω₁ ω₂ : Ω) : ℝ :=
@@ -82,50 +90,34 @@ def complexPairIntegrand (z z_star : Ω → ℂ) (ω₁ ω₂ : Ω) : ℝ :=
   let d₂ := z ω₂ - z_star ω₂
   Complex.normSq d₂ * (z_star ω₁).re * (z ω₂ + z_star ω₂).re +
   Complex.normSq d₁ * (z_star ω₂).re * (z ω₁ + z_star ω₁).re -
-  2 * (starRingEnd ℂ d₁ * d₂).re *
+  (starRingEnd ℂ d₁ * d₂).re *
     ((1 - z ω₁ ^ 2).re * (z_star ω₂).re + (1 - z ω₂ ^ 2).re * (z_star ω₁).re) / 2
-
-/-- The Fubini identity: r*Q_c - D_c·S_c = (1/2) ∫∫ pair.
-    Same algebraic structure as pair_fubini_identity in ContinuumIdentity.lean. -/
-theorem complex_pair_fubini
-    (z z_star : Ω → ℂ) (g : Ω → ℝ) (r_star : ℝ) :
-    r_star * Qc z z_star g μ - Dc z z_star g μ * Sc z z_star g μ =
-      (1/2) * ∫ ω₁, ∫ ω₂,
-        complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ ∂μ ∂μ := by
-  sorry
-
-/-! ## The complex pair integrand is non-negative (the key bound) -/
-
-/-- **THE COMPLEX PAIR BOUND.**
-    ∫∫ complexPairIntegrand · g₁ · g₂ ≥ 0.
-
-    This is the complex analog of pair_bound_from_products.
-    For real z, z* ∈ (0,1), this reduces to the proved real pair bound.
-    For complex z, z* ∈ D, the bound uses the same SOS structure
-    but with Re(·) terms instead of scalar products. -/
-theorem complex_pair_nonneg [IsProbabilityMeasure μ]
-    (z z_star : Ω → ℂ) (g : Ω → ℝ) (hg : ∀ ω, 0 ≤ g ω)
-    (hz_disk : ∀ ω, Complex.normSq (z ω) < 1)
-    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω)) :
-    0 ≤ ∫ ω₁, ∫ ω₂,
-      complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ ∂μ ∂μ := by
-  sorry
 
 /-! ## Assembly: V' ≤ 0 -/
 
-/-- **V' ≤ 0 for complex OA via Fubini.**
-    Combines: V' = K[-r*Q + DS] and r*Q - DS = (1/2)∫∫pair ≥ 0. -/
-theorem complex_V_deriv_nonpos [IsProbabilityMeasure μ]
+/-- **Conditional assembly of `V' ≤ 0`.**
+    This is the valid consequence of the current file:
+    once a matching pair identity and pair nonnegativity result are available,
+    the Lyapunov derivative is nonpositive. -/
+theorem complex_V_deriv_nonpos_of_pair_bound
     (z z_star : Ω → ℂ) (g : Ω → ℝ) (K r_t r_star : ℝ)
-    (hK : 0 < K) (hg : ∀ ω, 0 ≤ g ω)
-    (hz_disk : ∀ ω, Complex.normSq (z ω) < 1)
-    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
-    (hD : r_t - r_star = Dc z z_star g μ)
-    (hr_star_pos : 0 < r_star) :
+    (hK : 0 < K)
+    (hV_eq_QDS :
+      ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * g ω ∂μ =
+        K * (-r_star / 2 * Qc z z_star g μ + Dc z z_star g μ / 2 * Sc z z_star g μ))
+    (h_pair_fubini :
+      r_star * Qc z z_star g μ - Dc z z_star g μ * Sc z z_star g μ =
+        (1 / 2) * ∫ ω₁, ∫ ω₂,
+          complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ ∂μ ∂μ)
+    (h_pair_nonneg :
+      0 ≤ ∫ ω₁, ∫ ω₂,
+        complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ ∂μ ∂μ) :
     ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * g ω ∂μ ≤ 0 := by
-  rw [complex_V_deriv_eq_QDS K r_star z z_star g r_t hD]
-  have h_fub := @complex_pair_fubini Ω _ μ z z_star g r_star
-  have h_nn := @complex_pair_nonneg Ω _ μ _ z z_star g hg hz_disk hz_star_pos
+  rw [hV_eq_QDS]
+  have h_pair_rhs :
+      0 ≤ r_star * Qc z z_star g μ - Dc z z_star g μ * Sc z z_star g μ := by
+    rw [h_pair_fubini]
+    nlinarith
   nlinarith
 
 end
