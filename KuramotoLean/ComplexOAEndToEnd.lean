@@ -57,6 +57,29 @@ theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
       ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ := by
     sorry
   -- Step 4: Convergence
-  sorry
+  have h_diff :
+      Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star)
+        atTop (nhds 0) := by
+    apply squeeze_zero_norm
+    · intro t
+      calc
+        |(∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star|
+            = Real.sqrt
+                (((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2) := by
+                  rw [Real.sqrt_sq_eq_abs]
+        _ ≤ Real.sqrt (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) :=
+            Real.sqrt_le_sqrt (h_cs t)
+    · rw [← Real.sqrt_zero]
+      exact hV_zero.sqrt
+  have h_re :
+      Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re)
+        atTop (nhds r_star) := by
+    have h_add :
+        Tendsto
+          (fun t => ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) + r_star)
+          atTop (nhds (0 + r_star)) :=
+      h_diff.add tendsto_const_nhds
+    simpa [sub_add_cancel] using h_add
+  simpa using h_re.pow 2
 
 end
