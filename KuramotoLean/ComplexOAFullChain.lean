@@ -20,7 +20,7 @@ noncomputable section
     If r is uniformly approximated by r_n (each converging to r*),
     then r → r*. Triangle inequality: |r(t)-r*| ≤ |r(t)-r_n(t)| + |r_n(t)-r*|.
 
-    h_npole_conv: each approximant converges (from n-pole theorem, 0 sorry)
+    h_npole_conv: each approximant converges (from the n-pole theorem)
     h_unif_approx: for large n, sup_{t≥0} |r_n(t) - r(t)| is small -/
 theorem order_parameter_convergence_via_approximation
     (r : ℝ → ℝ) (r_star : ℝ)
