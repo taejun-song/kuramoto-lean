@@ -70,7 +70,9 @@ theorem complex_V_deriv_eq_QDS (K r_star : ℝ) (z z_star : Ω → ℂ) (g : Ω 
     (r_t : ℝ) (hD : r_t - r_star = Dc z z_star g μ) :
     ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * g ω ∂μ =
       K * (-r_star / 2 * Qc z z_star g μ + Dc z z_star g μ / 2 * Sc z z_star g μ) := by
-  sorry
+  rw [hD]
+  simp [complexVDerivIntegrand, Qc, Sc, Dc, sub_eq_add_neg, mul_add, mul_comm, mul_left_comm,
+    mul_assoc, add_comm, add_left_comm, add_assoc, left_distrib, right_distrib]
 
 /-! ## The Fubini identity: r*Q - D·S = (1/2)∫∫ pair -/
 
