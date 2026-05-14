@@ -171,3 +171,5 @@ import KuramotoLean.FullKuramotoTheorem
 import KuramotoLean.ComplexOASymmetry
 import KuramotoLean.ComplexOAConvergence
 import KuramotoLean.ComplexOAPairBound
+import KuramotoLean.ComplexPairBoundProof
+import KuramotoLean.ComplexOAEndToEnd
