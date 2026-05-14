@@ -6,8 +6,8 @@
 
   The earlier "unconditional" wrapper claimed to derive the body-antitone
   and body-decay inputs directly from the ODE data, but those two complex
-  steps are still open elsewhere in the development. This file now states
-  the valid bridge theorem with those inputs explicit and proves the tail
+  steps are still open elsewhere in the development. This file states the
+  valid bridge theorem with those inputs explicit and proves the tail
   estimate from integrability of `g`.
 -/
 
