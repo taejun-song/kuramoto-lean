@@ -66,6 +66,7 @@ theorem complex_oa_V_tendsto_zero [IsProbabilityMeasure μ]
     (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
     (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
     (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
+    (hω_level : ∀ M : ℝ, MeasurableSet {ω | |S.ω_freq ω| ≤ M})
     -- Body-specific: for each M, body V is antitone (bounded rotation)
     (h_body_anti : ∀ M : ℝ, 0 < M → Antitone (fun t =>
       ∫ ω in {ω | |S.ω_freq ω| ≤ M}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
@@ -78,6 +79,64 @@ theorem complex_oa_V_tendsto_zero [IsProbabilityMeasure μ]
       ∫ ω in {ω | M < |S.ω_freq ω|}, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ < ε) :
     Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0) := by
-  sorry
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  obtain ⟨M₀, h_tail_small_at_M₀⟩ := h_tail (ε / 2) (by linarith)
+  set M := max M₀ 1
+  have hM_pos : (0 : ℝ) < M := lt_of_lt_of_le one_pos (le_max_right M₀ 1)
+  have h_body := h_body_zero M hM_pos
+  rw [Metric.tendsto_atTop] at h_body
+  obtain ⟨T, hT⟩ := h_body (ε / 2) (by linarith)
+  refine ⟨max T 0, fun t ht => ?_⟩
+  have ht_nn : (0 : ℝ) ≤ t := le_trans (le_max_right T 0) ht
+  have ht_ge_T : T ≤ t := le_trans (le_max_left T 0) ht
+  have hV_split :
+      ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ =
+        (∫ ω in {ω | |S.ω_freq ω| ≤ M},
+          Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) +
+        (∫ ω in {ω | |S.ω_freq ω| ≤ M}ᶜ,
+          Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) :=
+    (integral_add_compl (hω_level M) (hV_int t)).symm
+  have h_compl : {ω | |S.ω_freq ω| ≤ M}ᶜ = {ω | M < |S.ω_freq ω|} := by
+    ext ω
+    simp [not_le]
+  have h_body_nonneg :
+      0 ≤ ∫ ω in {ω | |S.ω_freq ω| ≤ M},
+        Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ :=
+    integral_nonneg fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω)
+  have h_full_nonneg :
+      0 ≤ ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ :=
+    integral_nonneg fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω)
+  have h_body_small :
+      ∫ ω in {ω | |S.ω_freq ω| ≤ M},
+        Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ < ε / 2 := by
+    have h := hT t ht_ge_T
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg h_body_nonneg] at h
+    exact h
+  have h_tail_small :
+      ∫ ω in {ω | |S.ω_freq ω| ≤ M}ᶜ,
+        Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ < ε / 2 := by
+    rw [h_compl]
+    have h_tail_le :
+        ∫ ω in {ω | M < |S.ω_freq ω|},
+          Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ ≤
+        ∫ ω in {ω | M₀ < |S.ω_freq ω|},
+          Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ := by
+      apply setIntegral_mono_set
+      · exact (hV_int t).integrableOn
+      · exact Filter.Eventually.of_forall (fun ω =>
+          mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω))
+      · exact Filter.Eventually.of_forall fun ω hω =>
+          lt_of_le_of_lt (le_max_left M₀ 1) hω
+    exact lt_of_le_of_lt h_tail_le (h_tail_small_at_M₀ t ht_nn)
+  rw [Real.dist_eq, sub_zero, abs_of_nonneg h_full_nonneg]
+  calc
+    ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
+        = (∫ ω in {ω | |S.ω_freq ω| ≤ M},
+            Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) +
+          (∫ ω in {ω | |S.ω_freq ω| ≤ M}ᶜ,
+            Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) := hV_split
+    _ < ε / 2 + ε / 2 := add_lt_add h_body_small h_tail_small
+    _ = ε := by ring
 
 end
