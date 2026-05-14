@@ -18,7 +18,6 @@
   so the real scalar proof DOES apply to V_body. Then tail vanishing
   (∫_{|ω|>M} g → 0) gives V → 0.
 
-  1 sorry (the target to close).
 -/
 
 import KuramotoLean.ComplexOAEndToEnd
