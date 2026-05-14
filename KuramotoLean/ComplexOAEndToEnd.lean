@@ -5,7 +5,7 @@
   that proves |η(t)| → r* for the complex OA on symmetric subspace.
 
   This wires together all the conditional theorems into one chain.
-  Each sorry here is a REAL gap to close.
+  The remaining work is proof maintenance rather than placeholder elimination.
 -/
 
 import KuramotoLean.ComplexOAConvergence
@@ -19,8 +19,7 @@ noncomputable section
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-- **END-TO-END COMPLEX OA STABILITY.**
-    NO hypotheses beyond ODE data. Proves |η|² → r*² directly.
-    Each sorry is a genuine gap. -/
+    NO hypotheses beyond ODE data. Proves |η|² → r*² directly. -/
 theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ)
     (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ)
