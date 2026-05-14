@@ -33,6 +33,27 @@ private theorem complex_V_deriv_nonpos_of_pointwise
     ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * S.g ω ∂μ ≤ 0 := by
   exact integral_nonpos h_weighted_nonpos
 
+/-- The remaining algebraic gap in the complex symmetric argument is a
+    pointwise weighted sign estimate for the V' integrand.  This isolates the
+    exact bridge still needed from the complex pair decomposition and the
+    self-consistency identities. -/
+private theorem complex_pair_bound_pointwise
+    [IsProbabilityMeasure μ]
+    (S : SymmetricFreq Ω μ)
+    (z z_star : Ω → ℂ) (K r_t r_star : ℝ)
+    (hK : 0 < K)
+    (hz_sym : ∀ ω, z (S.neg ω) = starRingEnd ℂ (z ω))
+    (hz_star_sym : ∀ ω, z_star (S.neg ω) = starRingEnd ℂ (z_star ω))
+    (hz_disk : ∀ ω, Complex.normSq (z ω) < 1)
+    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
+    (h_sc : r_t = (∫ ω, starRingEnd ℂ (z ω) * (S.g ω : ℂ) ∂μ).re)
+    (hr_star : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re) :
+    ∀ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * S.g ω ≤ 0 := by
+  intro ω
+  -- Missing bridge: a formal complex analogue of `pair_bound_from_products`
+  -- reducing the symmetric complex integrand to a manifestly nonpositive form.
+  sorry
+
 /-- **COMPLEX PAIR BOUND (symmetric subspace).**
     On the symmetric subspace, the V' integral is ≤ 0.
     This is the key open gap to close. -/
@@ -47,12 +68,8 @@ theorem complex_V_deriv_nonpos_symmetric [IsProbabilityMeasure μ]
     (h_sc : r_t = (∫ ω, starRingEnd ℂ (z ω) * (S.g ω : ℂ) ∂μ).re)
     (hr_star : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re) :
     ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * S.g ω ∂μ ≤ 0 := by
-  apply complex_V_deriv_nonpos_of_pointwise
-  intro ω
-  -- Remaining gap: derive the weighted pointwise sign from the symmetric
-  -- complex pair decomposition plus the self-consistency identities.
-  -- The current assumptions are not yet connected to a formal complex analogue
-  -- of `pair_bound_from_products`.
-  sorry
+  exact complex_V_deriv_nonpos_of_pointwise S z z_star K r_t r_star
+    (complex_pair_bound_pointwise S z z_star K r_t r_star
+      hK hz_sym hz_star_sym hz_disk hz_star_pos h_sc hr_star)
 
 end
