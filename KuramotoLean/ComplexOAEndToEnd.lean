@@ -24,23 +24,23 @@ theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ)
     (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ)
     -- ODE data
-    (hK : 0 < K) (hr_star_pos : 0 < r_star)
-    (hz_disk : ∀ ω t, 0 ≤ t → Complex.normSq (z ω t) < 1)
-    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
-    (hz_star_lt : ∀ ω, Complex.normSq (z_star ω) < 1)
-    (hz_sym : ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t))
-    (hz_star_sym : ∀ ω, z_star (S.neg ω) = starRingEnd ℂ (z_star ω))
+    (_hK : 0 < K) (_hr_star_pos : 0 < r_star)
+    (_hz_disk : ∀ ω t, 0 ≤ t → Complex.normSq (z ω t) < 1)
+    (_hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
+    (_hz_star_lt : ∀ ω, Complex.normSq (z_star ω) < 1)
+    (_hz_sym : ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t))
+    (_hz_star_sym : ∀ ω, z_star (S.neg ω) = starRingEnd ℂ (z_star ω))
     (hg_nn : ∀ ω, 0 ≤ S.g ω)
     (hg_int : Integrable S.g μ)
     (hg_norm : ∫ ω, S.g ω ∂μ = 1)
     -- ODE
-    (hz_ode : ∀ ω t, HasDerivAt (z ω)
+    (_hz_ode : ∀ ω t, HasDerivAt (z ω)
       (complexOaRHS (S.ω_freq ω) K
         (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
     -- Self-consistency for equilibrium
     (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
     -- Equilibrium equation
-    (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K
+    (_hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K
       ((r_star : ℂ)) (z_star ω) = 0)
     -- Integrability
     (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
@@ -48,7 +48,7 @@ theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
     (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
     (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
     -- Basin condition
-    (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
+    (_hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
     -- V → 0: requires body persistence + Barbalat (not yet ported from real case)
     (hV_zero : Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0)) :
