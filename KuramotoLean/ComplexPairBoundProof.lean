@@ -50,9 +50,20 @@ private theorem complex_pair_bound_pointwise
     (hr_star : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re) :
     ∀ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * S.g ω ≤ 0 := by
   intro ω
-  -- Missing bridge: a formal complex analogue of `pair_bound_from_products`
-  -- reducing the symmetric complex integrand to a manifestly nonpositive form.
-  sorry
+  set A : ℝ :=
+    (r_t - r_star) / 2 * (starRingEnd ℂ (z ω - z_star ω) * (1 - z ω ^ 2)).re -
+      r_star / 2 * Complex.normSq (z ω - z_star ω) * (z ω + z_star ω).re
+  have hrewrite :
+      complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * S.g ω =
+        K * (A * S.g ω) := by
+    unfold complexVDerivIntegrand
+    simp [A, mul_left_comm, mul_comm]
+  rw [hrewrite]
+  have hcore : A * S.g ω ≤ 0 := by
+    -- Remaining gap: the complex symmetric pair decomposition should reduce
+    -- this local real-valued quantity to a manifestly nonpositive form.
+    sorry
+  exact mul_nonpos_of_nonneg_of_nonpos hK.le hcore
 
 /-- **COMPLEX PAIR BOUND (symmetric subspace).**
     On the symmetric subspace, the V' integral is ≤ 0.
