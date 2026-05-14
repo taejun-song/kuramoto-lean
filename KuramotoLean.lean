@@ -146,7 +146,8 @@ import KuramotoLean.ContinuumGammaMinFirstMoment
 import KuramotoLean.KuramotoGammaMinFirstMomentConcrete
 import KuramotoLean.KuramotoFirstMomentConcrete
 import KuramotoLean.GeneralGBodyAbsorbBypass
-import KuramotoLean.KuramotoGlobal
+-- KuramotoGlobal removed: 4 sorry (Ψ energy approach for removing basin condition).
+-- The complex OA path (ComplexOA*.lean) supersedes this approach.
 import KuramotoLean.KuramotoFirstMomentConcreteV2
 import KuramotoLean.KuramotoFirstMomentConcreteV3
 import KuramotoLean.KuramotoFirstMomentConcreteV4
