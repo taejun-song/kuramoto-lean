@@ -33,17 +33,15 @@ private theorem complex_V_deriv_nonpos_of_pointwise
     ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * S.g ω ∂μ ≤ 0 := by
   exact integral_nonpos h_weighted_nonpos
 
-/-- The unresolved step is purely local: once `K` is factored out, the sign
-    question depends only on the pointwise values `(gω, z, z*)` and the real
-    parameters `(r_t, r*)`.  All global symmetry and self-consistency data are
-    irrelevant to this final algebraic inequality. -/
-private theorem complex_pair_bound_core
-    (gω r_t r_star : ℝ) (z z_star : ℂ) :
-    (((r_t - r_star) / 2 * (starRingEnd ℂ (z - z_star) * (1 - z ^ 2)).re -
-        r_star / 2 * Complex.normSq (z - z_star) * (z + z_star).re) * gω ≤ 0) := by
-  -- Exact remaining gap: derive this local weighted inequality from the
-  -- complex pair decomposition / SOS form.
-  sorry
+/-- The previous fully local formulation is false: without additional global
+    structure, the weighted sign claim fails even for simple constants. -/
+private theorem complex_pair_bound_core_counterexample :
+    ¬ ∀ (gω r_t r_star : ℝ) (z z_star : ℂ),
+      (((r_t - r_star) / 2 * (starRingEnd ℂ (z - z_star) * (1 - z ^ 2)).re -
+          r_star / 2 * Complex.normSq (z - z_star) * (z + z_star).re) * gω ≤ 0) := by
+  intro h
+  have hbad := h (-1) 1 0 0 1
+  norm_num at hbad
 
 /-- The remaining algebraic gap in the complex symmetric argument is a
     pointwise weighted sign estimate for the V' integrand.  This isolates the
@@ -72,7 +70,10 @@ private theorem complex_pair_bound_pointwise
     simp [A, mul_left_comm, mul_comm]
   rw [hrewrite]
   have hcore : A * S.g ω ≤ 0 := by
-    simpa [A] using complex_pair_bound_core (S.g ω) r_t r_star (z ω) (z_star ω)
+    -- Remaining gap: prove this fixed-ω inequality from the full symmetric
+    -- pair decomposition and self-consistency identities. The stronger
+    -- purely local theorem is false; see `complex_pair_bound_core_counterexample`.
+    sorry
   exact mul_nonpos_of_nonneg_of_nonpos hK.le hcore
 
 /-- **COMPLEX PAIR BOUND (symmetric subspace).**
