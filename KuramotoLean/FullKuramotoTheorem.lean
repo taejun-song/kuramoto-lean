@@ -86,7 +86,9 @@ theorem full_kuramoto_pde_stability_via_axiom [IsProbabilityMeasure μ]
     (η_oa : ℝ → ℂ) (r_star : ℝ) (hr_star : 0 < r_star)
     (h_oa_stable : Tendsto (fun t => ‖η_oa t‖) atTop (nhds r_star))
     (h_attract : OAManifoldAttractive μ f₁ z_oa g)
-    (h_η_oa_eq : ∀ t, η_oa t = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ) :
+    (h_η_oa_eq : ∀ t, η_oa t = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ)
+    (hf_int : ∀ t, Integrable (fun ω => f₁ ω t * (g ω : ℂ)) μ)
+    (hz_int : ∀ t, Integrable (fun ω => z_oa ω t * (g ω : ℂ)) μ) :
     Tendsto (fun t => ‖∫ ω, f₁ ω t * (g ω : ℂ) ∂μ‖) atTop (nhds r_star) := by
   have h_ax := @oa_manifold_attractivity Ω _ μ _ f₁ z_oa g h_attract
   have h_diff : Tendsto (fun t => ‖(∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) -
@@ -94,7 +96,8 @@ theorem full_kuramoto_pde_stability_via_axiom [IsProbabilityMeasure μ]
     suffices h : (fun t => ‖(∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) - η_oa t‖) = fun t =>
         ‖∫ ω, (f₁ ω t - z_oa ω t) * (g ω : ℂ) ∂μ‖ by rw [h]; exact h_ax
     ext t; congr 1; rw [h_η_oa_eq]
-    sorry -- ∫f₁g - ∫z_oa·g = ∫(f₁-z_oa)g (linearity of integral, needs integrability)
+    rw [← integral_sub (hf_int t) (hz_int t)]
+    congr 1; ext ω; ring
   exact @full_kuramoto_pde_stability Ω _ μ _ f₁ z_oa g hg_nn
     (fun t => ∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) η_oa r_star hr_star h_oa_stable h_diff
 
