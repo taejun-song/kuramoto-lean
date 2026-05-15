@@ -37,14 +37,19 @@ in the Kuramoto model", Proc. R. Soc. A 474 (2018), Proposition 4.1.
 
 For analytic g: the OA manifold is exponentially attracting. -/
 
-/-- **AXIOM [Dietert-Fernandez 2018, Prop 4.1].**
-    For analytic g with analyticity radius a > 0:
-    dist(full PDE solution, OA manifold) ≤ C₀·e^{-at}. -/
+-- **AXIOM [Dietert-Fernandez 2018, Prop 4.1].**
+-- For analytic g: the OA defect variables w_{n,m} decay exponentially
+-- in an analytic weighted norm. This implies ‖η_full - η_OA‖ → 0.
+-- The actual norm is the analytic defect, not L²(g) distance.
+-- We encode the CONSEQUENCE (‖η_full - η_OA‖ → 0) as an opaque condition.
+opaque OAManifoldAttractive {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (f₁ z_oa : Ω → ℝ → ℂ) (g : Ω → ℝ) : Prop
+
 axiom oa_manifold_attractivity
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (f₁ z_oa : Ω → ℝ → ℂ) (g : Ω → ℝ)
-    (a C₀ : ℝ) (ha : 0 < a) (hC₀ : 0 < C₀) :
-    ∀ t, 0 ≤ t → ksDistToOA f₁ z_oa g μ t ≤ C₀ * Real.exp (-a * t)
+    (h_attract : OAManifoldAttractive μ f₁ z_oa g) :
+    Tendsto (fun t => ‖∫ ω, (f₁ ω t - z_oa ω t) * (g ω : ℂ) ∂μ‖) atTop (nhds 0)
 
 /-! ## Combined Stability Theorem -/
 
