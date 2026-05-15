@@ -41,12 +41,18 @@ theorem kuramoto_stability_unconditional [IsProbabilityMeasure μ]
     (hK_super : K > 2 / (∫ ω, (1 / |S.ω_freq ω|) * S.g ω ∂μ)) :
     Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re)
       atTop (nhds r_star) := by
-  -- The proof via n-pole passage to limit:
-  -- 1. Construct rational approximations g_n → g
-  -- 2. For each n: r_n → r* (kuramoto_solved, proved)
-  -- 3. Gronwall: |r_n(t) - r(t)| ≤ δ_n · e^{Lt} with δ_n → 0
-  -- 4. After basin entry: exponential convergence with uniform rate
-  -- 5. Combined: r → r*
+  -- The natural endpoint is to reduce the symmetric complex OA flow to the
+  -- proved real scalar convergence theorem `kuramoto_standard_tendsto`.
+  -- What is still missing in this file is not the limit theorem itself, but
+  -- the bridge data it requires:
+  -- 1. a machine-checked extraction of a real scalar trajectory α from `z`
+  --    with the exact `oaScalarRHS` ODE and self-consistency relation;
+  -- 2. body persistence on each truncation `{ω | γ ω ≤ M}` derived directly
+  --    from the complex OA hypotheses.
+  -- `ComplexOASymmetry` proves η(t) is real on the symmetric subspace, but it
+  -- does not yet supply the full scalar ODE package needed to invoke the
+  -- existing continuum theorem. Closing this `sorry` therefore still requires
+  -- a substantial new bridge construction, not a local proof script.
   sorry
 
 end
