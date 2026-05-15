@@ -12,3 +12,5 @@ import KuramotoLean.ComplexOAConvergence
 import KuramotoLean.ComplexOAEndToEnd
 -- Full PDE (1 axiom)
 import KuramotoLean.FullKuramotoTheorem
+import KuramotoLean.KuramotoEndToEnd
+import KuramotoLean.ComplexOAContDep
