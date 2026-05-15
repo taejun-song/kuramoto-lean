@@ -36,31 +36,28 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     The linearized operator L₁ around f_st has no eigenvalues with non-negative
     real part, except for the zero eigenvalue from rotation symmetry.
     Encoded as a Prop to be supplied by the caller. -/
-def DietertLinearlyStable (S : SymmetricFreq Ω μ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ) :
-    Prop :=
-  -- The Volterra convolution kernel k_{Lc} from the linearization
-  -- satisfies: the equation (Id + k_{Lc} ⋆) η = 0 has no bounded
-  -- solutions with Re(λ) ≥ 0 other than λ = 0 (rotation mode).
-  -- This is a spectral condition on (K, g, r_star).
-  -- For K > Kc with even unimodal g, this holds (Dietert §5.6).
-  ∃ (spectral_gap : ℝ), 0 < spectral_gap
+-- Linear stability is an opaque Prop depending on (K, g, r_star).
+-- The actual condition: the Volterra kernel from linearization around f_st
+-- has no eigenvalues with Re(λ) ≥ 0 except λ=0 (rotation mode).
+-- Cannot be encoded without Fourier analysis infrastructure in Mathlib.
+-- We use an opaque axiom-style definition: the caller must supply a proof.
+opaque DietertLinearlyStable (S : SymmetricFreq Ω μ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ) :
+    Prop
 
 /-- Dietert's Sobolev smallness condition (Theorem 1 of arXiv:1707.03475).
     The initial perturbation is small in weighted Sobolev norm p_b
     with b > 3/2. On the OA manifold, this is stronger than V(0) < r*². -/
-def DietertSobolevSmall (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
-    (b δ_sob : ℝ) : Prop :=
-  -- ‖f̂_in - f̂_st‖_{p_b} ≤ δ_sob where p_b(ξ) = (1+ξ)^b
-  -- On OA manifold: f_n(ω) = z(ω)^n, so this is a weighted Sobolev
-  -- condition on z(·,0) - z*(·).
-  -- We encode: b > 3/2 and the perturbation is δ_sob-small.
-  3/2 < b ∧ 0 < δ_sob ∧
-  ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < δ_sob ^ 2
+-- Sobolev smallness: ‖f̂_in - f̂_st‖_{p_b} ≤ δ in weighted norm p_b(ξ)=(1+ξ)^b.
+-- Cannot be encoded without Fourier transform infrastructure.
+-- Opaque: the caller must supply a proof for their specific initial data.
+opaque DietertSobolevSmall (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (b δ_sob : ℝ) : Prop
 
 /-- Dietert's regularity condition on g: ‖ĝ‖_{p_{b_g}} < ∞ with b_g > b+3.
     For Gaussian, compact support, Student-t with ν > 1: automatically satisfied. -/
-def DietertRegularG (S : SymmetricFreq Ω μ) (b b_g : ℝ) : Prop :=
-  b + 3 < b_g ∧ Integrable S.g μ
+-- Regularity of g: ‖ĝ‖_{p_{b_g}} < ∞ with b_g > b+3.
+-- Cannot be encoded without Fourier transform infrastructure.
+opaque DietertRegularG (S : SymmetricFreq Ω μ) (b b_g : ℝ) : Prop
 
 axiom dietert_landau_damping_2017
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
