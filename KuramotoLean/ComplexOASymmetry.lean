@@ -122,48 +122,24 @@ theorem complex_oa_symmetry_preserved [IsProbabilityMeasure μ]
     (hz_ode : ∀ ω t, HasDerivAt (z ω)
       (complexOaRHS (S.ω_freq ω) K
         (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
-    -- η(t) is real — consequence of the full system symmetry.
-    -- This breaks the circularity: we assume η real and derive z symmetry.
-    -- In practice, η reality follows from the uniqueness of the full coupled system
-    -- (the symmetric solution is the unique solution with symmetric initial data).
-    (hη_real : ∀ t, starRingEnd ℂ
-        (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) =
-        ∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ)
-    -- Per-ω ODE uniqueness (Picard-Lindelöf: Lipschitz RHS ⟹ unique solution)
-    (hz_unique : ∀ ω (u v : ℝ → ℂ) (η : ℝ → ℂ),
-      (∀ t, HasDerivAt u (complexOaRHS (S.ω_freq ω) K (η t) (u t)) t) →
-      (∀ t, HasDerivAt v (complexOaRHS (S.ω_freq ω) K (η t) (v t)) t) →
-      u 0 = v 0 → ∀ t, u t = v t) :
+    -- Full coupled system uniqueness: if two solutions (z₁,η₁) and (z₂,η₂)
+    -- of the coupled OA system have the same initial data, they agree.
+    -- This is STRONGER than per-ω uniqueness (which needs η given externally).
+    -- It resolves the η-real / symmetry circularity: define w(ω)=conj(z(-ω)),
+    -- then (w, conj(η)) satisfies the same coupled system (by g-symmetry),
+    -- same initial data ⟹ z = w AND η = conj(η) simultaneously.
+    (hz_coupled_unique : ∀ (z₁ z₂ : Ω → ℝ → ℂ),
+      (∀ ω t, HasDerivAt (z₁ ω) (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z₁ ω' t) * (S.g ω' : ℂ) ∂μ) (z₁ ω t)) t) →
+      (∀ ω t, HasDerivAt (z₂ ω) (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z₂ ω' t) * (S.g ω' : ℂ) ∂μ) (z₂ ω t)) t) →
+      (∀ ω, z₁ ω 0 = z₂ ω 0) → ∀ ω t, z₁ ω t = z₂ ω t) :
     ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t) := by
-  intro ω
-  set η := fun t => ∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ
-  have hu : ∀ t, HasDerivAt (z (S.neg ω))
-      (complexOaRHS (S.ω_freq (S.neg ω)) K (η t) (z (S.neg ω) t)) t :=
-    fun t => hz_ode (S.neg ω) t
-  -- w(t) = conj(z(ω,t)) satisfies the same ODE
-  have hw : ∀ t, HasDerivAt (fun t => starRingEnd ℂ (z ω t))
-      (complexOaRHS (S.ω_freq (S.neg ω)) K (η t) (starRingEnd ℂ (z ω t))) t := by
-    intro t
-    have h_conj_deriv : HasDerivAt (fun s => starRingEnd ℂ (z ω s))
-        (starRingEnd ℂ (complexOaRHS (S.ω_freq ω) K (η t) (z ω t))) t := by
-      have h1 := hz_ode ω t
-      -- conjCLE is a ContinuousLinearEquiv ℂ ≃L[ℝ] ℂ
-      have h2 : HasFDerivAt (starRingEnd ℂ) Complex.conjCLE.toContinuousLinearMap
-          (z ω t) := Complex.conjCLE.hasFDerivAt
-      have h3 := h2.comp_hasDerivAt t h1
-      simp only [ContinuousLinearMap.coe_coe, Complex.conjCLE_apply] at h3
-      exact h3
-    convert h_conj_deriv using 1
-    -- Goal: f(ω_freq(neg ω), K, η, conj z) = conj(f(ω_freq ω, K, η, z))
-    -- Use: conj(f(-ω, K, η, z)) = f(ω, K, conj η, conj z) [complexOaRHS_conj_neg]
-    -- With ω := -(ω_freq ω): conj(f(ω_freq ω, K, η, z)) = f(-(ω_freq ω), K, conj η, conj z)
-    -- = f(ω_freq(neg ω), K, η, conj z)  [since ω_freq(neg ω) = -(ω_freq ω) and conj η = η]
-    have := complexOaRHS_conj_neg (-(S.ω_freq ω)) K (η t) (z ω t)
-    simp only [neg_neg] at this
-    rw [show S.ω_freq (S.neg ω) = -(S.ω_freq ω) from S.hω_sym ω]
-    rw [this, hη_real]
-  exact hz_unique (S.neg ω) (z (S.neg ω)) (fun t => starRingEnd ℂ (z ω t)) η
-    hu hw (hz_init_sym ω)
+  -- Define w(ω,t) = conj(z(neg ω, t)). Show w satisfies the same coupled system.
+  -- Then hz_coupled_unique gives z = w, i.e. z(neg ω, t) = conj(z(ω, t)).
+  -- The key insight: we don't need η real a priori — coupled uniqueness handles
+  -- the joint (z, η) system, breaking the circularity.
+  sorry
 
 /-- **COROLLARY: η(t) ∈ ℝ for symmetric g with symmetric initial data.** -/
 theorem eta_real_for_symmetric_flow [IsProbabilityMeasure μ]
