@@ -16,7 +16,7 @@
   3. Same initial data ⟹ z = w by ODE uniqueness
   4. Therefore z(ω,t) = conj(z(-ω,t)) and η(t) ∈ ℝ
 
-  1 sorry: ODE uniqueness application (requires Lipschitz bound for complex OA).
+  0 sorry remaining.
 -/
 
 import KuramotoLean.ComplexOA
@@ -135,11 +135,66 @@ theorem complex_oa_symmetry_preserved [IsProbabilityMeasure μ]
         (∫ ω', starRingEnd ℂ (z₂ ω' t) * (S.g ω' : ℂ) ∂μ) (z₂ ω t)) t) →
       (∀ ω, z₁ ω 0 = z₂ ω 0) → ∀ ω t, z₁ ω t = z₂ ω t) :
     ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t) := by
-  -- Define w(ω,t) = conj(z(neg ω, t)). Show w satisfies the same coupled system.
-  -- Then hz_coupled_unique gives z = w, i.e. z(neg ω, t) = conj(z(ω, t)).
-  -- The key insight: we don't need η real a priori — coupled uniqueness handles
-  -- the joint (z, η) system, breaking the circularity.
-  sorry
+  -- Define w(ω,t) = conj(z(neg ω, t))
+  set w : Ω → ℝ → ℂ := fun ω t => starRingEnd ℂ (z (S.neg ω) t)
+  -- w(ω,0) = z(ω,0)
+  have hw_init : ∀ ω, w ω 0 = z ω 0 := by
+    intro ω; simp only [w]
+    -- w(ω,0) = conj(z(neg ω, 0)) = conj(conj(z(ω,0))) = z(ω,0)
+    rw [hz_init_sym ω, starRingEnd_self_apply]
+  -- w satisfies the coupled ODE with η_w = ∫conj(w)·g = ∫z(neg·)·g
+  have hw_ode : ∀ ω t, HasDerivAt (w ω)
+      (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (w ω' t) * (S.g ω' : ℂ) ∂μ) (w ω t)) t := by
+    intro ω t
+    -- w(ω) = conj(z(neg ω)), so ẇ(ω) = conj(ż(neg ω))
+    have h_z_deriv := hz_ode (S.neg ω) t
+    have h_conj : HasDerivAt (w ω)
+        (starRingEnd ℂ (complexOaRHS (S.ω_freq (S.neg ω)) K
+          (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z (S.neg ω) t))) t := by
+      exact Complex.conjCLE.hasFDerivAt.comp_hasDerivAt t h_z_deriv
+    convert h_conj using 1
+    rw [S.hω_sym, complexOaRHS_conj_neg]
+    congr 1
+    · -- Need: conj(η_z) = η_w
+      -- η_z = ∫ conj(z)·g, η_w = ∫ conj(w)·g = ∫ conj(conj(z(neg·)))·g = ∫ z(neg·)·g
+      -- conj(η_z) = conj(∫ conj(z)·g) = ∫ z·conj(g) = ∫ z·g (g real)
+      -- η_w = ∫ z(neg·)·g = ∫ z·g (measure-preserving)
+      -- So both equal ∫ z·g.
+      simp only [w]
+      -- LHS: conj(∫ conj(z)·g)
+      -- RHS: ∫ conj(conj(z(neg·)))·g = ∫ z(neg·)·g
+      -- First simplify RHS
+      have h_rhs : (∫ ω', starRingEnd ℂ (starRingEnd ℂ (z (S.neg ω') t)) *
+            ↑(S.g ω') ∂μ) = ∫ ω', z ω' t * ↑(S.g ω') ∂μ := by
+        have hemb : MeasurableEmbedding S.neg :=
+          (MeasurableEquiv.ofInvolutive S.neg S.hneg_inv S.hneg_measurable).measurableEmbedding
+        have h1 : (∫ ω', starRingEnd ℂ (starRingEnd ℂ (z (S.neg ω') t)) *
+              ↑(S.g ω') ∂μ) = ∫ ω', z (S.neg ω') t * ↑(S.g ω') ∂μ := by
+          congr 1; ext ω'; rw [starRingEnd_self_apply]
+        rw [h1]
+        have := S.hneg_meas.integral_comp hemb (fun ω' => z ω' t * ↑(S.g ω'))
+        rw [← this]; congr 1; ext ω'
+        simp only [S.hg_sym]
+      rw [h_rhs]
+      -- Now goal: conj(∫ conj(z)·g) = ∫ z·g
+      -- Use integral_conj: conj(∫ f) = ∫ conj(f)
+      rw [show starRingEnd ℂ (∫ ω', starRingEnd ℂ (z ω' t) * ↑(S.g ω') ∂μ) =
+          ∫ ω', starRingEnd ℂ (starRingEnd ℂ (z ω' t) * ↑(S.g ω')) ∂μ from
+        integral_conj.symm]
+      congr 1; ext ω'
+      simp [map_mul, Complex.conj_ofReal]
+  -- Apply coupled uniqueness: w = z
+  have h_eq := hz_coupled_unique w z hw_ode hz_ode hw_init
+  -- Unpack: w(ω,t) = z(ω,t) means conj(z(neg ω, t)) = z(ω,t)
+  intro ω t
+  have h := h_eq ω t
+  simp only [w] at h
+  -- h : conj(z(neg ω, t)) = z(ω, t)
+  -- goal : z(neg ω, t) = conj(z(ω, t))
+  calc z (S.neg ω) t
+      = starRingEnd ℂ (starRingEnd ℂ (z (S.neg ω) t)) := (starRingEnd_self_apply _).symm
+    _ = starRingEnd ℂ (z ω t) := congrArg _ h
 
 /-- **COROLLARY: η(t) ∈ ℝ for symmetric g with symmetric initial data.** -/
 theorem eta_real_for_symmetric_flow [IsProbabilityMeasure μ]
