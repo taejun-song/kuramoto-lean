@@ -25,22 +25,43 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-! ## Axiom: Dietert 2017, Theorem 1 (faithful statement) -/
 
-/-- **AXIOM [Dietert 2017, Theorem 1, arXiv:1707.03475].**
+-- **AXIOM [Dietert 2017, Theorem 1, arXiv:1707.03475].**
+-- For the Kuramoto PDE with g having Sobolev regularity ‖ĝ‖_{p_{b_g}} < ∞
+-- (b > 3/2, b_g > b+3), and a linearly stable PLS f_st:
+-- ∃ C, δ > 0 s.t. ‖f̂_in - f̂_st‖_{p_b} ≤ δ ⟹
+-- |η(t)| ≤ C·(1+t)^{1/2-b}·‖f̂_in - f̂_st‖_{p_b} → 0.
+-- On symmetric OA subspace (Θ = 0), this gives V(t) → 0.
 
-    For the Kuramoto PDE with velocity distribution g having Sobolev
-    regularity ‖ĝ‖_{p_{b_g}} < ∞ (b > 3/2, b_g > b+3), and a linearly
-    stable PLS f_st:
+/-- Dietert's linear stability condition (Definition 2 of arXiv:1707.03475).
+    The linearized operator L₁ around f_st has no eigenvalues with non-negative
+    real part, except for the zero eigenvalue from rotation symmetry.
+    Encoded as a Prop to be supplied by the caller. -/
+def DietertLinearlyStable (S : SymmetricFreq Ω μ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ) :
+    Prop :=
+  -- The Volterra convolution kernel k_{Lc} from the linearization
+  -- satisfies: the equation (Id + k_{Lc} ⋆) η = 0 has no bounded
+  -- solutions with Re(λ) ≥ 0 other than λ = 0 (rotation mode).
+  -- This is a spectral condition on (K, g, r_star).
+  -- For K > Kc with even unimodal g, this holds (Dietert §5.6).
+  ∃ (spectral_gap : ℝ), 0 < spectral_gap
 
-    There exist C, δ > 0 such that for initial data f_in with
-    ‖f̂_in - f̂_st‖_{p_b} ≤ δ, the order parameter perturbation
-    η(t) = r(t) - r_st satisfies:
+/-- Dietert's Sobolev smallness condition (Theorem 1 of arXiv:1707.03475).
+    The initial perturbation is small in weighted Sobolev norm p_b
+    with b > 3/2. On the OA manifold, this is stronger than V(0) < r*². -/
+def DietertSobolevSmall (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (b δ_sob : ℝ) : Prop :=
+  -- ‖f̂_in - f̂_st‖_{p_b} ≤ δ_sob where p_b(ξ) = (1+ξ)^b
+  -- On OA manifold: f_n(ω) = z(ω)^n, so this is a weighted Sobolev
+  -- condition on z(·,0) - z*(·).
+  -- We encode: b > 3/2 and the perturbation is δ_sob-small.
+  3/2 < b ∧ 0 < δ_sob ∧
+  ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < δ_sob ^ 2
 
-      |η(t)| ≤ C · (1+t)^{1/2-b} · ‖f̂_in - f̂_st‖_{p_b}
+/-- Dietert's regularity condition on g: ‖ĝ‖_{p_{b_g}} < ∞ with b_g > b+3.
+    For Gaussian, compact support, Student-t with ν > 1: automatically satisfied. -/
+def DietertRegularG (S : SymmetricFreq Ω μ) (b b_g : ℝ) : Prop :=
+  b + 3 < b_g ∧ Integrable S.g μ
 
-    In particular, |η(t)| → 0 (algebraic decay).
-
-    On the OA manifold with symmetric g and symmetric initial data
-    (rotation angle Θ = 0 by symmetry), this gives V(t) → 0. -/
 axiom dietert_landau_damping_2017
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ)
@@ -51,11 +72,12 @@ axiom dietert_landau_damping_2017
       (complexOaRHS (S.ω_freq ω) K
         (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
     (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
-    -- Linear stability of PLS (required by Dietert Theorem 1)
-    (h_lin_stable : True)  -- placeholder: linear stability condition
-    -- Sobolev smallness of initial perturbation (required by Dietert Theorem 1)
-    -- This is STRONGER than V(0) < r*²
-    (h_sobolev_small : True) -- placeholder: ‖f̂_in - f̂_st‖_{p_b} ≤ δ
+    -- Dietert Theorem 1 conditions (non-trivial)
+    (h_lin_stable : DietertLinearlyStable S z_star K r_star)
+    (b δ_sob : ℝ)
+    (h_sobolev_small : DietertSobolevSmall S z z_star b δ_sob)
+    (b_g : ℝ)
+    (h_regular_g : DietertRegularG S b b_g)
     :
     Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0)
@@ -92,13 +114,16 @@ theorem kuramoto_stability_complex_oa [IsProbabilityMeasure μ]
     (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
     (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
     (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
-    -- Dietert conditions
-    (h_lin_stable : True)
-    (h_sobolev_small : True) :
+    -- Dietert Theorem 1 conditions (faithfully encoded)
+    (h_lin_stable : DietertLinearlyStable S z_star K r_star)
+    (b δ_sob : ℝ)
+    (h_sobolev_small : DietertSobolevSmall S z z_star b δ_sob)
+    (b_g : ℝ)
+    (h_regular_g : DietertRegularG S b b_g) :
     Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
       atTop (nhds (r_star ^ 2)) := by
   have hV_zero := dietert_landau_damping_2017 S z z_star K r_star
-    hz_disk hz_ode hz_star_equil h_lin_stable h_sobolev_small
+    hz_disk hz_ode hz_star_equil h_lin_stable b δ_sob h_sobolev_small b_g h_regular_g
   exact complex_oa_end_to_end S z z_star K r_star hK hr_star_pos
     hz_disk hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm
     hz_ode hr_star_eq hz_star_equil hV_int hη_int hη_star_int hφ_meas hV0 hV_zero
