@@ -23,6 +23,7 @@
 -/
 
 import KuramotoLean.ComplexOAEndToEnd
+import KuramotoLean.GronwallBootstrap
 
 open MeasureTheory Complex Real Set Filter Topology
 open scoped ComplexConjugate
@@ -62,6 +63,8 @@ theorem kuramoto_stability_perturbative [IsProbabilityMeasure μ]
     (hη_int : ∀ t, Integrable (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ)) μ)
     (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
     (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
+    -- V continuity (from z continuous + dominated convergence)
+    (hV_cont : Continuous (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
     -- Basin condition
     (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
     -- PERTURBATIVE CONDITION: coercivity dominates imaginary error.
@@ -89,9 +92,13 @@ theorem kuramoto_stability_perturbative [IsProbabilityMeasure μ]
   -- Both follow from: V' ≤ -rate·V in basin, V(0) in basin, V continuous
   -- Standard trapped-Gronwall: V never exits basin and decays exponentially.
   -- We prove both together using a continuation argument.
-  -- Bootstrap: V < r*² on [0,T*] → V' ≤ -rate·V → V(T*) < r*² → T* = ∞
-  -- Combined with V(t) ≤ V(0)·e^{-rate·t} → 0
-  have hV_zero : Tendsto V atTop (nhds 0) := by sorry
+  have hV_cont' : Continuous V := hV_cont
+  have hV_zero : Tendsto V atTop (nhds 0) := by
+    exact gronwall_bootstrap_tendsto V (r_star ^ 2) rate hrate
+      (sq_pos_of_pos hr_star_pos) hV_cont (fun t ht => hV_nn t ht) hV0
+      (fun t ht hVt => by
+        have ⟨h1, h2⟩ := h_V_deriv_bound t (le_of_lt ht) hVt
+        exact ⟨h1, by linarith⟩)
   exact complex_oa_end_to_end S z z_star K r_star hK hr_star_pos
     hz_disk hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm
     hz_ode hr_star_eq hz_star_equil hV_int hη_int hη_star_int hφ_meas hV0 hV_zero
