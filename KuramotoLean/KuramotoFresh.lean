@@ -36,7 +36,7 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     This means |Im(z)|² decays exponentially on the body. -/
 theorem y_damping_in_basin
     (x y r K : ℝ) (hK : 0 < K) (hr : 0 < r) (hx : 0 < x) (ω : ℝ)
-    (hω_small : |ω| ≤ K * r * x / 2) :
+    (_hω_small : |ω| ≤ K * r * x / 2) :
     -K * r * x * y ^ 2 ≤ -(K * r * x / 2) * y ^ 2 := by
   nlinarith [sq_nonneg y, mul_pos hK (mul_pos hr hx)]
 
