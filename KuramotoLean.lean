@@ -17,3 +17,4 @@ import KuramotoLean.ComplexOAContDep
 -- Gronwall bootstrap (0 sorry)
 import KuramotoLean.GronwallBootstrap
 import KuramotoLean.KuramotoViaPassage
+import KuramotoLean.BasinDecay
