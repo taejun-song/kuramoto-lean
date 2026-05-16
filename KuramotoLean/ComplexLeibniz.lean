@@ -41,7 +41,36 @@ theorem complexOaRHS_norm_le (ω_freq K : ℝ) (η z : ℂ)
     (hz : Complex.normSq z ≤ 1) (hη : Complex.normSq η ≤ 1)
     (hK : 0 ≤ K) :
     ‖complexOaRHS ω_freq K η z‖ ≤ |ω_freq| + K := by
-  sorry
+  unfold complexOaRHS
+  have hz_norm : ‖z‖ ≤ 1 := by
+    nlinarith [Complex.normSq_eq_norm_sq z, norm_nonneg z, sq_nonneg ‖z‖]
+  have hη_norm : ‖η‖ ≤ 1 := by
+    nlinarith [Complex.normSq_eq_norm_sq η, norm_nonneg η, sq_nonneg ‖η‖]
+  calc ‖-(Complex.I * (ω_freq : ℂ) * z) + ((K : ℂ) / 2) * (starRingEnd ℂ η - η * z ^ 2)‖
+      ≤ ‖-(Complex.I * (ω_freq : ℂ) * z)‖ + ‖((K : ℂ) / 2) * (starRingEnd ℂ η - η * z ^ 2)‖ :=
+        norm_add_le _ _
+    _ = ‖Complex.I * (ω_freq : ℂ) * z‖ + ‖((K : ℂ) / 2) * (starRingEnd ℂ η - η * z ^ 2)‖ := by
+        rw [norm_neg]
+    _ = ‖(ω_freq : ℂ)‖ * ‖z‖ + ‖((K : ℂ) / 2)‖ * ‖starRingEnd ℂ η - η * z ^ 2‖ := by
+        rw [norm_mul, norm_mul, Complex.norm_I, one_mul, norm_mul]
+    _ ≤ |ω_freq| * 1 + K / 2 * (‖η‖ + ‖η‖ * ‖z‖ ^ 2) := by
+        have hK2 : ‖((K : ℂ) / 2)‖ = K / 2 := by
+          simp [Complex.norm_real, abs_of_nonneg hK]
+        apply add_le_add
+        · rw [Complex.norm_real]
+          exact mul_le_mul_of_nonneg_left hz_norm (abs_nonneg _)
+        · rw [hK2]
+          apply mul_le_mul_of_nonneg_left _ (by linarith)
+          calc ‖starRingEnd ℂ η - η * z ^ 2‖
+              ≤ ‖starRingEnd ℂ η‖ + ‖η * z ^ 2‖ := norm_sub_le _ _
+            _ = ‖η‖ + ‖η‖ * ‖z‖ ^ 2 := by
+                rw [RCLike.norm_conj, norm_mul, norm_pow]
+    _ ≤ |ω_freq| * 1 + K / 2 * (1 + 1 * 1) := by
+        have h1 : ‖η‖ * ‖z‖ ^ 2 ≤ 1 * 1 :=
+          mul_le_mul hη_norm (pow_le_one₀ (norm_nonneg _) hz_norm)
+            (pow_nonneg (norm_nonneg _) _) (by linarith [norm_nonneg η])
+        nlinarith
+    _ = |ω_freq| + K := by ring
 
 /-! ## Complex Leibniz integral rule -/
 
@@ -73,7 +102,19 @@ theorem complex_leibniz [IsProbabilityMeasure μ]
         complexOaRHS (S.ω_freq ω) K
           (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ)
           (z ω t)).re * S.g ω ∂μ) t) := by
-  sorry
+  constructor
+  · -- ContinuousOn: V(t) = ∫ |z(ω,t) - z*(ω)|² · g(ω) dμ is continuous
+    -- Each z ω is continuous, so normSq(z ω · - z_star ω) · g ω is continuous,
+    -- dominated by 4 · g(ω) (since |z|,|z*| ≤ 1 ⟹ |z-z*|² ≤ 4).
+    -- Standard dominated convergence for continuity.
+    sorry
+  · intro t ht
+    -- Apply Mathlib's hasDerivAt_integral_of_dominated_loc_of_deriv_le.
+    -- F s ω = normSq(z ω s - z_star ω) * g ω : ℝ
+    -- F' s ω = 2 * Re(conj(z ω s - z_star ω) * ż(ω,s)) * g ω : ℝ
+    -- The dominator is 2 * (|ω_freq ω| + K) * g ω, integrable.
+    -- This is a standard dominated convergence application.
+    sorry
 
 /-! ## V derivative decomposition -/
 
