@@ -19,3 +19,5 @@ import KuramotoLean.GronwallBootstrap
 import KuramotoLean.KuramotoViaPassage
 import KuramotoLean.BasinDecay
 import KuramotoLean.ComplexLeibniz
+-- Complete wiring (0 sorry, 0 custom axioms)
+import KuramotoLean.KuramotoComplete
