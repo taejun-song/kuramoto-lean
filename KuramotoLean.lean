@@ -21,3 +21,5 @@ import KuramotoLean.BasinDecay
 import KuramotoLean.ComplexLeibniz
 -- Complete wiring (0 sorry, 0 custom axioms)
 import KuramotoLean.KuramotoComplete
+-- Real scalar end-to-end (0 sorry, derives body persistence internally)
+import KuramotoLean.RealScalarComplete
