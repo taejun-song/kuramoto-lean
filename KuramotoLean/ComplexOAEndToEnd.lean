@@ -19,7 +19,7 @@ noncomputable section
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
 /-- **END-TO-END COMPLEX OA STABILITY.**
-    NO hypotheses beyond ODE data. Proves |η|² → r*² directly. -/
+    NO hypotheses beyond ODE data. Proves Re(η)² → r*² (not |η|²). -/
 theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ)
     (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ) (K : ℝ) (r_star : ℝ)
