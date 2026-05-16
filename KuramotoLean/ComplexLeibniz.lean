@@ -16,6 +16,7 @@
 import KuramotoLean.ComplexOAPairBound
 import KuramotoLean.ComplexOAEnergy
 import KuramotoLean.BasinDecay
+import Mathlib.Analysis.Calculus.ParametricIntegral
 
 open MeasureTheory Complex Real Set Filter Topology
 open scoped ComplexConjugate
@@ -107,14 +108,128 @@ theorem complex_leibniz [IsProbabilityMeasure μ]
     -- Each z ω is continuous, so normSq(z ω · - z_star ω) · g ω is continuous,
     -- dominated by 4 · g(ω) (since |z|,|z*| ≤ 1 ⟹ |z-z*|² ≤ 4).
     -- Standard dominated convergence for continuity.
-    sorry
+    have hz_cts : ∀ ω, Continuous (fun t => Complex.normSq (z ω t - z_star ω) * S.g ω) := by
+      intro ω
+      exact ((Complex.continuous_normSq.comp ((hz_cont ω).sub continuous_const)).mul
+        continuous_const)
+    have h_bound : ∀ t, ∀ᵐ ω ∂μ, ‖Complex.normSq (z ω t - z_star ω) * S.g ω‖ ≤ 4 * S.g ω := by
+      intro t; apply Eventually.of_forall; intro ω
+      have hzd := hz_disk ω t; have hzsd := hz_star_disk ω
+      have h_nsq : Complex.normSq (z ω t - z_star ω) ≤ 4 := by
+        have h1 : ‖z ω t‖ ≤ 1 := by
+          nlinarith [Complex.normSq_eq_norm_sq (z ω t), norm_nonneg (z ω t),
+            sq_nonneg ‖z ω t‖]
+        have h2 : ‖z_star ω‖ ≤ 1 := by
+          nlinarith [Complex.normSq_eq_norm_sq (z_star ω), norm_nonneg (z_star ω),
+            sq_nonneg ‖z_star ω‖]
+        have h3 : ‖z ω t - z_star ω‖ ≤ 2 := by linarith [norm_sub_le (z ω t) (z_star ω)]
+        nlinarith [Complex.normSq_eq_norm_sq (z ω t - z_star ω),
+          norm_nonneg (z ω t - z_star ω), sq_nonneg ‖z ω t - z_star ω‖]
+      rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω))]
+      exact mul_le_mul_of_nonneg_right h_nsq (hg_nn ω)
+    exact (MeasureTheory.continuous_of_dominated
+      (F := fun t ω => Complex.normSq (z ω t - z_star ω) * S.g ω)
+      (bound := fun ω => 4 * S.g ω)
+      (fun t => (hV_int t).aestronglyMeasurable)
+      h_bound
+      (hg_int.const_mul 4)
+      (Eventually.of_forall hz_cts)).continuousOn
   · intro t ht
-    -- Apply Mathlib's hasDerivAt_integral_of_dominated_loc_of_deriv_le.
-    -- F s ω = normSq(z ω s - z_star ω) * g ω : ℝ
-    -- F' s ω = 2 * Re(conj(z ω s - z_star ω) * ż(ω,s)) * g ω : ℝ
-    -- The dominator is 2 * (|ω_freq ω| + K) * g ω, integrable.
-    -- This is a standard dominated convergence application.
-    sorry
+    set η := fun s => ∫ ω', starRingEnd ℂ (z ω' s) * (S.g ω' : ℂ) ∂μ with hη_def
+    set F := fun s ω => Complex.normSq (z ω s - z_star ω) * S.g ω with hF_def
+    set F' := fun s ω => 2 * (starRingEnd ℂ (z ω s - z_star ω) *
+      complexOaRHS (S.ω_freq ω) K (η s) (z ω s)).re * S.g ω with hF'_def
+    set bound := fun ω => 4 * (|S.ω_freq ω| + K) * S.g ω with hbound_def
+    have h_pw_deriv : ∀ᵐ ω ∂μ, ∀ s ∈ Ioi (0:ℝ), HasDerivAt (F · ω) (F' s ω) s := by
+      apply Eventually.of_forall; intro ω s hs
+      have hs_pos := mem_Ioi.mp hs
+      have h_nsq := hasDerivAt_normSq_sub_const (z ω) (z_star ω)
+        (complexOaRHS (S.ω_freq ω) K (η s) (z ω s)) s (hz_ode ω s)
+      simp only [hF_def, hF'_def]
+      exact h_nsq.mul_const (S.g ω)
+    have h_norm_bound : ∀ᵐ ω ∂μ, ∀ s ∈ Ioi (0:ℝ), ‖F' s ω‖ ≤ bound ω := by
+      apply Eventually.of_forall; intro ω s hs
+      simp only [hF'_def, hbound_def]
+      have hzd := hz_disk ω s; have hzsd := hz_star_disk ω
+      have hη_s := hη_bdd s
+      have h_diff_norm : ‖z ω s - z_star ω‖ ≤ 2 := by
+        have h1 : ‖z ω s‖ ≤ 1 := by
+          nlinarith [Complex.normSq_eq_norm_sq (z ω s), norm_nonneg (z ω s),
+            sq_nonneg ‖z ω s‖]
+        have h2 : ‖z_star ω‖ ≤ 1 := by
+          nlinarith [Complex.normSq_eq_norm_sq (z_star ω), norm_nonneg (z_star ω),
+            sq_nonneg ‖z_star ω‖]
+        linarith [norm_sub_le (z ω s) (z_star ω)]
+      have h_rhs_norm : ‖complexOaRHS (S.ω_freq ω) K (η s) (z ω s)‖ ≤ |S.ω_freq ω| + K :=
+        complexOaRHS_norm_le (S.ω_freq ω) K (η s) (z ω s) hzd hη_s (le_of_lt hK_pos)
+      have h_re_le : |((starRingEnd ℂ (z ω s - z_star ω) *
+          complexOaRHS (S.ω_freq ω) K (η s) (z ω s)).re)| ≤
+          ‖z ω s - z_star ω‖ * (|S.ω_freq ω| + K) := by
+        calc |((starRingEnd ℂ (z ω s - z_star ω) *
+              complexOaRHS (S.ω_freq ω) K (η s) (z ω s)).re)|
+            ≤ ‖starRingEnd ℂ (z ω s - z_star ω) *
+              complexOaRHS (S.ω_freq ω) K (η s) (z ω s)‖ := Complex.abs_re_le_norm _
+          _ ≤ ‖z ω s - z_star ω‖ * ‖complexOaRHS (S.ω_freq ω) K (η s) (z ω s)‖ := by
+              rw [norm_mul, RCLike.norm_conj]
+          _ ≤ ‖z ω s - z_star ω‖ * (|S.ω_freq ω| + K) :=
+              mul_le_mul_of_nonneg_left h_rhs_norm (norm_nonneg _)
+      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (by positivity : (0:ℝ) < 2)]
+      have hg_ω := hg_nn ω
+      calc 2 * |((starRingEnd ℂ (z ω s - z_star ω) *
+              complexOaRHS (S.ω_freq ω) K (η s) (z ω s)).re)| * |S.g ω|
+          ≤ 2 * (‖z ω s - z_star ω‖ * (|S.ω_freq ω| + K)) * S.g ω := by
+            rw [abs_of_nonneg hg_ω]; exact mul_le_mul_of_nonneg_right
+              (mul_le_mul_of_nonneg_left h_re_le (by positivity)) hg_ω
+        _ ≤ 2 * (2 * (|S.ω_freq ω| + K)) * S.g ω := by
+            apply mul_le_mul_of_nonneg_right _ hg_ω
+            exact mul_le_mul_of_nonneg_left
+              (mul_le_mul_of_nonneg_right h_diff_norm (by positivity)) (by positivity)
+        _ = 4 * (|S.ω_freq ω| + K) * S.g ω := by ring
+    have bound_int : Integrable bound μ := by
+      simp only [hbound_def]
+      show Integrable (fun ω => 4 * (|S.ω_freq ω| + K) * S.g ω) μ
+      have h1 : Integrable (fun ω => 4 * |S.ω_freq ω| * S.g ω) μ := by
+        have : (fun ω => 4 * |S.ω_freq ω| * S.g ω) = fun ω => 4 * (|S.ω_freq ω| * S.g ω) := by
+          ext ω; ring
+        rw [this]; exact hω_g_int.const_mul 4
+      have h2 : Integrable (fun ω => 4 * K * S.g ω) μ := by
+        have : (fun ω => 4 * K * S.g ω) = fun ω => (4 * K) * S.g ω := by ext ω; ring
+        rw [this]; exact hg_int.const_mul (4 * K)
+      have : (fun ω => 4 * (|S.ω_freq ω| + K) * S.g ω) =
+          fun ω => 4 * |S.ω_freq ω| * S.g ω + 4 * K * S.g ω := by ext ω; ring
+      rw [this]; exact h1.add h2
+    exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (F := F) (F' := F') (bound := bound)
+      (hs := Ioi_mem_nhds ht)
+      (hF_meas := Eventually.of_forall (fun s => (hV_int s).aestronglyMeasurable))
+      (hF_int := hV_int t)
+      (hF'_meas := by
+        apply aestronglyMeasurable_of_tendsto_ae (u := atTop)
+          (f := fun (n : ℕ) ω => ((↑n + 1 : ℝ)) * (F (t + (↑n + 1 : ℝ)⁻¹) ω - F t ω))
+        · intro n; exact ((hV_int _).aestronglyMeasurable.sub
+            (hV_int t).aestronglyMeasurable).const_mul _
+        · apply h_pw_deriv.mono; intro ω hω
+          have hd := hω t (mem_Ioi.mpr ht)
+          have key : ∀ n : ℕ, ((↑n + 1 : ℝ)) * (F (t + (↑n + 1 : ℝ)⁻¹) ω - F t ω) =
+              slope (F · ω) t (t + (↑n + 1 : ℝ)⁻¹) := by
+            intro n
+            have hne : (↑n + 1 : ℝ)⁻¹ ≠ 0 := inv_ne_zero (by positivity)
+            simp only [slope, vsub_eq_sub, add_sub_cancel_left, smul_eq_mul,
+              inv_inv]
+          simp_rw [key]
+          apply hd.tendsto_slope.comp
+          rw [tendsto_nhdsWithin_iff]; constructor
+          · have : Tendsto (fun n : ℕ => (↑n + 1 : ℝ)⁻¹) atTop (𝓝 0) :=
+              tendsto_inv_atTop_zero.comp (Filter.tendsto_atTop_add_const_right _
+                1 tendsto_natCast_atTop_atTop)
+            simpa using tendsto_const_nhds.add this
+          · exact Eventually.of_forall fun n =>
+              Set.mem_compl_singleton_iff.mpr (by
+                have : (0:ℝ) < (↑n + 1 : ℝ)⁻¹ := inv_pos.mpr (by positivity)
+                linarith))
+      (h_bound := h_norm_bound)
+      (bound_integrable := bound_int)
+      (h_diff := h_pw_deriv)).2
 
 /-! ## V derivative decomposition -/
 
