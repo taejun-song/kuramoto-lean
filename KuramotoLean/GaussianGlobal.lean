@@ -37,6 +37,8 @@ import KuramotoLean.GaussianAnalyticExtension
 import KuramotoLean.ContinuumGlobalStability
 import KuramotoLean.KuramotoFirstMomentBarbalat
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+import Mathlib.MeasureTheory.Measure.Lebesgue.Integral
 
 open MeasureTheory Real Set Filter Topology
 
@@ -47,7 +49,56 @@ noncomputable section
 /-- The Gaussian first moment: integral |w| * g(w) dw = sqrt(2/pi). -/
 theorem gaussian_first_moment :
     ∫ ω : ℝ, |ω| * gaussianFreqDist 1 ω = Real.sqrt (2 / Real.pi) := by
-  sorry
+  have hsplit0 := integral_comp_abs (f := fun x : ℝ => x * Real.exp (-(x ^ 2) / 2))
+  have hsplit :
+      ∫ ω : ℝ, |ω| * Real.exp (-(ω ^ 2) / 2) =
+        2 * ∫ ω in Ioi (0 : ℝ), ω * Real.exp (-(ω ^ 2) / 2) := by
+    simpa only [sq_abs] using hsplit0
+  have hIoiC :
+      (∫ ω in Ioi (0 : ℝ), ((ω * Real.exp (-(ω ^ 2) / 2) : ℝ) : ℂ)) = (1 : ℂ) := by
+    simpa [div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm] using
+      (integral_mul_cexp_neg_mul_sq (b := (1 / 2 : ℂ)) (by norm_num : 0 < ((1 / 2 : ℂ)).re))
+  have hIoi : ∫ ω in Ioi (0 : ℝ), ω * Real.exp (-(ω ^ 2) / 2) = 1 := by
+    have hIoiC' := hIoiC
+    rw [integral_complex_ofReal] at hIoiC'
+    exact Complex.ofReal_injective hIoiC'
+  have hrew :
+      (fun ω : ℝ => |ω| * gaussianFreqDist 1 ω) =
+        fun ω : ℝ => (Real.sqrt (2 * Real.pi))⁻¹ * (|ω| * Real.exp (-(ω ^ 2) / 2)) := by
+    funext ω
+    simp [gaussianFreqDist, div_eq_mul_inv, mul_assoc, mul_comm]
+  calc
+    ∫ ω : ℝ, |ω| * gaussianFreqDist 1 ω
+        = (Real.sqrt (2 * Real.pi))⁻¹ * ∫ ω : ℝ, |ω| * Real.exp (-(ω ^ 2) / 2) := by
+            rw [hrew, integral_const_mul]
+    _ = (Real.sqrt (2 * Real.pi))⁻¹ * (2 * ∫ ω in Ioi (0 : ℝ), ω * Real.exp (-(ω ^ 2) / 2)) := by
+          rw [hsplit]
+    _ = (Real.sqrt (2 * Real.pi))⁻¹ * 2 := by rw [hIoi, mul_one]
+    _ = Real.sqrt (2 / Real.pi) := by
+      let a : ℝ := (Real.sqrt (2 * Real.pi))⁻¹ * 2
+      let b : ℝ := Real.sqrt (2 / Real.pi)
+      have hsq : a ^ 2 = b ^ 2 := by
+        unfold a b
+        rw [Real.sq_sqrt (show 0 ≤ 2 / Real.pi by positivity)]
+        field_simp [Real.pi_ne_zero]
+        rw [Real.sq_sqrt (by positivity)]
+      have ha : 0 ≤ a := by
+        unfold a
+        positivity
+      have hb : 0 ≤ b := by
+        unfold b
+        positivity
+      have hab : a = b := by
+        rcases sq_eq_sq_iff_eq_or_eq_neg.mp hsq with h | h
+        · exact h
+        · exfalso
+          have hb0 : b = 0 := by linarith
+          have : 0 < b := by
+            unfold b
+            apply Real.sqrt_pos.mpr
+            positivity
+          linarith
+      simpa [a, b] using hab
 
 /-! ## Step 2: Jensen upper bound on r from Psi
 
