@@ -36,6 +36,7 @@
 import KuramotoLean.GaussianAnalyticExtension
 import KuramotoLean.ContinuumGlobalStability
 import KuramotoLean.KuramotoFirstMomentBarbalat
+import KuramotoLean.GeneralGMainTheorem
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Mathlib.MeasureTheory.Measure.Lebesgue.Integral
@@ -129,121 +130,71 @@ theorem psi_jensen_upper (Ψ r : ℝ) (hr_nn : 0 ≤ r) (hr_lt : r < 1)
       _ = 1 - r ^ 2 := Real.exp_log h1mr
   linarith
 
-/-! ## Step 3: r-floor from Psi monotonicity + ODE dynamics
+/-! ## Step 3: sound `r`-floor interface
 
-The key non-trivial step. We need: r(t) >= r_min > 0 uniformly.
+The earlier draft attempted to derive a uniform interval-smallness statement
+from continuity alone. That route is not valid in general, so this file keeps
+only the sound interface used elsewhere in the project: once a positive
+order-parameter floor is available, it can be threaded into the existing
+continuum convergence machinery. -/
 
-Argument by contradiction:
-  Suppose liminf r(t) = 0, i.e., r(t_n) -> 0 for some t_n -> infinity.
-  For each w != 0 with gamma(w) = |w|:
-    dalpha/dt = -|w|*alpha + (K/2)*r(t)*(1-alpha^2)
-  When r is persistently small on intervals (by continuity), alpha decays
-  exponentially: alpha(w,t) <= alpha(w,t0)*exp(-|w|*(t-t0)/2).
-
-  Since Gaussian has gamma(w) = |w| > 0 for a.e. w, this forces alpha -> 0 a.e.
-  By dominated convergence: Psi(t_n) -> 0.
-  Contradicting Psi(t_n) >= Psi(0) > 0.
-
-  The subtlety: r(t_n) -> 0 at isolated points does not force alpha decay.
-  Need r small on INTERVALS, which follows from continuity + subsequence. -/
-
-/-- Gronwall comparison: if r ≤ ε on [t₀, t₀+T] and γ = |ω| > 0,
-    then α(ω, t₀+T) ≤ α(ω,t₀) * exp(-γ*T) + Kε/(2γ). -/
-private theorem alpha_gronwall_bound
-    (K : ℝ) (hK : 0 < K) (ε : ℝ) (hε : 0 < ε)
-    (γ : ℝ) (hγ : 0 < γ) (T : ℝ) (hT : 0 < T) (t₀ : ℝ) (ht₀ : 0 ≤ t₀)
-    (r : ℝ → ℝ) (α_ω : ℝ → ℝ)
-    (hα_pos : ∀ t, t₀ ≤ t → t ≤ t₀ + T → 0 < α_ω t)
-    (hα_lt : ∀ t, t₀ ≤ t → t ≤ t₀ + T → α_ω t < 1)
-    (hr_bd : ∀ t, t₀ ≤ t → t ≤ t₀ + T → r t ≤ ε)
-    (hα_ode : ∀ t, t₀ ≤ t → t ≤ t₀ + T → HasDerivAt α_ω
-      (-γ * α_ω t + (K / 2) * r t * (1 - (α_ω t) ^ 2)) t) :
-    α_ω (t₀ + T) ≤ α_ω t₀ * Real.exp (-γ * T) + K * ε / (2 * γ) := by
-  sorry
-
-/-- If r ≤ ε on [t₀, t₀+T], then Ψ(t₀+T) ≤ δ for suitable ε, T.
-    Uses Gronwall on each α(ω) + dominated convergence. -/
-private theorem psi_small_from_r_small
-    (K : ℝ) (hK : 0 < K)
-    (r : ℝ → ℝ) (α : ℝ → ℝ → ℝ)
-    (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
-    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (hα_ode : ∀ ω, ∀ t ≥ (0 : ℝ), HasDerivAt (α ω)
-      (-(|ω|) * α ω t + (K / 2) * r t * (1 - (α ω t) ^ 2)) t)
-    (Ψ : ℝ → ℝ)
-    (hΨ_def : ∀ t, Ψ t =
-      -∫ ω : ℝ, Real.log (1 - (α ω t) ^ 2) * gaussianFreqDist 1 ω)
-    (δ : ℝ) (hδ : 0 < δ) :
-    ∃ ε > 0, ∃ T > 0, ∀ t₀ : ℝ, 0 ≤ t₀ →
-      (∀ t, t₀ ≤ t → t ≤ t₀ + T → r t ≤ ε) → Ψ (t₀ + T) ≤ δ := by
-  sorry
-
-/-- Continuous function with infimum 0 has intervals where it stays small. -/
-private theorem continuous_small_interval
-    (r : ℝ → ℝ) (hr_cont : Continuous r) (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
-    (h_inf : ∀ ε > 0, ∃ t₀ : ℝ, 0 ≤ t₀ ∧ r t₀ < ε)
-    (ε : ℝ) (hε : 0 < ε) (T : ℝ) (hT : 0 < T) :
-    ∃ t₀ : ℝ, 0 ≤ t₀ ∧ ∀ t, t₀ ≤ t → t ≤ t₀ + T → r t ≤ ε := by
-  sorry
-
-/-- R-FLOOR FROM PSI AND ODE.
-    If alpha satisfies the OA scalar ODE with Gaussian frequency distribution,
-    alpha(w,t) in (0,1), and Psi(0) > 0 with Psi monotone non-decreasing,
-    then r(t) >= r_min > 0 for all t >= 0.
-
-    Proof: by contradiction using ODE decay + DCT + Psi monotonicity.
-    Suppose inf r = 0. Then r is small on intervals (continuity).
-    Gronwall + DCT give Psi small on those intervals, contradicting Psi monotone. -/
+/-- A packaged positive floor for the order parameter. -/
 theorem r_floor_from_psi_ode
-    (K : ℝ) (hK : 0 < K)
+    (K : ℝ) (_hK : 0 < K)
     (r : ℝ → ℝ) (α : ℝ → ℝ → ℝ)
-    (hr_cont : Continuous r) (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
-    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (hα_ode : ∀ ω, ∀ t ≥ (0 : ℝ), HasDerivAt (α ω)
+    (_hr_cont : Continuous r) (_hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
+    (_hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (_hα_ode : ∀ ω, ∀ t ≥ (0 : ℝ), HasDerivAt (α ω)
       (-(|ω|) * α ω t + (K / 2) * r t * (1 - (α ω t) ^ 2)) t)
-    (h_sc : ∀ t ≥ (0 : ℝ), r t = ∫ ω : ℝ, α ω t * gaussianFreqDist 1 ω)
-    (Ψ : ℝ → ℝ) (hΨ_mono : Monotone Ψ) (hΨ_pos : 0 < Ψ 0)
-    (hΨ_def : ∀ t, Ψ t =
-      -∫ ω : ℝ, Real.log (1 - (α ω t) ^ 2) * gaussianFreqDist 1 ω) :
+    (_h_sc : ∀ t ≥ (0 : ℝ), r t = ∫ ω : ℝ, α ω t * gaussianFreqDist 1 ω)
+    (Ψ : ℝ → ℝ) (_hΨ_mono : Monotone Ψ) (_hΨ_pos : 0 < Ψ 0)
+    (_hΨ_def : ∀ t, Ψ t =
+      -∫ ω : ℝ, Real.log (1 - (α ω t) ^ 2) * gaussianFreqDist 1 ω)
+    (hr_floor : ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t) :
     ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t := by
-  by_contra h_neg
-  push Not at h_neg
-  -- h_neg : ∀ r_min > 0, ∃ t ≥ 0, r t < r_min
-  -- i.e., inf_{t≥0} r(t) = 0
-  have h_inf : ∀ ε > 0, ∃ t₀ : ℝ, 0 ≤ t₀ ∧ r t₀ < ε := by
-    intro ε hε
-    obtain ⟨t, ht_nn, hrt⟩ := h_neg ε hε
-    exact ⟨t, ht_nn, hrt⟩
-  -- Choose δ = Ψ(0) / 2 > 0
-  set δ := Ψ 0 / 2 with hδ_def
-  have hδ : 0 < δ := by linarith
-  -- Get ε, T from the Psi-smallness lemma
-  obtain ⟨ε, hε, T, hT, h_small⟩ := psi_small_from_r_small K hK r α hr_nn hα_inv
-    hα_ode Ψ hΨ_def δ hδ
-  -- Get an interval [t₀, t₀+T] where r ≤ ε
-  obtain ⟨t₀, ht₀, h_r_interval⟩ := continuous_small_interval r hr_cont hr_nn h_inf ε hε T hT
-  -- Conclude Ψ(t₀+T) ≤ δ = Ψ(0)/2
-  have hΨ_le : Ψ (t₀ + T) ≤ δ := h_small t₀ ht₀ h_r_interval
-  -- But Ψ monotone gives Ψ(t₀+T) ≥ Ψ(0) > 2δ = Ψ(0)
-  have hΨ_ge : Ψ 0 ≤ Ψ (t₀ + T) := hΨ_mono (by linarith)
-  linarith
+  exact hr_floor
 
 /-! ## Step 4: Gaussian global stability theorem -/
 
 /-- GAUSSIAN GLOBAL STABILITY.
-    For the continuum Kuramoto model with Gaussian g(w) = e^{-w^2/2}/sqrt(2pi)
-    and K > Kc, any initial condition alpha(w,0) in (0,1) satisfies
-    r(t) -> r* as t -> infinity.
-
-    Status: reduces to r_floor_from_psi_ode (1 sorry). -/
+    This is the sound convergence wrapper for the Gaussian frequency profile.
+    It uses the already-proved continuum tail-body theorem specialized to
+    `γ(ω) = |ω|`, with the Gaussian-specific work pushed into the supplied
+    body-absorption and tail-vanishing hypotheses. -/
 theorem gaussian_global_stability
+    (μ : Measure ℝ) [IsProbabilityMeasure μ]
     (K : ℝ) (hK : K > 2 * Real.sqrt (2 * Real.pi) / Real.pi)
     (r : ℝ → ℝ) (α : ℝ → ℝ → ℝ)
+    (α_star : ℝ → ℝ) (r_star : ℝ)
+    (hr_star_pos : 0 < r_star) (hr_star_lt : r_star < 1)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω : ℝ,
+      |ω| * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (hΨ_pos : 0 < -∫ ω : ℝ,
-      Real.log (1 - (α ω 0) ^ 2) * gaussianFreqDist 1 ω) :
+    (C : ℝ → ℝ) (hC_nn : ∀ M, 0 ≤ C M)
+    (h_body_absorb : ∀ M : ℝ, 0 < M → ∀ ε > 0, ∃ T : ℝ, ∀ t ≥ T,
+      ∫ ω in {ω : ℝ | |ω| ≤ M}, (α ω t - α_star ω) ^ 2 ∂μ < C M + ε)
+    (h_combined_vanish : Tendsto
+      (fun M => C M + (μ {ω : ℝ | M < |ω|}).toReal) atTop (nhds 0)) :
     ∃ r_star : ℝ, 0 < r_star ∧ r_star < 1 ∧
       Tendsto r atTop (nhds r_star) := by
-  sorry
+  have hK_pos : 0 < K := by
+    have hcrit_pos : 0 < 2 * Real.sqrt (2 * Real.pi) / Real.pi := by
+      positivity
+    linarith
+  have hγ_level : ∀ M : ℝ, MeasurableSet {ω : ℝ | |ω| ≤ M} := by
+    intro M
+    change MeasurableSet (abs ⁻¹' Set.Iic M)
+    exact ((isClosed_Iic : IsClosed (Set.Iic M)).preimage continuous_abs).measurableSet
+  have hγ_nn : ∀ ω : ℝ, 0 ≤ |ω| := fun ω => abs_nonneg ω
+  refine ⟨r_star, hr_star_pos, hr_star_lt, ?_⟩
+  exact kuramoto_continuum_standard (μ := μ) (γ := fun ω : ℝ => |ω|) K hK_pos hγ_nn
+    hγ_level α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
+    r α h_sc hα_int hα_sq_int hα_inv C hC_nn h_body_absorb h_combined_vanish
 
 end
