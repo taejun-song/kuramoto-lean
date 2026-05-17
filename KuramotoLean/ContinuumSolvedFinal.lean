@@ -610,12 +610,9 @@ theorem kuramoto_standard_continuum [IsProbabilityMeasure μ]
   rw [Real.dist_eq]
   exact abs_lt_of_sq_lt_sq (lt_of_le_of_lt hCS hV_t) (le_of_lt hε)
 
-/-! ## Explicit version: returns `Tendsto r atTop` for the given r directly -/
+/-! ## V → 0: the Lyapunov functional converges to zero -/
 
-/-- Variant of `kuramoto_standard_continuum` with explicit `r` and `α` (not bundled in `h_exists`),
-    returning `Tendsto r atTop (nhds r_star)` for the given `r` directly.
-    This avoids the existential extraction issue when the caller needs the specific `r`. -/
-theorem kuramoto_standard_tendsto [IsProbabilityMeasure μ]
+theorem kuramoto_V_tendsto_zero [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ)
     (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
     (hγ_int : Integrable γ μ)
@@ -637,7 +634,7 @@ theorem kuramoto_standard_tendsto [IsProbabilityMeasure μ]
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (h_body_persist : ∀ M, 0 < M → ∃ δ : ℝ, 0 < δ ∧ ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t)
     (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M}) :
-    Tendsto r atTop (nhds r_star) := by
+    Tendsto (fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ) atTop (nhds 0) := by
   haveI : SFinite μ := inferInstance
   set V := fun t => ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ
   have hV_nn : ∀ t, 0 ≤ V t := fun t => integral_nonneg (fun _ => sq_nonneg _)
@@ -885,6 +882,39 @@ theorem kuramoto_standard_tendsto [IsProbabilityMeasure μ]
         linarith [(div_lt_iff₀ hc₀_pos).mp hVc0]
       linarith [hW_le (Nat.ceil (V 1 / c₀) + 1)]
     linarith [hV_nn (1 + ↑(Nat.ceil (V 1 / c₀) + 1))]
+  exact hV_zero
+
+/-! ## Explicit version: returns `Tendsto r atTop` for the given r directly -/
+
+theorem kuramoto_standard_tendsto [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ)
+    (hK : 0 < K) (hγ : ∀ ω, 0 ≤ γ ω)
+    (hγ_int : Integrable γ μ)
+    (hγ_meas : AEStronglyMeasurable γ μ)
+    (hγ_int_pos : 0 < ∫ ω, γ ω ∂μ)
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1) (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
+    (hα_neg : ∀ ω t, t ≤ 0 → α ω t = α ω 0)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_body_persist : ∀ M, 0 < M → ∃ δ : ℝ, 0 < δ ∧ ∀ ω, γ ω ≤ M → ∀ t, 0 ≤ t → δ ≤ α ω t)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M}) :
+    Tendsto r atTop (nhds r_star) := by
+  have hV_zero := kuramoto_V_tendsto_zero γ K hK hγ hγ_int hγ_meas hγ_int_pos
+    α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hα_star_equil
+    r α hr_cont hr_bdd hr_nn hα_ode hα_cont h_sc hα_int hα_sq_int hα_neg hα_inv
+    h_body_persist hγ_level
+  have hV_nn : ∀ t, (0 : ℝ) ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ :=
+    fun t => integral_nonneg (fun _ => sq_nonneg _)
   rw [Metric.tendsto_atTop]
   intro ε hε
   rw [Metric.tendsto_atTop] at hV_zero
@@ -895,7 +925,7 @@ theorem kuramoto_standard_tendsto [IsProbabilityMeasure μ]
   have hV_t := hN t ht_ge
   simp only [Real.dist_eq, sub_zero] at hV_t
   rw [abs_of_nonneg (hV_nn t)] at hV_t
-  have hCS : (r t - r_star) ^ 2 ≤ V t := by
+  have hCS : (r t - r_star) ^ 2 ≤ ∫ ω, (α ω t - α_star ω) ^ 2 ∂μ := by
     have hrsc : r t - r_star = ∫ ω, (α ω t - α_star ω) ∂μ := by
       rw [h_sc t ht_nn, hr_star_eq, integral_sub (hα_int t) hαs_int]
     rw [hrsc]; exact sq_integral_le_integral_sq μ _ ((hα_int t).sub hαs_int) (hα_sq_int t)
