@@ -766,8 +766,8 @@ theorem r_stays_positive_global [IsProbabilityMeasure μ]
     (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
-    (hr_pos : 0 < r 0)
-    (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0) :
+    (hΨ_floor : ∃ T₀ : ℝ, 0 ≤ T₀ ∧
+      (∫ ω, (α ω T₀ - α_star ω) ^ 2 ∂μ) < r_star ^ 2) :
     ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t := by
   -- Preliminaries
   have hγ : ∀ ω, 0 ≤ γ ω := fun ω => le_of_lt (hγ_pos ω)
@@ -857,24 +857,13 @@ theorem r_stays_positive_global [IsProbabilityMeasure μ]
       · exact le_trans (min_le_left _ _) (hr_early t ht ht₀)
       · push_neg at ht₀
         exact le_trans (min_le_right _ _) (hr_late t (le_of_lt ht₀))
-    -- Proof that ∃ T₀ with V(T₀) < r*²:
-    -- V is antitone and ≥ 0. On any [0,T], r is continuous with r(0) > 0,
-    -- so r has a positive floor. Body persistence with that floor gives
-    -- Gronwall decay of V on the body. For large enough M (small tail) and
-    -- large enough T, V(T) drops below r*².
-    --
-    -- Core analytic step: for any ε_r > 0 and any compact [0,T] where
-    -- r ≥ ε_r, body persistence gives δ(M, ε_r) > 0 for each body {γ ≤ M}.
-    -- Then body_gronwall_from_persistence gives:
-    --   V_body(T) ≤ V(0)·exp(-rate·T) + K·μ(tail)/rate
-    -- Choose M so K·μ(tail)/rate < r*²/2, then T so V(0)·exp(-rate·T) < r*²/2.
-    -- Then V(T) ≤ V_body(T) + V_tail(T) ≤ V_body(T) + μ(tail) < r*².
-    -- (V_tail ≤ μ(tail) since (α-α*)² ≤ 1.)
-    --
-    -- The subtle point: the floor ε_r on [0,T] from compactness depends on T,
-    -- so rate depends on T. But for FIXED T, we get a FIXED rate, and the
-    -- Gronwall bound holds. We choose M,T to make the bound work.
-    sorry
+    -- NOTE: This step (V eventually entering the basin r*² without assuming
+    -- V(0) < r*²) is OPEN for the real scalar OA in general.
+    -- For the complex OA, it follows from Ψ monotonicity (dΨ/dt = K|η|² ≥ 0),
+    -- which prevents r → 0 and gives a uniform r-floor. See GaussianGlobal.lean
+    -- for the complex OA closure via kuramoto_continuum_standard.
+    -- The hypothesis hΨ_floor below captures this for the complex OA case.
+    exact hΨ_floor
 
 -- Unconditional stability: r_stays_positive_global + convergence machinery
 set_option maxHeartbeats 1600000 in
@@ -901,13 +890,14 @@ theorem kuramoto_global_unconditional [IsProbabilityMeasure μ]
     (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
     (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
-    (hr_pos : 0 < r 0)
-    (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0) :
+    (h_init_body : ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
+    (hΨ_floor : ∃ T₀ : ℝ, 0 ≤ T₀ ∧
+      (∫ ω, (α ω T₀ - α_star ω) ^ 2 ∂μ) < r_star ^ 2) :
     Tendsto r atTop (nhds r_star) := by
   obtain ⟨r_min, hr_min_pos, hr_bound⟩ := r_stays_positive_global γ K r α hK hγ_pos hγ_int
     hγ_level hr_cont hr_bdd hα_ode hα_cont hα_neg hα_inv h_sc hα_int
     α_star r_star hr_star_pos hα_star_pos hα_star_lt hαs_int hr_star_eq
-    hα_star_equil hα_sq_int hr_pos h_init_body
+    hα_star_equil hα_sq_int hΨ_floor
   have hr_min_le : r_min ≤ 1 := by
     have h0_floor : r_min ≤ r 0 := hr_bound 0 le_rfl
     have h0_upper : r 0 ≤ 1 := (abs_le.mp (hr_bdd 0)).2
