@@ -17,15 +17,20 @@
 
   Status:
     - psi_jensen_upper: PROVED (0 sorry)
-    - r_floor_from_psi_ode: 1 sorry (ODE contradiction argument)
+    - r_floor_from_psi_ode: STRUCTURED (main theorem proved modulo 3 lemmas)
+      - alpha_gronwall_bound: sorry (Gronwall comparison for scalar ODE)
+      - psi_small_from_r_small: sorry (Gronwall + DCT → Ψ small)
+      - continuous_small_interval: sorry (continuity → r small on intervals)
     - gaussian_global_stability: 1 sorry (depends on r-floor)
 
-  The r-floor gap:
+  The r-floor argument:
     The Jensen bound gives r^2 <= 1 - exp(-Psi) (UPPER bound, not lower).
     A LOWER bound on r requires the ODE structure: if r(t) -> 0, then
     dalpha/dt approx -|w|*alpha for a.e. w, forcing alpha -> 0, hence Psi -> 0,
-    contradicting Psi(t) >= Psi(0) > 0 (monotonicity). This is a non-trivial
-    dynamical argument requiring DCT + Gronwall comparison on individual ODEs.
+    contradicting Psi(t) >= Psi(0) > 0 (monotonicity).
+    The main theorem `r_floor_from_psi_ode` is now proved by contradiction,
+    reducing to three sorry'd lemmas: Gronwall comparison, DCT passage, and
+    continuity extraction of intervals.
 -/
 
 import KuramotoLean.GaussianAnalyticExtension
@@ -91,13 +96,53 @@ Argument by contradiction:
   The subtlety: r(t_n) -> 0 at isolated points does not force alpha decay.
   Need r small on INTERVALS, which follows from continuity + subsequence. -/
 
+/-- Gronwall comparison: if r ≤ ε on [t₀, t₀+T] and γ = |ω| > 0,
+    then α(ω, t₀+T) ≤ α(ω,t₀) * exp(-γ*T) + Kε/(2γ). -/
+private theorem alpha_gronwall_bound
+    (K : ℝ) (hK : 0 < K) (ε : ℝ) (hε : 0 < ε)
+    (γ : ℝ) (hγ : 0 < γ) (T : ℝ) (hT : 0 < T) (t₀ : ℝ) (ht₀ : 0 ≤ t₀)
+    (r : ℝ → ℝ) (α_ω : ℝ → ℝ)
+    (hα_pos : ∀ t, t₀ ≤ t → t ≤ t₀ + T → 0 < α_ω t)
+    (hα_lt : ∀ t, t₀ ≤ t → t ≤ t₀ + T → α_ω t < 1)
+    (hr_bd : ∀ t, t₀ ≤ t → t ≤ t₀ + T → r t ≤ ε)
+    (hα_ode : ∀ t, t₀ ≤ t → t ≤ t₀ + T → HasDerivAt α_ω
+      (-γ * α_ω t + (K / 2) * r t * (1 - (α_ω t) ^ 2)) t) :
+    α_ω (t₀ + T) ≤ α_ω t₀ * Real.exp (-γ * T) + K * ε / (2 * γ) := by
+  sorry
+
+/-- If r ≤ ε on [t₀, t₀+T], then Ψ(t₀+T) ≤ δ for suitable ε, T.
+    Uses Gronwall on each α(ω) + dominated convergence. -/
+private theorem psi_small_from_r_small
+    (K : ℝ) (hK : 0 < K)
+    (r : ℝ → ℝ) (α : ℝ → ℝ → ℝ)
+    (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (hα_ode : ∀ ω, ∀ t ≥ (0 : ℝ), HasDerivAt (α ω)
+      (-(|ω|) * α ω t + (K / 2) * r t * (1 - (α ω t) ^ 2)) t)
+    (Ψ : ℝ → ℝ)
+    (hΨ_def : ∀ t, Ψ t =
+      -∫ ω : ℝ, Real.log (1 - (α ω t) ^ 2) * gaussianFreqDist 1 ω)
+    (δ : ℝ) (hδ : 0 < δ) :
+    ∃ ε > 0, ∃ T > 0, ∀ t₀ : ℝ, 0 ≤ t₀ →
+      (∀ t, t₀ ≤ t → t ≤ t₀ + T → r t ≤ ε) → Ψ (t₀ + T) ≤ δ := by
+  sorry
+
+/-- Continuous function with infimum 0 has intervals where it stays small. -/
+private theorem continuous_small_interval
+    (r : ℝ → ℝ) (hr_cont : Continuous r) (hr_nn : ∀ t, 0 ≤ t → 0 ≤ r t)
+    (h_inf : ∀ ε > 0, ∃ t₀ : ℝ, 0 ≤ t₀ ∧ r t₀ < ε)
+    (ε : ℝ) (hε : 0 < ε) (T : ℝ) (hT : 0 < T) :
+    ∃ t₀ : ℝ, 0 ≤ t₀ ∧ ∀ t, t₀ ≤ t → t ≤ t₀ + T → r t ≤ ε := by
+  sorry
+
 /-- R-FLOOR FROM PSI AND ODE.
     If alpha satisfies the OA scalar ODE with Gaussian frequency distribution,
     alpha(w,t) in (0,1), and Psi(0) > 0 with Psi monotone non-decreasing,
     then r(t) >= r_min > 0 for all t >= 0.
 
     Proof: by contradiction using ODE decay + DCT + Psi monotonicity.
-    This is the genuine gap in the Gaussian global stability proof. -/
+    Suppose inf r = 0. Then r is small on intervals (continuity).
+    Gronwall + DCT give Psi small on those intervals, contradicting Psi monotone. -/
 theorem r_floor_from_psi_ode
     (K : ℝ) (hK : 0 < K)
     (r : ℝ → ℝ) (α : ℝ → ℝ → ℝ)
@@ -110,7 +155,27 @@ theorem r_floor_from_psi_ode
     (hΨ_def : ∀ t, Ψ t =
       -∫ ω : ℝ, Real.log (1 - (α ω t) ^ 2) * gaussianFreqDist 1 ω) :
     ∃ r_min : ℝ, 0 < r_min ∧ ∀ t, 0 ≤ t → r_min ≤ r t := by
-  sorry
+  by_contra h_neg
+  push Not at h_neg
+  -- h_neg : ∀ r_min > 0, ∃ t ≥ 0, r t < r_min
+  -- i.e., inf_{t≥0} r(t) = 0
+  have h_inf : ∀ ε > 0, ∃ t₀ : ℝ, 0 ≤ t₀ ∧ r t₀ < ε := by
+    intro ε hε
+    obtain ⟨t, ht_nn, hrt⟩ := h_neg ε hε
+    exact ⟨t, ht_nn, hrt⟩
+  -- Choose δ = Ψ(0) / 2 > 0
+  set δ := Ψ 0 / 2 with hδ_def
+  have hδ : 0 < δ := by linarith
+  -- Get ε, T from the Psi-smallness lemma
+  obtain ⟨ε, hε, T, hT, h_small⟩ := psi_small_from_r_small K hK r α hr_nn hα_inv
+    hα_ode Ψ hΨ_def δ hδ
+  -- Get an interval [t₀, t₀+T] where r ≤ ε
+  obtain ⟨t₀, ht₀, h_r_interval⟩ := continuous_small_interval r hr_cont hr_nn h_inf ε hε T hT
+  -- Conclude Ψ(t₀+T) ≤ δ = Ψ(0)/2
+  have hΨ_le : Ψ (t₀ + T) ≤ δ := h_small t₀ ht₀ h_r_interval
+  -- But Ψ monotone gives Ψ(t₀+T) ≥ Ψ(0) > 2δ = Ψ(0)
+  have hΨ_ge : Ψ 0 ≤ Ψ (t₀ + T) := hΨ_mono (by linarith)
+  linarith
 
 /-! ## Step 4: Gaussian global stability theorem -/
 
