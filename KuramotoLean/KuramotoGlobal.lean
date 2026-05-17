@@ -120,15 +120,76 @@ theorem psi_pointwise_deriv
 theorem psi_deriv_formula [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ) (t : ℝ)
     (hK : 0 < K) (ht : 0 < t)
-    (hα_ode : ∀ ω, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
-    (hα_inv : ∀ ω, 0 < α ω t ∧ α ω t < 1)
+    (hα_ode : ∀ ω, ∀ s ∈ Ioi (0:ℝ), HasDerivAt (α ω) (oaScalarRHS (γ ω) K r s (α ω s)) s)
+    (hα_inv : ∀ ω s, 0 < s → 0 < α ω s ∧ α ω s < 1)
     (h_sc : r t = ∫ ω, α ω t ∂μ)
-    (hα_int : Integrable (fun ω => α ω t) μ)
-    (hψ_int : Integrable (fun ω => -Real.log (1 - α ω t ^ 2)) μ)
-    (hγα_int : Integrable (fun ω => γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2)) μ) :
+    (hα_int : ∀ s, Integrable (fun ω => α ω s) μ)
+    (hψ_int : ∀ s, Integrable (fun ω => -Real.log (1 - α ω s ^ 2)) μ)
+    (hγα_int : Integrable (fun ω => γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2)) μ)
+    (hKrα_int : Integrable (fun ω => K * r t * α ω t) μ)
+    (bound : Ω → ℝ) (hbound_int : Integrable bound μ)
+    (hbound : ∀ ω, ∀ s ∈ Ioi (0:ℝ),
+      ‖(2 * α ω s * oaScalarRHS (γ ω) K r s (α ω s) / (1 - (α ω s) ^ 2))‖ ≤ bound ω)
+    (hF'_meas_hyp : AEStronglyMeasurable
+      (fun ω => 2 * α ω t * oaScalarRHS (γ ω) K r t (α ω t) / (1 - (α ω t) ^ 2)) μ) :
     HasDerivAt (psiEnergy α μ)
       (K * (r t) ^ 2 - 2 * ∫ ω, γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2) ∂μ) t := by
-  sorry -- Leibniz for Ψ + substitute the pointwise derivative
+  have h_pw : ∀ ω, ∀ s ∈ Ioi (0:ℝ),
+      HasDerivAt (fun u => -Real.log (1 - α ω u ^ 2))
+        (2 * α ω s * oaScalarRHS (γ ω) K r s (α ω s) / (1 - (α ω s) ^ 2)) s := by
+    intro ω s hs
+    have hs_pos := mem_Ioi.mp hs
+    have hαp := (hα_inv ω s hs_pos).1
+    have hαl := (hα_inv ω s hs_pos).2
+    have h1m : (0:ℝ) < 1 - α ω s ^ 2 := by nlinarith [hαp, hαl]
+    have h1m_ne : (1:ℝ) - α ω s ^ 2 ≠ 0 := ne_of_gt h1m
+    have hα_sq : HasDerivAt (fun u => α ω u ^ 2)
+        (2 * α ω s * oaScalarRHS (γ ω) K r s (α ω s)) s := by
+      have h := (hα_ode ω s hs).pow 2
+      simp only [Nat.cast_ofNat] at h; convert h using 1; ring
+    have h_sub : HasDerivAt (fun u => 1 - α ω u ^ 2)
+        (-(2 * α ω s * oaScalarRHS (γ ω) K r s (α ω s))) s := by
+      have h := (hasDerivAt_const s (1:ℝ)).sub hα_sq; convert h using 1; ring
+    have h_log : HasDerivAt (fun u => Real.log (1 - α ω u ^ 2))
+        (-(2 * α ω s * oaScalarRHS (γ ω) K r s (α ω s)) / (1 - α ω s ^ 2)) s :=
+      h_sub.log h1m_ne
+    have h := h_log.neg; convert h using 1; ring
+  have h_leibniz := (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun s ω => -Real.log (1 - α ω s ^ 2))
+    (F' := fun s ω => 2 * α ω s * oaScalarRHS (γ ω) K r s (α ω s) / (1 - (α ω s) ^ 2))
+    (bound := bound) (x₀ := t) (μ := μ)
+    (hs := Ioi_mem_nhds ht)
+    (hF_meas := Eventually.of_forall fun s => (hψ_int s).aestronglyMeasurable)
+    (hF_int := hψ_int t)
+    (hF'_meas := hF'_meas_hyp)
+    (h_bound := Eventually.of_forall fun ω s hs => hbound ω s hs)
+    (bound_integrable := hbound_int)
+    (h_diff := Eventually.of_forall fun ω s hs => h_pw ω s hs)).2
+  suffices h_eq : ∫ ω, 2 * α ω t * oaScalarRHS (γ ω) K r t (α ω t) /
+      (1 - (α ω t) ^ 2) ∂μ =
+      K * (r t) ^ 2 - 2 * ∫ ω, γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2) ∂μ by
+    rw [show psiEnergy α μ = (fun s => ∫ ω, -Real.log (1 - α ω s ^ 2) ∂μ) from rfl]
+    convert h_leibniz using 1; exact h_eq.symm
+  have h_pw_eq : ∀ ω, 2 * α ω t * oaScalarRHS (γ ω) K r t (α ω t) /
+      (1 - (α ω t) ^ 2) =
+      -2 * γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2) + K * r t * α ω t := by
+    intro ω
+    have hαp := (hα_inv ω t ht).1
+    have hαl := (hα_inv ω t ht).2
+    have h1m : (0:ℝ) < 1 - α ω t ^ 2 := by nlinarith [hαp, hαl]
+    have h1m_ne : (1:ℝ) - α ω t ^ 2 ≠ 0 := ne_of_gt h1m
+    unfold oaScalarRHS; field_simp
+  simp_rw [h_pw_eq]
+  have hγα_neg_int : Integrable (fun ω => -2 * γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2)) μ := by
+    apply Integrable.congr (hγα_int.const_mul (-2))
+    filter_upwards with ω; ring
+  rw [integral_add hγα_neg_int hKrα_int, integral_const_mul, ← h_sc]
+  have : ∫ ω, -2 * γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2) ∂μ =
+      -2 * ∫ ω, γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2) ∂μ := by
+    rw [show (fun ω => -2 * γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2)) =
+      (fun ω => (-2) * (γ ω * (α ω t) ^ 2 / (1 - (α ω t) ^ 2))) from by ext ω; ring]
+    exact integral_const_mul (-2) _
+  linarith [this]
 
 /-! ## The global stability argument -/
 
