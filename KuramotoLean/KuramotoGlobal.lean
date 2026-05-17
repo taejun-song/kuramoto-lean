@@ -49,9 +49,10 @@ theorem psiEnergy_nonneg
 theorem psiEnergy_pos_of_r_pos [IsProbabilityMeasure μ]
     (α : Ω → ℝ → ℝ) (r : ℝ → ℝ)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
-    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
-    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
-    (hr_pos : 0 < r 0) :
+    (_h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (_hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (_hr_pos : 0 < r 0)
+    (hψ_int : Integrable (fun ω => -Real.log (1 - α ω 0 ^ 2)) μ) :
     0 < psiEnergy α μ 0 := by
   unfold psiEnergy
   have h_nn : ∀ ω, 0 ≤ -Real.log (1 - α ω 0 ^ 2) := by
@@ -60,8 +61,7 @@ theorem psiEnergy_pos_of_r_pos [IsProbabilityMeasure μ]
     have h1 : 1 - α ω 0 ^ 2 ≤ 1 := by nlinarith [sq_nonneg (α ω 0)]
     have h2 : 0 < 1 - α ω 0 ^ 2 := by nlinarith [h.1, h.2]
     linarith [Real.log_nonpos h2.le h1]
-  have h_int : Integrable (fun ω => -Real.log (1 - α ω 0 ^ 2)) μ := by
-    sorry
+  have h_int : Integrable (fun ω => -Real.log (1 - α ω 0 ^ 2)) μ := hψ_int
   rw [integral_pos_iff_support_of_nonneg h_nn h_int]
   have h_supp : Function.support (fun ω => -Real.log (1 - α ω 0 ^ 2)) = Set.univ := by
     apply eq_univ_of_forall
@@ -483,43 +483,34 @@ theorem body_seed_at_restart_of_interval_floor
     (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (T₀ Δ r_min : ℝ)
-    (hT₀ : 0 ≤ T₀) (hΔ : 0 ≤ Δ) (hr_min_pos : 0 < r_min)
+    (hT₀ : 0 ≤ T₀) (hΔ : 0 ≤ Δ) (hΔ_le : Δ ≤ T₀) (hr_min_pos : 0 < r_min)
     (hr_window : ∀ t, T₀ - Δ ≤ t → t ≤ T₀ → r_min ≤ r t)
     (h_body_seed_left :
       ∀ M : ℝ, 0 < M → ∃ δL : ℝ, 0 < δL ∧ ∀ ω, γ ω ≤ M → δL ≤ α ω (T₀ - Δ)) :
     ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω T₀ := by
   intro M hM
-  by_cases h_left : 0 ≤ T₀ - Δ
-  · obtain ⟨δL, hδL_pos, hδL_lb⟩ := h_body_seed_left M hM
-    have hr_min_le : r_min ≤ 1 := by
-      have hfloor_T₀ : r_min ≤ r T₀ := hr_window T₀ (by linarith) le_rfl
-      have hT₀_upper : r T₀ ≤ 1 := (abs_le.mp (hr_bdd T₀)).2
-      linarith
-    have hβ_pos : 0 < bodyEquilibrium M K r_min :=
-      bodyEquilibrium_pos M K r_min (le_of_lt hM) hK hr_min_pos
-    refine ⟨min δL (bodyEquilibrium M K r_min), lt_min hδL_pos hβ_pos, ?_⟩
-    intro ω hω
-    have hγ_nn : 0 ≤ γ ω := le_of_lt (hγ_pos ω)
-    have hscalar :
-        min (α ω (T₀ - Δ)) (bodyEquilibrium M K r_min) ≤ α ω T₀ :=
-      body_persistence_lower_bound_on_window (γ ω) M K r (α ω) (T₀ - Δ) T₀ r_min
-        h_left (by linarith) hγ_nn hω hK hr_min_pos hr_min_le
-        (fun t ht_left ht_right => hr_window t ht_left ht_right)
-        hr_bdd
-        (fun t ht => hα_ode ω t (le_of_lt ht))
-        (fun t ht => hα_inv ω t ht)
-        (hα_cont ω)
-    have hleft_seed : δL ≤ α ω (T₀ - Δ) := hδL_lb ω hω
-    exact le_trans (min_le_min hleft_seed le_rfl) hscalar
-  · push_neg at h_left
-    /-
-      Remaining gap: if `T₀ - Δ < 0`, the current local hypotheses do not give a
-      comparison principle starting from the left endpoint of the window,
-      because the ODE / invariance data are only available on `[0, ∞)`.
-      This branch should either be discharged by strengthening the statement
-      with `Δ ≤ T₀` or by adding a negative-time continuation hypothesis.
-    -/
-    sorry
+  have h_left : 0 ≤ T₀ - Δ := by linarith
+  obtain ⟨δL, hδL_pos, hδL_lb⟩ := h_body_seed_left M hM
+  have hr_min_le : r_min ≤ 1 := by
+    have hfloor_T₀ : r_min ≤ r T₀ := hr_window T₀ (by linarith) le_rfl
+    have hT₀_upper : r T₀ ≤ 1 := (abs_le.mp (hr_bdd T₀)).2
+    linarith
+  have hβ_pos : 0 < bodyEquilibrium M K r_min :=
+    bodyEquilibrium_pos M K r_min (le_of_lt hM) hK hr_min_pos
+  refine ⟨min δL (bodyEquilibrium M K r_min), lt_min hδL_pos hβ_pos, ?_⟩
+  intro ω hω
+  have hγ_nn : 0 ≤ γ ω := le_of_lt (hγ_pos ω)
+  have hscalar :
+      min (α ω (T₀ - Δ)) (bodyEquilibrium M K r_min) ≤ α ω T₀ :=
+    body_persistence_lower_bound_on_window (γ ω) M K r (α ω) (T₀ - Δ) T₀ r_min
+      h_left (by linarith) hγ_nn hω hK hr_min_pos hr_min_le
+      (fun t ht_left ht_right => hr_window t ht_left ht_right)
+      hr_bdd
+      (fun t ht => hα_ode ω t (le_of_lt ht))
+      (fun t ht => hα_inv ω t ht)
+      (hα_cont ω)
+  have hleft_seed : δL ≤ α ω (T₀ - Δ) := hδL_lb ω hω
+  exact le_trans (min_le_min hleft_seed le_rfl) hscalar
 
 /-- **Windowed body-seed propagation plus an eventual `r`-floor yields body absorption.**
 
@@ -546,7 +537,7 @@ theorem h_body_absorb_of_eventual_r_floor_on_interval [IsProbabilityMeasure μ]
     (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ)
     (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
     (T₀ Δ r_min : ℝ)
-    (hT₀ : 0 ≤ T₀) (hΔ : 0 ≤ Δ) (hr_min_pos : 0 < r_min)
+    (hT₀ : 0 ≤ T₀) (hΔ : 0 ≤ Δ) (hΔ_le : Δ ≤ T₀) (hr_min_pos : 0 < r_min)
     (hr_floor : ∀ t, T₀ ≤ t → r_min ≤ r t)
     (hr_window : ∀ t, T₀ - Δ ≤ t → t ≤ T₀ → r_min ≤ r t)
     (h_body_seed_left :
@@ -559,7 +550,7 @@ theorem h_body_absorb_of_eventual_r_floor_on_interval [IsProbabilityMeasure μ]
   have h_body_seed :
       ∀ M : ℝ, 0 < M → ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω T₀ :=
     body_seed_at_restart_of_interval_floor γ K hK hγ_pos r α hr_bdd hα_ode
-      hα_cont hα_inv T₀ Δ r_min hT₀ hΔ hr_min_pos hr_window h_body_seed_left
+      hα_cont hα_inv T₀ Δ r_min hT₀ hΔ hΔ_le hr_min_pos hr_window h_body_seed_left
   exact h_body_absorb_of_eventual_r_floor'
     (μ := μ) γ K hK hγ_pos hγ_level
     α_star r_star hα_star_pos hα_star_lt hαs_int hr_star_eq hr_star_pos
