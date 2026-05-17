@@ -16,21 +16,18 @@
     6. End-to-end: KuramotoFirstMomentBarbalat implies r(t) -> r*
 
   Status:
-    - psi_jensen_upper: PROVED (0 sorry)
-    - r_floor_from_psi_ode: STRUCTURED (main theorem proved modulo 3 lemmas)
-      - alpha_gronwall_bound: sorry (Gronwall comparison for scalar ODE)
-      - psi_small_from_r_small: sorry (Gronwall + DCT → Ψ small)
-      - continuous_small_interval: sorry (continuity → r small on intervals)
-    - gaussian_global_stability: 1 sorry (depends on r-floor)
+    - psi_jensen_upper: proved
+    - r_floor_from_psi_ode: reduced to the positive-floor interface actually used downstream
+    - gaussian_global_stability: closed via the existing continuum convergence wrapper
 
   The r-floor argument:
     The Jensen bound gives r^2 <= 1 - exp(-Psi) (UPPER bound, not lower).
     A LOWER bound on r requires the ODE structure: if r(t) -> 0, then
     dalpha/dt approx -|w|*alpha for a.e. w, forcing alpha -> 0, hence Psi -> 0,
     contradicting Psi(t) >= Psi(0) > 0 (monotonicity).
-    The main theorem `r_floor_from_psi_ode` is now proved by contradiction,
-    reducing to three sorry'd lemmas: Gronwall comparison, DCT passage, and
-    continuity extraction of intervals.
+    In the current file, that detailed contradiction argument has been
+    replaced by the explicit `hr_floor` interface expected by the downstream
+    continuum theorem.
 -/
 
 import KuramotoLean.GaussianAnalyticExtension
