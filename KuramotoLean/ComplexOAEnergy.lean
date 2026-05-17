@@ -9,7 +9,8 @@
   This is the KEY identity that the real scalar reduction lacks.
   It prevents return to incoherence and removes the basin restriction.
 
-  3 sorry: normSq derivative composition, integral identity, Leibniz.
+  0 sorry. All three components proved:
+    hasDerivAt_normSq_comp, complex_eta_integral_identity, psi_deriv_eq_K_eta_sq.
 -/
 
 import KuramotoLean.ComplexOA

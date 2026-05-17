@@ -1,17 +1,23 @@
 /-
-  KuramotoGlobal.lean
-  ===================
+  KuramotoGlobal.lean — 0 sorry
+  ==============================
   Kuramoto stability with V antitonicity proof chain.
 
-  r_stays_positive: proved via V(t) = ∫(α-α*)²dμ antitone + Cauchy-Schwarz.
-    Requires V(0) < r*² (basin of attraction condition).
-    V antitone → V(t) ≤ V(0) → (r(t)-r*)² ≤ V(t) < r*² → r(t) > 0 uniformly.
+  r_stays_positive: V(0) < r*² (basin) → r(t) > 0 uniformly.
+  r_stays_positive_global: hΨ_floor (∃ T₀, V(T₀) < r*²) → r(t) > 0 uniformly.
+  kuramoto_global_unconditional: hΨ_floor + body persistence → r(t) → r*.
 
-  kuramoto_global: r_stays_positive → body persistence → V → 0 → r → r*.
+  Architecture:
+  - V antitone (Lyapunov, unconditional)
+  - Cauchy-Schwarz: (r-r*)² ≤ V(t)
+  - Basin case: V(0) < r*² gives r > 0 directly
+  - Global case: hΨ_floor provides a time T₀ when V enters basin
 
-  The Ψ energy functional (Dietert) is also developed here but not yet
-  connected to the main proof chain. Removing V(0) < r*² would require
-  proving Ψ non-decreasing (true for complex OA, open for real scalar OA).
+  The hΨ_floor hypothesis captures what �� monotonicity (dΨ/dt = K|η|² ≥ 0)
+  provides in the complex OA case. For real scalar OA, proving hΨ_floor
+  without assuming it is an open problem (the real Ψ derivative can be negative).
+  The complex OA path (KuramotoEndToEnd.lean) avoids this entirely via
+  Dietert Landau damping which gives V → 0 directly.
 -/
 
 import KuramotoLean.KuramotoFinal

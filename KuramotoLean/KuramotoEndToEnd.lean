@@ -79,7 +79,12 @@ axiom dietert_landau_damping_2017
     Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0)
 
-/-! ## Main theorem: complex OA convergence (1 axiom) -/
+/-! ## Main theorem: complex OA convergence (1 axiom)
+
+Note on basin condition: This theorem takes V(0) < r*² but the Dietert axiom
+gives V → 0 directly (strictly stronger). The basin condition here is for the
+intermediate Cauchy-Schwarz step, not a fundamental limitation. Compare with
+KuramotoGlobal.lean's hΨ_floor approach for the real scalar case. -/
 
 /-- **KURAMOTO STABILITY ON COMPLEX OA MANIFOLD.**
 
