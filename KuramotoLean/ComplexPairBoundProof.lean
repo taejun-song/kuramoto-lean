@@ -93,6 +93,33 @@ def complexPairIntegrand (z z_star : Ω → ℂ) (ω₁ ω₂ : Ω) : ℝ :=
   (starRingEnd ℂ d₁ * d₂).re *
     ((1 - z ω₁ ^ 2).re * (z_star ω₂).re + (1 - z ω₂ ^ 2).re * (z_star ω₁).re) / 2
 
+/-! ## V' = K(-r*Qc/2 + DcSc/2) identity -/
+
+private theorem complexVDerivIntegrand_expand (K r_t r_star : ℝ) (z z_star : ℂ)
+    (g_val : ℝ) :
+    complexVDerivIntegrand K r_t r_star z z_star * g_val =
+    K * (r_t - r_star) / 2 *
+      ((starRingEnd ℂ (z - z_star) * (1 - z ^ 2)).re * g_val) -
+    K * r_star / 2 *
+      (Complex.normSq (z - z_star) * (z + z_star).re * g_val) := by
+  unfold complexVDerivIntegrand; ring
+
+theorem complex_V_deriv_eq_QDS
+    (z z_star : Ω → ℂ) (g : Ω → ℝ) (K r_t r_star : ℝ)
+    (h_op : r_t - r_star = Dc z z_star g μ)
+    (h_int_Sc : Integrable
+      (fun ω => (starRingEnd ℂ (z ω - z_star ω) * (1 - z ω ^ 2)).re * g ω) μ)
+    (h_int_Qc : Integrable
+      (fun ω => Complex.normSq (z ω - z_star ω) * (z ω + z_star ω).re * g ω) μ) :
+    ∫ ω, complexVDerivIntegrand K r_t r_star (z ω) (z_star ω) * g ω ∂μ =
+      K * (-r_star / 2 * Qc z z_star g μ +
+           Dc z z_star g μ / 2 * Sc z z_star g μ) := by
+  simp_rw [complexVDerivIntegrand_expand]
+  rw [integral_sub (h_int_Sc.const_mul _) (h_int_Qc.const_mul _)]
+  simp_rw [integral_const_mul]
+  unfold Qc Sc
+  rw [h_op]; ring
+
 /-! ## Assembly: V' ≤ 0 -/
 
 /-- **Conditional assembly of `V' ≤ 0`.**
