@@ -146,6 +146,27 @@ theorem lockedEquilRe_sq (ω K r : ℝ) (_hK : 0 < K) (_hr : 0 < r)
   rw [div_pow, Real.sq_sqrt (by linarith)]
   congr 1; ring
 
+theorem lockedEquilRe_mono {r₁ r₂ : ℝ} (ω K : ℝ) (hK : 0 < K)
+    (hr₁ : 0 < r₁) (hr₂ : 0 < r₂) (hr : r₁ ≤ r₂)
+    (hω : ω ^ 2 < K ^ 2 * r₁ ^ 2) :
+    lockedEquilRe ω K r₁ ≤ lockedEquilRe ω K r₂ := by
+  have hω₂ : ω ^ 2 < K ^ 2 * r₂ ^ 2 := by
+    nlinarith [pow_le_pow_left₀ (le_of_lt hr₁) hr 2, sq_nonneg K]
+  have h₁ := lockedEquilRe_pos ω K r₁ hK hr₁ hω
+  have h₂ := lockedEquilRe_pos ω K r₂ hK hr₂ hω₂
+  have hsq₁ := lockedEquilRe_sq ω K r₁ hK hr₁ hω
+  have hsq₂ := lockedEquilRe_sq ω K r₂ hK hr₂ hω₂
+  have hmono : lockedEquilRe ω K r₁ ^ 2 ≤ lockedEquilRe ω K r₂ ^ 2 := by
+    rw [hsq₁, hsq₂]
+    have h1p : (0 : ℝ) < K ^ 2 * r₁ ^ 2 := by positivity
+    have h2p : (0 : ℝ) < K ^ 2 * r₂ ^ 2 := by positivity
+    rw [div_le_div_iff₀ h1p h2p]
+    have h_r_sq := pow_le_pow_left₀ (le_of_lt hr₁) hr 2
+    nlinarith [mul_le_mul_of_nonneg_left
+      (mul_le_mul_of_nonneg_left h_r_sq (sq_nonneg K)) (sq_nonneg ω)]
+  have hle := Real.sqrt_le_sqrt hmono
+  rwa [Real.sqrt_sq (le_of_lt h₁), Real.sqrt_sq (le_of_lt h₂)] at hle
+
 /-! ## Self-consistency function -/
 
 /-- F(r) = ∫_{locked} Re(z*(ω)) g(ω) dμ(ω).
