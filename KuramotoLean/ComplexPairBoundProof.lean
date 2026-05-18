@@ -1,27 +1,10 @@
 /-
   Complex OA Pair Bound — Fubini Approach
   =========================================
-  Proves ∫ V'_integrand · g dμ ≤ 0 for the complex OA via Fubini.
-
-  Key finding from attack round 1: the POINTWISE bound is FALSE
-  (complex_pair_bound_core_counterexample). The integral bound
-  requires the DOUBLE INTEGRAL (Fubini) decomposition, exactly
-  as in the real case (ContinuumIdentity.lean).
-
-  Strategy: V' = -(K/2) · ∫∫ P(ω₁,ω₂) g₁g₂ dω₁dω₂
-  where P(ω₁,ω₂) is the complex pair integrand.
-  Show ∫∫ P ≥ 0 via Fubini + self-consistency.
-
-  After rotation cancels (proved in ComplexOAPairBound.lean),
-  V' = K · [-r* · Q_c + D_c · S_c] where:
-    Q_c = ∫ Re(|z-z*|²(z+z*)) · g dω
-    S_c = ∫ Re((z̄-z̄*)(1-z²)) · g dω
-    D_c = r - r* = ∫ Re(z̄-z̄*) · g dω
-
-  The Fubini decomposition gives:
-    r* · Q_c - D_c · S_c = (1/2) ∫∫ P(ω₁,ω₂) g₁g₂
-
-  Need: ∫∫ P ≥ 0. This is the complex analog of pair_bound_from_products.
+  V' = K(-r*/2·Qc + Dc/2·Sc) with complex pair integrand.
+  The Fubini identity RsStar·Qc - Dc·Sc = (1/2)∫∫ I g₁g₂ is proved.
+  The pointwise pair bound is FALSE; integral nonnegativity remains open.
+  0 sorry.
 -/
 
 import KuramotoLean.ComplexOAPairBound
@@ -34,10 +17,8 @@ noncomputable section
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
-/-! ## The pointwise bound is FALSE — proof that Fubini is needed -/
+/-! ## The pointwise V' bound is FALSE -/
 
-/-- Counterexample: the per-ω integrand can be positive.
-    Need the DOUBLE INTEGRAL, not pointwise. -/
 theorem complex_pair_pointwise_false :
     ¬ ∀ (r_t r_star : ℝ) (z z_star : ℂ),
       (r_t - r_star) / 2 * (starRingEnd ℂ (z - z_star) * (1 - z ^ 2)).re -
@@ -45,53 +26,29 @@ theorem complex_pair_pointwise_false :
   push Not
   exact ⟨-1, 1, 0, 1, by norm_num⟩
 
-/-! ## V' integrand definition -/
+/-! ## Definitions -/
 
 def complexVDerivIntegrand (K r_t r_star : ℝ) (z z_star : ℂ) : ℝ :=
   K * ((r_t - r_star) / 2 * (starRingEnd ℂ (z - z_star) * (1 - z ^ 2)).re -
     r_star / 2 * Complex.normSq (z - z_star) * (z + z_star).re)
 
-/-! ## Fubini decomposition components -/
-
-/-- Q_c = ∫ |z-z*|² · Re(z+z*) · g dω  (cubic moment) -/
 def Qc (z z_star : Ω → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : ℝ :=
   ∫ ω, Complex.normSq (z ω - z_star ω) * (z ω + z_star ω).re * g ω ∂μ
 
-/-- S_c = ∫ Re((z̄-z̄*)(1-z²)) · g dω  (mixed moment) -/
 def Sc (z z_star : Ω → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : ℝ :=
   ∫ ω, (starRingEnd ℂ (z ω - z_star ω) * (1 - z ω ^ 2)).re * g ω ∂μ
 
-/-- D_c = r - r* = ∫ Re(z̄-z̄*) · g dω  (order parameter deviation) -/
 def Dc (z z_star : Ω → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : ℝ :=
   ∫ ω, (starRingEnd ℂ (z ω - z_star ω)).re * g ω ∂μ
 
-/-! ## Status of the complex pair step
+def RsStar (z_star : Ω → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : ℝ :=
+  ∫ ω, (z_star ω).re * g ω ∂μ
 
-The two missing theorems in the original draft claimed a fully general complex
-Fubini identity, a fully general nonnegativity result, and a fully general
-`V' = K[-r*Q + DS]` identity. Those claims are not supported by the current
-hypotheses:
-
-* `complex_V_deriv_eq_QDS` needs explicit integrability/linearity hypotheses.
-* `complex_pair_fubini` used a free `r_star` on the left-hand side but no
-  corresponding quantity on the right-hand side.
-* `complex_pair_nonneg` only assumed `‖z‖ < 1` and `z_star ≠ 0`, which is too
-  weak; concrete numerical examples give a negative pair integrand.
-
-What is actually derivable from the current file is the final assembly step:
-if a suitable `V'` identity, pair identity, and pair nonnegativity statement
-are supplied, then the Lyapunov derivative is nonpositive. We record exactly
-that below.
--/
-
-/-- The complex pair integrand for (ω₁, ω₂). -/
 def complexPairIntegrand (z z_star : Ω → ℂ) (ω₁ ω₂ : Ω) : ℝ :=
-  let d₁ := z ω₁ - z_star ω₁
-  let d₂ := z ω₂ - z_star ω₂
-  Complex.normSq d₂ * (z_star ω₁).re * (z ω₂ + z_star ω₂).re +
-  Complex.normSq d₁ * (z_star ω₂).re * (z ω₁ + z_star ω₁).re -
-  (starRingEnd ℂ d₁ * d₂).re *
-    ((1 - z ω₁ ^ 2).re * (z_star ω₂).re + (1 - z ω₂ ^ 2).re * (z_star ω₁).re) / 2
+  normSq (z ω₂ - z_star ω₂) * (z_star ω₁).re * (z ω₂ + z_star ω₂).re +
+  normSq (z ω₁ - z_star ω₁) * (z_star ω₂).re * (z ω₁ + z_star ω₁).re -
+  (z ω₁ - z_star ω₁).re * (starRingEnd ℂ (z ω₂ - z_star ω₂) * (1 - z ω₂ ^ 2)).re -
+  (z ω₂ - z_star ω₂).re * (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re
 
 /-! ## V' = K(-r*Qc/2 + DcSc/2) identity -/
 
@@ -120,12 +77,130 @@ theorem complex_V_deriv_eq_QDS
   unfold Qc Sc
   rw [h_op]; ring
 
+/-! ## Fubini identity: RsStar·Qc - Dc·Sc = (1/2)∫∫ pair -/
+
+private theorem Dc_eq_re_integral (z z_star : Ω → ℂ) (g : Ω → ℝ) :
+    Dc z z_star g μ = ∫ ω, (z ω - z_star ω).re * g ω ∂μ := by
+  unfold Dc; rfl
+
+private theorem inner_term12_complex (z z_star : Ω → ℂ) (g : Ω → ℝ)
+    (h_Qc : Integrable
+      (fun ω => normSq (z ω - z_star ω) * (z ω + z_star ω).re * g ω) μ)
+    (h_Sc : Integrable
+      (fun ω => (starRingEnd ℂ (z ω - z_star ω) * (1 - z ω ^ 2)).re * g ω) μ)
+    (ω₁ : Ω) :
+    ∫ ω₂, ((z_star ω₁).re * (normSq (z ω₂ - z_star ω₂) * (z ω₂ + z_star ω₂).re * g ω₂) -
+      (z ω₁ - z_star ω₁).re *
+        ((starRingEnd ℂ (z ω₂ - z_star ω₂) * (1 - z ω₂ ^ 2)).re * g ω₂)) ∂μ =
+    (z_star ω₁).re * Qc z z_star g μ -
+    (z ω₁ - z_star ω₁).re * Sc z z_star g μ := by
+  unfold Qc Sc
+  rw [integral_sub (h_Qc.const_mul _) (h_Sc.const_mul _)]
+  simp_rw [integral_const_mul]
+
+private theorem inner_term21_complex (z z_star : Ω → ℂ) (g : Ω → ℝ)
+    (h_Rs : Integrable (fun ω => (z_star ω).re * g ω) μ)
+    (h_Dc : Integrable (fun ω => (z ω - z_star ω).re * g ω) μ)
+    (ω₁ : Ω) :
+    ∫ ω₂, (normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re *
+        ((z_star ω₂).re * g ω₂) -
+      (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re *
+        ((z ω₂ - z_star ω₂).re * g ω₂)) ∂μ =
+    normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re *
+      RsStar z_star g μ -
+    (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re *
+      Dc z z_star g μ := by
+  unfold RsStar; rw [Dc_eq_re_integral (μ := μ)]
+  rw [integral_sub (h_Rs.const_mul _) (h_Dc.const_mul _)]
+  simp_rw [integral_const_mul]
+
+theorem complex_pair_fubini_identity (z z_star : Ω → ℂ) (g : Ω → ℝ)
+    (h_Qc : Integrable
+      (fun ω => normSq (z ω - z_star ω) * (z ω + z_star ω).re * g ω) μ)
+    (h_Sc : Integrable
+      (fun ω => (starRingEnd ℂ (z ω - z_star ω) * (1 - z ω ^ 2)).re * g ω) μ)
+    (h_Rs : Integrable (fun ω => (z_star ω).re * g ω) μ)
+    (h_Dc : Integrable (fun ω => (z ω - z_star ω).re * g ω) μ) :
+    ∫ ω₁, ∫ ω₂,
+      complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ ∂μ ∂μ =
+    2 * (RsStar z_star g μ * Qc z z_star g μ -
+         Dc z z_star g μ * Sc z z_star g μ) := by
+  have h12 := inner_term12_complex z z_star g h_Qc h_Sc
+  have h21 := inner_term21_complex z z_star g h_Rs h_Dc
+  have h_decomp : ∀ ω₁ ω₂,
+      complexPairIntegrand z z_star ω₁ ω₂ * g ω₂ =
+      ((z_star ω₁).re * (normSq (z ω₂ - z_star ω₂) * (z ω₂ + z_star ω₂).re * g ω₂) -
+       (z ω₁ - z_star ω₁).re *
+         ((starRingEnd ℂ (z ω₂ - z_star ω₂) * (1 - z ω₂ ^ 2)).re * g ω₂)) +
+      (normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re *
+         ((z_star ω₂).re * g ω₂) -
+       (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re *
+         ((z ω₂ - z_star ω₂).re * g ω₂)) := by
+    intro ω₁ ω₂; unfold complexPairIntegrand; ring
+  have h_inner : ∀ ω₁,
+      ∫ ω₂, complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ ∂μ =
+      g ω₁ * ((z_star ω₁).re * Qc z z_star g μ -
+               (z ω₁ - z_star ω₁).re * Sc z z_star g μ +
+               normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re *
+                 RsStar z_star g μ -
+               (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re *
+                 Dc z z_star g μ) := by
+    intro ω₁
+    have h_factor : ∀ ω₂,
+        complexPairIntegrand z z_star ω₁ ω₂ * g ω₁ * g ω₂ =
+        g ω₁ * (complexPairIntegrand z z_star ω₁ ω₂ * g ω₂) :=
+      fun ω₂ => by ring
+    simp_rw [h_factor, h_decomp, integral_const_mul]
+    congr 1
+    have hi12 : Integrable (fun ω₂ =>
+        (z_star ω₁).re * (normSq (z ω₂ - z_star ω₂) * (z ω₂ + z_star ω₂).re * g ω₂) -
+        (z ω₁ - z_star ω₁).re *
+          ((starRingEnd ℂ (z ω₂ - z_star ω₂) * (1 - z ω₂ ^ 2)).re * g ω₂)) μ :=
+      (h_Qc.const_mul _).sub (h_Sc.const_mul _)
+    have hi21 : Integrable (fun ω₂ =>
+        normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re *
+          ((z_star ω₂).re * g ω₂) -
+        (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re *
+          ((z ω₂ - z_star ω₂).re * g ω₂)) μ :=
+      (h_Rs.const_mul _).sub (h_Dc.const_mul _)
+    rw [integral_add hi12 hi21, h12 ω₁, h21 ω₁]; ring
+  simp_rw [h_inner]
+  have h_outer_split : ∀ ω₁ : Ω,
+      g ω₁ * ((z_star ω₁).re * Qc z z_star g μ -
+               (z ω₁ - z_star ω₁).re * Sc z z_star g μ +
+               normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re *
+                 RsStar z_star g μ -
+               (starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re *
+                 Dc z z_star g μ) =
+      (Qc z z_star g μ * ((z_star ω₁).re * g ω₁) -
+       Sc z z_star g μ * ((z ω₁ - z_star ω₁).re * g ω₁)) +
+      (RsStar z_star g μ *
+         (normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re * g ω₁) -
+       Dc z z_star g μ *
+         ((starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re * g ω₁))
+    := fun ω₁ => by ring
+  simp_rw [h_outer_split]
+  have hA : Integrable (fun ω₁ =>
+      Qc z z_star g μ * ((z_star ω₁).re * g ω₁) -
+      Sc z z_star g μ * ((z ω₁ - z_star ω₁).re * g ω₁)) μ :=
+    (h_Rs.const_mul _).sub (h_Dc.const_mul _)
+  have hB : Integrable (fun ω₁ =>
+      RsStar z_star g μ * (normSq (z ω₁ - z_star ω₁) * (z ω₁ + z_star ω₁).re * g ω₁) -
+      Dc z z_star g μ *
+        ((starRingEnd ℂ (z ω₁ - z_star ω₁) * (1 - z ω₁ ^ 2)).re * g ω₁)) μ :=
+    (h_Qc.const_mul _).sub (h_Sc.const_mul _)
+  rw [integral_add hA hB,
+      integral_sub (h_Rs.const_mul (Qc z z_star g μ))
+                   (h_Dc.const_mul (Sc z z_star g μ)),
+      integral_sub (h_Qc.const_mul (RsStar z_star g μ))
+                   (h_Sc.const_mul (Dc z z_star g μ))]
+  simp_rw [integral_const_mul]
+  unfold RsStar Qc Sc
+  rw [Dc_eq_re_integral (μ := μ)]
+  ring
+
 /-! ## Assembly: V' ≤ 0 -/
 
-/-- **Conditional assembly of `V' ≤ 0`.**
-    This is the valid consequence of the current file:
-    once a matching pair identity and pair nonnegativity result are available,
-    the Lyapunov derivative is nonpositive. -/
 theorem complex_V_deriv_nonpos_of_pair_bound
     (z z_star : Ω → ℂ) (g : Ω → ℝ) (K r_t r_star : ℝ)
     (hK : 0 < K)
