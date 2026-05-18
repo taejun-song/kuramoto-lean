@@ -9,14 +9,13 @@
   Locked oscillators (|ω| < Kr) have equilibrium on the unit circle:
     z*(ω) = (√(K²r² - ω²) - iω) / (Kr),   |z*| = 1
 
-  Properties proved:
+  Properties proved (19 theorems, 0 sorry):
     1. z* solves complexOaRHS = 0 (equilibrium equation)
     2. |z*| = 1 (boundary equilibrium)
-    3. Re(z*) > 0 for locked oscillators
+    3. 0 < Re(z*) ≤ 1 for locked oscillators, Re(z*) < 1 when ω ≠ 0
     4. Exponential stability: Re(linearized eigenvalue) = -√(K²r²-ω²) < 0
-    5. Self-consistency function F(r) and F'(0) = πKg(0)/2
-
-  0 sorry target.
+    5. Re(z*) monotone in r (lockedEquilRe_mono)
+    6. F(r) = ∫ Re(z*) g dμ: F(0)=0, F≥0, F≤∫g, F monotone in r
 -/
 
 import KuramotoLean.ComplexOA
@@ -95,6 +94,16 @@ theorem lockedEquilRe_lt_one (ω K r : ℝ) (hK : 0 < K) (hr : 0 < r)
     _ = K * r := by
         have : K ^ 2 * r ^ 2 = (K * r) ^ 2 := by ring
         rw [this, Real.sqrt_sq (le_of_lt (mul_pos hK hr))]
+
+theorem lockedEquilRe_le_one (ω K r : ℝ) (hK : 0 < K) (hr : 0 < r)
+    (hω : ω ^ 2 < K ^ 2 * r ^ 2) :
+    lockedEquilRe ω K r ≤ 1 := by
+  rcases eq_or_ne ω 0 with rfl | hne
+  · unfold lockedEquilRe
+    have : K ^ 2 * r ^ 2 - (0 : ℝ) ^ 2 = (K * r) ^ 2 := by ring
+    rw [this, Real.sqrt_sq (le_of_lt (mul_pos hK hr)),
+        div_self (ne_of_gt (mul_pos hK hr))]
+  · exact le_of_lt (lockedEquilRe_lt_one ω K r hK hr hne hω)
 
 /-! ## z* solves the equilibrium equation -/
 
@@ -185,5 +194,77 @@ theorem selfConsistencyF_at_fixed_point (ω_freq : Ω → ℝ) (K r_star : ℝ)
                     then lockedEquilRe (ω_freq ω) K r_star * g ω
                     else 0) ∂μ :=
   h_fixed.symm
+
+theorem selfConsistencyF_zero (ω_freq : Ω → ℝ) (K : ℝ) (g : Ω → ℝ) :
+    selfConsistencyF ω_freq K 0 g μ = 0 := by
+  unfold selfConsistencyF
+  have h : ∀ ω, ¬((ω_freq ω) ^ 2 < K ^ 2 * (0 : ℝ) ^ 2) := by
+    intro ω
+    simp only [mul_zero, sq (0 : ℝ), not_lt]
+    exact sq_nonneg _
+  simp only [h, ite_false, integral_zero]
+
+private theorem scF_integrand_nonneg (ω_val K r g_val : ℝ) (hK : 0 < K) (hr : 0 < r)
+    (hg : 0 ≤ g_val) :
+    0 ≤ (if ω_val ^ 2 < K ^ 2 * r ^ 2
+         then lockedEquilRe ω_val K r * g_val else 0) := by
+  split_ifs with h
+  · exact mul_nonneg (le_of_lt (lockedEquilRe_pos _ _ _ hK hr h)) hg
+  · exact le_refl _
+
+private theorem scF_integrand_le_g (ω_val K r g_val : ℝ) (hK : 0 < K) (hr : 0 < r)
+    (hg : 0 ≤ g_val) :
+    (if ω_val ^ 2 < K ^ 2 * r ^ 2
+     then lockedEquilRe ω_val K r * g_val else 0) ≤ g_val := by
+  split_ifs with h
+  · calc lockedEquilRe ω_val K r * g_val
+        ≤ 1 * g_val := mul_le_mul_of_nonneg_right
+          (lockedEquilRe_le_one _ _ _ hK hr h) hg
+      _ = g_val := one_mul _
+  · exact hg
+
+private theorem scF_integrand_mono (ω_val K r₁ r₂ g_val : ℝ) (hK : 0 < K)
+    (hr₁ : 0 < r₁) (hr₂ : 0 < r₂) (hr : r₁ ≤ r₂) (hg : 0 ≤ g_val) :
+    (if ω_val ^ 2 < K ^ 2 * r₁ ^ 2
+     then lockedEquilRe ω_val K r₁ * g_val else 0) ≤
+    (if ω_val ^ 2 < K ^ 2 * r₂ ^ 2
+     then lockedEquilRe ω_val K r₂ * g_val else 0) := by
+  by_cases h₁ : ω_val ^ 2 < K ^ 2 * r₁ ^ 2
+  · have h₂ : ω_val ^ 2 < K ^ 2 * r₂ ^ 2 :=
+      lt_of_lt_of_le h₁ (by nlinarith [sq_nonneg K, pow_le_pow_left₀ (le_of_lt hr₁) hr 2])
+    simp only [if_pos h₁, if_pos h₂]
+    exact mul_le_mul_of_nonneg_right (lockedEquilRe_mono _ _ hK hr₁ hr₂ hr h₁) hg
+  · simp only [if_neg h₁]
+    split_ifs with h₂
+    · exact mul_nonneg (le_of_lt (lockedEquilRe_pos _ _ _ hK hr₂ h₂)) hg
+    · exact le_refl _
+
+theorem selfConsistencyF_nonneg (ω_freq : Ω → ℝ) (K r : ℝ)
+    (g : Ω → ℝ) (hK : 0 < K) (hr : 0 < r) (hg : ∀ ω, 0 ≤ g ω) :
+    0 ≤ selfConsistencyF ω_freq K r g μ := by
+  unfold selfConsistencyF
+  exact integral_nonneg fun ω => scF_integrand_nonneg _ _ _ _ hK hr (hg ω)
+
+theorem selfConsistencyF_le_integral (ω_freq : Ω → ℝ) (K r : ℝ)
+    (g : Ω → ℝ) (hK : 0 < K) (hr : 0 < r)
+    (hg : ∀ ω, 0 ≤ g ω) (hg_int : Integrable g μ) :
+    selfConsistencyF ω_freq K r g μ ≤ ∫ ω, g ω ∂μ := by
+  unfold selfConsistencyF
+  exact integral_mono_of_nonneg
+    (ae_of_all μ fun ω => scF_integrand_nonneg _ _ _ _ hK hr (hg ω))
+    hg_int
+    (ae_of_all μ fun ω => scF_integrand_le_g _ _ _ _ hK hr (hg ω))
+
+theorem selfConsistencyF_mono (ω_freq : Ω → ℝ) (K : ℝ)
+    (g : Ω → ℝ) (hK : 0 < K) (r₁ r₂ : ℝ) (hr₁ : 0 < r₁) (hr₂ : 0 < r₂)
+    (hr : r₁ ≤ r₂) (hg : ∀ ω, 0 ≤ g ω)
+    (h_int : Integrable (fun ω => if (ω_freq ω) ^ 2 < K ^ 2 * r₂ ^ 2
+        then lockedEquilRe (ω_freq ω) K r₂ * g ω else 0) μ) :
+    selfConsistencyF ω_freq K r₁ g μ ≤ selfConsistencyF ω_freq K r₂ g μ := by
+  unfold selfConsistencyF
+  exact integral_mono_of_nonneg
+    (ae_of_all μ fun ω => scF_integrand_nonneg _ _ _ _ hK hr₁ (hg ω))
+    h_int
+    (ae_of_all μ fun ω => scF_integrand_mono _ _ _ _ _ hK hr₁ hr₂ hr (hg ω))
 
 end
