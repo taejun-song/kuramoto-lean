@@ -6,8 +6,10 @@
   2. Bounded Ψ → interval length constraint (η can't stay large forever)
   3. Basin entry: V → 0 → ∃ T₀, V(T₀) < B
   4. Antitone Lyapunov convergence
+  5. Barbalat-type: η² drops below any threshold (bounded Ψ → η transient)
+  6. Contrapositive: persistent η² ≥ m forces Ψ unbounded
 
-  0 sorry.
+  12 theorems, 0 sorry.
 -/
 
 import KuramotoLean.ComplexOAEnergy

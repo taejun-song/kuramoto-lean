@@ -146,7 +146,7 @@
    │ eta_large_interval_bounded               │     η² summability.
    │ eta_sq_drops_below (Barbalat-type)       │     Uses: ComplexOAEnergy
    │ psi_unbounded_of_eta_persistent          │
-   │ 11 theorems                              │
+   │ 12 theorems                              │
    └──────────────────────────────────────────┘
 
 ════════════════════════════════════════════
@@ -236,4 +236,4 @@ The main axiom-free result for the complex OA. Shows how the circularity is brok
 | Real scalar global | `kuramoto_global_unconditional` | 0 | 0 | **PROVED** |
 | Y-damping | `kuramoto_fresh` | 0 | 0 | **PROVED** (takes h_basin_decay) |
 | Penrose criterion | `lorentzian_penrose_criterion` | 0 | 0 | **PROVED** (K > 2γ ⟹ ∃ s* > 0, D(s*) = 1) |
-| Ψ-Barbalat bridge | `eta_sq_drops_below` + 10 more | 0 | 0 | **PROVED** (dΨ/dt = K|η|² → η summability) |
+| Ψ-Barbalat bridge | `eta_sq_drops_below` + 11 more | 0 | 0 | **PROVED** (dΨ/dt = K|η|² → η summability) |
