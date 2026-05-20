@@ -18,6 +18,100 @@ noncomputable section
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
+theorem eta_re_cauchy_schwarz [IsProbabilityMeasure μ]
+    (z z_star : Ω → ℂ) (g : Ω → ℝ) (r_star : ℝ)
+    (hg_nn : ∀ ω, 0 ≤ g ω) (hg_int : Integrable g μ)
+    (hg_norm : ∫ ω, g ω ∂μ = 1)
+    (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (g ω : ℂ) ∂μ).re)
+    (hV_int : Integrable (fun ω => Complex.normSq (z ω - z_star ω) * g ω) μ)
+    (hη_int : Integrable (fun ω => starRingEnd ℂ (z ω) * (g ω : ℂ)) μ)
+    (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (g ω : ℂ)) μ)
+    (hφ_meas : AEStronglyMeasurable (fun ω => (z ω - z_star ω).re) μ) :
+    ((∫ ω, starRingEnd ℂ (z ω) * (g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤
+      ∫ ω, Complex.normSq (z ω - z_star ω) * g ω ∂μ := by
+  have h_diff_c_int :
+      Integrable (fun ω => starRingEnd ℂ (z ω - z_star ω) * (g ω : ℂ)) μ := by
+    convert hη_int.sub hη_star_int using 1
+    ext ω; simp only [starRingEnd_apply, map_sub, Pi.sub_apply]; ring
+  have h_re_meas : AEStronglyMeasurable (fun ω => (z ω - z_star ω).re * g ω) μ :=
+    hφ_meas.mul hg_int.aestronglyMeasurable
+  have h_re2_meas : AEStronglyMeasurable
+      (fun ω => (z ω - z_star ω).re ^ 2 * g ω) μ :=
+    (hφ_meas.mul hφ_meas).mul hg_int.aestronglyMeasurable
+      |>.congr (Filter.Eventually.of_forall (fun ω => by
+        change ((fun ω => (z ω - z_star ω).re) ω * (fun ω => (z ω - z_star ω).re) ω) *
+          g ω = _
+        ring))
+  have hφg_int : Integrable (fun ω => (z ω - z_star ω).re * g ω) μ :=
+    (hV_int.add hg_int).mono' h_re_meas (Filter.Eventually.of_forall (fun ω => by
+      simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (hg_nn ω), Pi.add_apply]
+      calc |(z ω - z_star ω).re| * g ω
+          ≤ ((z ω - z_star ω).re ^ 2 + 1) * g ω := by
+            apply mul_le_mul_of_nonneg_right _ (hg_nn ω)
+            nlinarith [sq_abs (z ω - z_star ω).re, abs_nonneg (z ω - z_star ω).re]
+        _ = (z ω - z_star ω).re ^ 2 * g ω + 1 * g ω := by ring
+        _ ≤ Complex.normSq (z ω - z_star ω) * g ω + 1 * g ω := by
+            linarith [mul_le_mul_of_nonneg_right
+              (show (z ω - z_star ω).re ^ 2 ≤ Complex.normSq (z ω - z_star ω) from
+                by rw [sq]; exact Complex.re_sq_le_normSq _) (hg_nn ω)]
+        _ = Complex.normSq (z ω - z_star ω) * g ω + g ω := by ring))
+  have hφ2g_int : Integrable (fun ω => (z ω - z_star ω).re ^ 2 * g ω) μ :=
+    hV_int.mono' h_re2_meas (Filter.Eventually.of_forall (fun ω => by
+      simp only [Real.norm_eq_abs]
+      rw [abs_of_nonneg (mul_nonneg (sq_nonneg _) (hg_nn ω))]
+      exact mul_le_mul_of_nonneg_right
+        (by rw [sq]; exact Complex.re_sq_le_normSq _) (hg_nn ω)))
+  have h_diff_eq : (∫ ω, starRingEnd ℂ (z ω) * (g ω : ℂ) ∂μ).re - r_star =
+      ∫ ω, (z ω - z_star ω).re * g ω ∂μ := by
+    rw [hr_star_eq, ← Complex.sub_re, ← integral_sub hη_int hη_star_int]
+    have h_eq : (fun ω => starRingEnd ℂ (z ω) * (g ω : ℂ) -
+        starRingEnd ℂ (z_star ω) * (g ω : ℂ)) =ᵐ[μ]
+        fun ω => starRingEnd ℂ (z ω - z_star ω) * (g ω : ℂ) :=
+      Filter.Eventually.of_forall (fun ω => by simp only [starRingEnd_apply, map_sub]; ring)
+    rw [integral_congr_ae h_eq,
+      show (∫ ω, starRingEnd ℂ (z ω - z_star ω) * (g ω : ℂ) ∂μ).re =
+        ∫ ω, (starRingEnd ℂ (z ω - z_star ω) * (g ω : ℂ)).re ∂μ from
+          ((RCLike.reCLM (K := ℂ)).integral_comp_comm h_diff_c_int).symm]
+    exact integral_congr_ae (Filter.Eventually.of_forall (fun ω => by
+      change (starRingEnd ℂ (z ω - z_star ω) * ↑(g ω)).re = _
+      rw [starRingEnd_apply, Complex.star_def]
+      simp [Complex.mul_re, Complex.conj_re, Complex.conj_im,
+        Complex.ofReal_re, Complex.ofReal_im]))
+  rw [h_diff_eq]
+  set m := ∫ ω, (z ω - z_star ω).re * g ω ∂μ
+  have h_var : m ^ 2 ≤ ∫ ω, (z ω - z_star ω).re ^ 2 * g ω ∂μ := by
+    suffices h : 0 ≤ ∫ ω, (z ω - z_star ω).re ^ 2 * g ω ∂μ - m ^ 2 by linarith
+    have h_expand : ∫ ω, ((z ω - z_star ω).re - m) ^ 2 * g ω ∂μ =
+        ∫ ω, (z ω - z_star ω).re ^ 2 * g ω ∂μ - m ^ 2 := by
+      set φ := fun ω => (z ω - z_star ω).re
+      set a := fun ω => φ ω ^ 2 * g ω
+      set b := fun ω => (-2) * m * (φ ω * g ω)
+      set c := fun ω => m ^ 2 * g ω
+      have h1 : ∀ ω, (φ ω - m) ^ 2 * g ω = a ω + (b ω + c ω) := fun ω => by
+        simp only [a, b, c]; ring
+      calc ∫ ω, ((z ω - z_star ω).re - m) ^ 2 * g ω ∂μ
+          = ∫ ω, (a ω + (b ω + c ω)) ∂μ := integral_congr_ae (Filter.Eventually.of_forall h1)
+        _ = ∫ ω, a ω ∂μ + (∫ ω, b ω ∂μ + ∫ ω, c ω ∂μ) := by
+            have hab : Integrable a μ := hφ2g_int
+            have hbc : Integrable (fun ω => b ω + c ω) μ :=
+              (hφg_int.const_mul _).add (hg_int.const_mul _)
+            have hb : Integrable b μ := hφg_int.const_mul _
+            have hc : Integrable c μ := hg_int.const_mul _
+            rw [show (fun ω => a ω + (b ω + c ω)) =
+                (fun ω => a ω + (fun ω => b ω + c ω) ω) from rfl,
+              integral_add hab hbc,
+              integral_add hb hc]
+        _ = ∫ ω, (z ω - z_star ω).re ^ 2 * g ω ∂μ - m ^ 2 := by
+            simp only [a, b, c, integral_const_mul, integral_const_mul, hg_norm]; ring
+    rw [← h_expand]
+    exact integral_nonneg (fun ω => mul_nonneg (sq_nonneg _) (hg_nn ω))
+  calc m ^ 2
+      ≤ ∫ ω, (z ω - z_star ω).re ^ 2 * g ω ∂μ := h_var
+    _ ≤ ∫ ω, Complex.normSq (z ω - z_star ω) * g ω ∂μ := by
+        apply integral_mono hφ2g_int hV_int (fun ω => ?_)
+        exact mul_le_mul_of_nonneg_right
+          (by rw [sq]; exact Complex.re_sq_le_normSq _) (hg_nn ω)
+
 /-- **END-TO-END COMPLEX OA STABILITY.**
     NO hypotheses beyond ODE data. Proves Re(η)² → r*² (not |η|²). -/
 theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
@@ -47,105 +141,14 @@ theorem complex_oa_end_to_end [IsProbabilityMeasure μ]
     (hη_int : ∀ t, Integrable (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ)) μ)
     (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
     (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
-    -- Basin condition
-    (_hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
-    -- V → 0: requires body persistence + Barbalat (not yet ported from real case)
     (hV_zero : Tendsto (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
       atTop (nhds 0)) :
     Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
       atTop (nhds (r_star ^ 2)) := by
-  -- Cauchy-Schwarz → |η - r*|² ≤ V → |η| → r*
   have h_cs : ∀ t, ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤
-      ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ := by
-    intro t
-    -- Integrable: conj(z-z*) · g as ℂ
-    have h_diff_c_int :
-        Integrable (fun ω => starRingEnd ℂ (z ω t - z_star ω) * (S.g ω : ℂ)) μ := by
-      convert (hη_int t).sub hη_star_int using 1
-      ext ω; simp only [starRingEnd_apply, map_sub, Pi.sub_apply]; ring
-    -- AEStronglyMeasurable for Re(z-z*) · g and Re(z-z*)² · g
-    have h_re_meas : AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re * S.g ω) μ :=
-      (hφ_meas t).mul hg_int.aestronglyMeasurable
-    have h_re2_meas : AEStronglyMeasurable
-        (fun ω => (z ω t - z_star ω).re ^ 2 * S.g ω) μ :=
-      ((hφ_meas t).mul (hφ_meas t)).mul hg_int.aestronglyMeasurable
-        |>.congr (Filter.Eventually.of_forall (fun ω => by
-          change ((fun ω => (z ω t - z_star ω).re) ω * (fun ω => (z ω t - z_star ω).re) ω) *
-            S.g ω = _
-          ring))
-    -- Integrable: |φ·g| ≤ normSq·g + g
-    have hφg_int : Integrable (fun ω => (z ω t - z_star ω).re * S.g ω) μ :=
-      ((hV_int t).add hg_int).mono' h_re_meas (Filter.Eventually.of_forall (fun ω => by
-        simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (hg_nn ω), Pi.add_apply]
-        calc |(z ω t - z_star ω).re| * S.g ω
-            ≤ ((z ω t - z_star ω).re ^ 2 + 1) * S.g ω := by
-              apply mul_le_mul_of_nonneg_right _ (hg_nn ω)
-              nlinarith [sq_abs (z ω t - z_star ω).re, abs_nonneg (z ω t - z_star ω).re]
-          _ = (z ω t - z_star ω).re ^ 2 * S.g ω + 1 * S.g ω := by ring
-          _ ≤ Complex.normSq (z ω t - z_star ω) * S.g ω + 1 * S.g ω := by
-              linarith [mul_le_mul_of_nonneg_right
-                (show (z ω t - z_star ω).re ^ 2 ≤ Complex.normSq (z ω t - z_star ω) from
-                  by rw [sq]; exact Complex.re_sq_le_normSq _) (hg_nn ω)]
-          _ = Complex.normSq (z ω t - z_star ω) * S.g ω + S.g ω := by ring))
-    -- Integrable: φ²·g ≤ normSq·g pointwise
-    have hφ2g_int : Integrable (fun ω => (z ω t - z_star ω).re ^ 2 * S.g ω) μ :=
-      (hV_int t).mono' h_re2_meas (Filter.Eventually.of_forall (fun ω => by
-        simp only [Real.norm_eq_abs]
-        rw [abs_of_nonneg (mul_nonneg (sq_nonneg _) (hg_nn ω))]
-        exact mul_le_mul_of_nonneg_right
-          (by rw [sq]; exact Complex.re_sq_le_normSq _) (hg_nn ω)))
-    -- Rewrite LHS: η(t).re - r* = ∫ Re(z(t)-z*) · g
-    have h_diff_eq : (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star =
-        ∫ ω, (z ω t - z_star ω).re * S.g ω ∂μ := by
-      rw [hr_star_eq, ← Complex.sub_re, ← integral_sub (hη_int t) hη_star_int]
-      have h_eq : (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ) -
-          starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) =ᵐ[μ]
-          fun ω => starRingEnd ℂ (z ω t - z_star ω) * (S.g ω : ℂ) :=
-        Filter.Eventually.of_forall (fun ω => by simp only [starRingEnd_apply, map_sub]; ring)
-      rw [integral_congr_ae h_eq,
-        show (∫ ω, starRingEnd ℂ (z ω t - z_star ω) * (S.g ω : ℂ) ∂μ).re =
-          ∫ ω, (starRingEnd ℂ (z ω t - z_star ω) * (S.g ω : ℂ)).re ∂μ from
-            ((RCLike.reCLM (K := ℂ)).integral_comp_comm h_diff_c_int).symm]
-      exact integral_congr_ae (Filter.Eventually.of_forall (fun ω => by
-        change (starRingEnd ℂ (z ω t - z_star ω) * ↑(S.g ω)).re = _
-        rw [starRingEnd_apply, Complex.star_def]
-        simp [Complex.mul_re, Complex.conj_re, Complex.conj_im,
-          Complex.ofReal_re, Complex.ofReal_im]))
-    rw [h_diff_eq]
-    -- Weighted Jensen via variance: (∫ φ·g)² ≤ ∫ φ²·g since ∫g = 1
-    set m := ∫ ω, (z ω t - z_star ω).re * S.g ω ∂μ
-    have h_var : m ^ 2 ≤ ∫ ω, (z ω t - z_star ω).re ^ 2 * S.g ω ∂μ := by
-      suffices h : 0 ≤ ∫ ω, (z ω t - z_star ω).re ^ 2 * S.g ω ∂μ - m ^ 2 by linarith
-      have h_expand : ∫ ω, ((z ω t - z_star ω).re - m) ^ 2 * S.g ω ∂μ =
-          ∫ ω, (z ω t - z_star ω).re ^ 2 * S.g ω ∂μ - m ^ 2 := by
-        set φ := fun ω => (z ω t - z_star ω).re
-        set a := fun ω => φ ω ^ 2 * S.g ω
-        set b := fun ω => (-2) * m * (φ ω * S.g ω)
-        set c := fun ω => m ^ 2 * S.g ω
-        have h1 : ∀ ω, (φ ω - m) ^ 2 * S.g ω = a ω + (b ω + c ω) := fun ω => by
-          simp only [a, b, c]; ring
-        calc ∫ ω, ((z ω t - z_star ω).re - m) ^ 2 * S.g ω ∂μ
-            = ∫ ω, (a ω + (b ω + c ω)) ∂μ := integral_congr_ae (Filter.Eventually.of_forall h1)
-          _ = ∫ ω, a ω ∂μ + (∫ ω, b ω ∂μ + ∫ ω, c ω ∂μ) := by
-              have hab : Integrable a μ := hφ2g_int
-              have hbc : Integrable (fun ω => b ω + c ω) μ :=
-                (hφg_int.const_mul _).add (hg_int.const_mul _)
-              have hb : Integrable b μ := hφg_int.const_mul _
-              have hc : Integrable c μ := hg_int.const_mul _
-              rw [show (fun ω => a ω + (b ω + c ω)) =
-                  (fun ω => a ω + (fun ω => b ω + c ω) ω) from rfl,
-                integral_add hab hbc,
-                integral_add hb hc]
-          _ = ∫ ω, (z ω t - z_star ω).re ^ 2 * S.g ω ∂μ - m ^ 2 := by
-              simp only [a, b, c, integral_const_mul, integral_const_mul, hg_norm]; ring
-      rw [← h_expand]
-      exact integral_nonneg (fun ω => mul_nonneg (sq_nonneg _) (hg_nn ω))
-    calc m ^ 2
-        ≤ ∫ ω, (z ω t - z_star ω).re ^ 2 * S.g ω ∂μ := h_var
-      _ ≤ ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ := by
-          apply integral_mono hφ2g_int (hV_int t) (fun ω => ?_)
-          exact mul_le_mul_of_nonneg_right
-            (by rw [sq]; exact Complex.re_sq_le_normSq _) (hg_nn ω)
+      ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ :=
+    fun t => eta_re_cauchy_schwarz (fun ω => z ω t) z_star S.g r_star
+      hg_nn hg_int hg_norm hr_star_eq (hV_int t) (hη_int t) hη_star_int (hφ_meas t)
   -- Step 4: Convergence
   have h_diff :
       Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star)

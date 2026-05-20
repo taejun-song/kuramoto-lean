@@ -115,7 +115,6 @@ theorem kuramoto_stability_complex_oa [IsProbabilityMeasure μ]
     (hη_int : ∀ t, Integrable (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ)) μ)
     (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
     (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
-    (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < r_star ^ 2)
     -- Dietert Theorem 1 conditions (faithfully encoded)
     (h_lin_stable : DietertLinearlyStable S z_star K r_star)
     (b δ_sob : ℝ)
@@ -128,6 +127,6 @@ theorem kuramoto_stability_complex_oa [IsProbabilityMeasure μ]
     hz_disk hz_ode hz_star_equil h_lin_stable b δ_sob h_sobolev_small b_g h_regular_g
   exact complex_oa_end_to_end S z z_star K r_star hK hr_star_pos
     hz_disk hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm
-    hz_ode hr_star_eq hz_star_equil hV_int hη_int hη_star_int hφ_meas hV0 hV_zero
+    hz_ode hr_star_eq hz_star_equil hV_int hη_int hη_star_int hφ_meas hV_zero
 
 end

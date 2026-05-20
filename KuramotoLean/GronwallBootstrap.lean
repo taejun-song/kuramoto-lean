@@ -7,7 +7,7 @@ open Filter Topology Real MeasureTheory Set
 
 noncomputable section
 
-private lemma basin_invariance (f : ℝ → ℝ) (B rate : ℝ)
+lemma basin_invariance (f : ℝ → ℝ) (B rate : ℝ)
     (hrate : 0 < rate) (_hB : 0 < B)
     (hf_cont : Continuous f)
     (hf_nn : ∀ t, 0 ≤ t → 0 ≤ f t)
@@ -48,7 +48,7 @@ private lemma basin_invariance (f : ℝ → ℝ) (B rate : ℝ)
         _ ≤ 0 := by nlinarith [hf_nn x (le_of_lt hx.1)]
   linarith [hf_anti (left_mem_Icc.mpr hT_nn) (right_mem_Icc.mpr hT_nn) hT_nn]
 
-private lemma exp_decay_bound (f : ℝ → ℝ) (B rate : ℝ)
+lemma exp_decay_bound (f : ℝ → ℝ) (B rate : ℝ)
     (_hrate : 0 < rate) (_hB : 0 < B)
     (hf_cont : Continuous f)
     (hf_nn : ∀ t, 0 ≤ t → 0 ≤ f t)

@@ -98,6 +98,6 @@ theorem kuramoto_complete [IsProbabilityMeasure μ]
   -- Step 4: End-to-end → Re(η)² → r*²
   exact complex_oa_end_to_end S z z_star K r_star hK hr_star_pos hz_disk_strict
     hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm hz_ode hr_star_eq
-    hz_star_equil hV_int hη_int hη_star_int hφ_meas hV0 hV_zero
+    hz_star_equil hV_int hη_int hη_star_int hφ_meas hV_zero
 
 end
