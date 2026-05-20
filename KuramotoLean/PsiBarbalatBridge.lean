@@ -157,4 +157,64 @@ theorem psi_eta_interval_budget
   have : Ψ 0 ≤ Ψ a := hΨ_mono ha
   linarith
 
+/-! ## Barbalat-type: η² can't stay above any threshold forever -/
+
+/-- **η² drops below any threshold.** If Ψ is bounded above with dΨ/dt = K|η|²,
+    then for any m > 0 and any starting time T, there exists s ≥ T with η²(s) < m.
+    Proof: if η² ≥ m on [T, T + L], Ψ grows by ≥ KmL. For L large enough this
+    exceeds the headroom M - Ψ(T), contradiction. -/
+theorem eta_sq_drops_below
+    (Ψ : ℝ → ℝ) (K : ℝ) (hK : 0 < K)
+    (η_sq : ℝ → ℝ)
+    (h_deriv : ∀ t, HasDerivAt Ψ (K * η_sq t) t)
+    (M : ℝ) (hM : ∀ t, Ψ t ≤ M)
+    (m : ℝ) (hm : 0 < m) (T : ℝ) :
+    ∃ s, T ≤ s ∧ η_sq s < m := by
+  by_contra h
+  simp only [not_exists, not_and, not_lt] at h
+  have hKm : 0 < K * m := mul_pos hK hm
+  set L := (M - Ψ T) / (K * m) + 1
+  have hMT : 0 ≤ M - Ψ T := by linarith [hM T]
+  have hL_pos : 0 < L := by positivity
+  have h_growth := psi_growth_lower Ψ K hK η_sq h_deriv T (T + L)
+    (by linarith) m (fun t ht1 _ => h t ht1)
+  have hL_def : L = (M - Ψ T) / (K * m) + 1 := rfl
+  have : K * m * L = (M - Ψ T) + K * m := by
+    rw [hL_def, mul_add, mul_div_cancel₀ _ (ne_of_gt hKm), mul_one]
+  linarith [hM (T + L)]
+
+/-- **η² infinitely often below threshold.** Corollary of `eta_sq_drops_below`:
+    for any m > 0, the set {t : η²(t) < m} is unbounded. -/
+theorem eta_sq_frequently_small
+    (Ψ : ℝ → ℝ) (K : ℝ) (hK : 0 < K)
+    (η_sq : ℝ → ℝ)
+    (h_deriv : ∀ t, HasDerivAt Ψ (K * η_sq t) t)
+    (M : ℝ) (hM : ∀ t, Ψ t ≤ M)
+    (m : ℝ) (hm : 0 < m) :
+    ∀ T, ∃ s, T ≤ s ∧ η_sq s < m :=
+  fun T => eta_sq_drops_below Ψ K hK η_sq h_deriv M hM m hm T
+
+/-- **Ψ bounded + Penrose contrapositive.** If dΨ/dt = K|η|² with Ψ bounded,
+    then η can't stay above any positive threshold on a half-line.
+    Contrapositive: if η is eventually bounded below (η² ≥ m > 0 for all t ≥ T),
+    then Ψ is unbounded. This is the "energy divergence from persistent coherence." -/
+theorem psi_unbounded_of_eta_persistent
+    (Ψ : ℝ → ℝ) (K : ℝ) (hK : 0 < K)
+    (η_sq : ℝ → ℝ)
+    (h_deriv : ∀ t, HasDerivAt Ψ (K * η_sq t) t)
+    (m : ℝ) (hm : 0 < m) (T : ℝ)
+    (h_persist : ∀ t, T ≤ t → m ≤ η_sq t) :
+    ∀ C, ∃ t, C < Ψ t := by
+  intro C
+  have hKm : 0 < K * m := mul_pos hK hm
+  set L := max ((C - Ψ T) / (K * m)) 0 + 1
+  have hL_pos : 0 < L := by linarith [le_max_right ((C - Ψ T) / (K * m)) 0]
+  have hab : T ≤ T + L := by linarith
+  have h_growth := psi_growth_lower Ψ K hK η_sq h_deriv T (T + L) hab m
+    (fun t ht1 _ => h_persist t ht1)
+  refine ⟨T + L, ?_⟩
+  have hmax : (C - Ψ T) / (K * m) ≤ L - 1 := le_max_left _ _ |>.trans (by linarith)
+  have : C - Ψ T ≤ (L - 1) * (K * m) := (div_le_iff₀ hKm).mp hmax
+  nlinarith
+
 end
