@@ -137,6 +137,18 @@
    │ integral_univ_inv_sq_add_sq_sq        │     (unconditional, no K≠4γ)
    └───────────────────────────────────────┘
 
+   ┌──────────────────────────────────────────┐
+   │ PsiBarbalatBridge.lean                   │
+   │ psi_tendsto_of_monotone_bounded          │  ← 0 sorry, 0 axioms
+   │ psi_growth_lower (MVT lower bound)       │     Connects dΨ/dt = K|η|²
+   │ lyapunov_tendsto_of_antitone             │     to basin entry, interval
+   │ basin_entry_of_tendsto_zero              │     constraints, and Barbalat
+   │ eta_large_interval_bounded               │     η² summability.
+   │ eta_sq_drops_below (Barbalat-type)       │     Uses: ComplexOAEnergy
+   │ psi_unbounded_of_eta_persistent          │
+   │ 11 theorems                              │
+   └──────────────────────────────────────────┘
+
 ════════════════════════════════════════════
  Real Scalar Track (independent)
 ════════════════════════════════════════════
@@ -224,3 +236,4 @@ The main axiom-free result for the complex OA. Shows how the circularity is brok
 | Real scalar global | `kuramoto_global_unconditional` | 0 | 0 | **PROVED** |
 | Y-damping | `kuramoto_fresh` | 0 | 0 | **PROVED** (takes h_basin_decay) |
 | Penrose criterion | `lorentzian_penrose_criterion` | 0 | 0 | **PROVED** (K > 2γ ⟹ ∃ s* > 0, D(s*) = 1) |
+| Ψ-Barbalat bridge | `eta_sq_drops_below` + 10 more | 0 | 0 | **PROVED** (dΨ/dt = K|η|² → η summability) |
