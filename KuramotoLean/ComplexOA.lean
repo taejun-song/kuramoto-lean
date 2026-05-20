@@ -132,4 +132,21 @@ theorem psiComplex_nonneg
     linarith [Real.log_nonpos h1.le h2]
   exact MeasureTheory.integral_nonneg h_nn
 
+/-- -log(1-x) ≥ x for x ∈ [0,1). From 1-x ≤ exp(-x). -/
+theorem neg_log_one_sub_ge (x : ℝ) (_hx_nn : 0 ≤ x) (hx_lt : x < 1) :
+    x ≤ -Real.log (1 - x) := by
+  have h1 : 0 < 1 - x := by linarith
+  have h2 : 1 - x ≤ Real.exp (-x) := by linarith [add_one_le_exp (-x)]
+  linarith [Real.log_le_iff_le_exp h1 |>.mpr h2]
+
+/-- Ψ ≥ ∫|z|²g: the energy dominates the second moment. -/
+theorem psiComplex_ge_integral_normSq
+    (z : Ω → ℂ) (hz : ∀ ω, Complex.normSq (z ω) < 1)
+    (hlog_int : Integrable (fun ω => -Real.log (1 - Complex.normSq (z ω))) μ)
+    (hnorm_int : Integrable (fun ω => Complex.normSq (z ω)) μ) :
+    ∫ ω, Complex.normSq (z ω) ∂μ ≤ psiComplex z μ := by
+  unfold psiComplex
+  exact integral_mono hnorm_int hlog_int (fun ω =>
+    neg_log_one_sub_ge _ (Complex.normSq_nonneg _) (hz ω))
+
 end
