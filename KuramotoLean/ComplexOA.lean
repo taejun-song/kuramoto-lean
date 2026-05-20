@@ -71,6 +71,47 @@ theorem complexOa_normSq_deriv (ω K : ℝ) (η z : ℂ) :
     hK_re, hK_im, hω_re, hω_im]
   ring
 
+/-! ## Re(complexOaRHS) for real η -/
+
+theorem complexOaRHS_re_of_real_eta (ω K : ℝ) (η z : ℂ) (hη : η.im = 0) :
+    (complexOaRHS ω K η z).re =
+    ω * z.im + K / 2 * η.re * (1 - z.re ^ 2 + z.im ^ 2) := by
+  simp only [complexOaRHS, Complex.add_re, Complex.neg_re,
+    Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im,
+    Complex.ofReal_re, Complex.ofReal_im, Complex.conj_re, Complex.conj_im,
+    Complex.sub_re, Complex.sub_im, Complex.div_ofNat_re, Complex.div_ofNat_im, sq, hη]
+  ring
+
+theorem complexOaRHS_re_pos_zero_freq (K : ℝ) (η z : ℂ) (hη : η.im = 0)
+    (hK : 0 < K) (hr : 0 < η.re) (hz : Complex.normSq z < 1) :
+    0 < (complexOaRHS 0 K η z).re := by
+  rw [complexOaRHS_re_of_real_eta 0 K η z hη]
+  simp only [zero_mul, zero_add]
+  have hz' : z.re * z.re + z.im * z.im < 1 := by rwa [← Complex.normSq_apply]
+  apply mul_pos (mul_pos (by linarith : (0 : ℝ) < K / 2) hr)
+  nlinarith [sq_nonneg z.im, sq z.re, sq z.im]
+
+theorem zero_freq_re_deriv_pos (K : ℝ) (z : ℝ → ℂ) (η : ℝ → ℂ) (t : ℝ)
+    (hK : 0 < K)
+    (hz_ode : HasDerivAt z (complexOaRHS 0 K (η t) (z t)) t)
+    (hη_real : (η t).im = 0)
+    (hr_pos : 0 < (η t).re)
+    (hz_disk : Complex.normSq (z t) < 1) :
+    0 < deriv (fun s => (z s).re) t := by
+  have h_re : HasDerivAt (fun s => (z s).re)
+      (complexOaRHS 0 K (η t) (z t)).re t := by
+    have h := Complex.reCLM.hasFDerivAt.comp_hasDerivAt t hz_ode
+    simp only [Function.comp_def] at h; exact h
+  rw [h_re.deriv]
+  exact complexOaRHS_re_pos_zero_freq K (η t) (z t) hη_real hK hr_pos hz_disk
+
+theorem complexOaRHS_re_lower_bound (ω K : ℝ) (η z : ℂ) (hη : η.im = 0)
+    (hK : 0 < K) (hr : 0 < η.re) :
+    ω * z.im + K / 2 * η.re * (1 - Complex.normSq z) ≤
+    (complexOaRHS ω K η z).re := by
+  rw [complexOaRHS_re_of_real_eta ω K η z hη, Complex.normSq_apply]
+  nlinarith [sq_nonneg z.im, mul_pos hK hr, sq z.re, sq z.im]
+
 /-! ## Ψ energy functional -/
 
 /-- The complex Ψ energy: Ψ(t) = -∫ log(1-|z(ω,t)|²) dμ(ω).

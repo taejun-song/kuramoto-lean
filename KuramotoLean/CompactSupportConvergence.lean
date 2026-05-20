@@ -411,6 +411,39 @@ theorem positive_barrier (f : ℝ → ℝ) (hf_cont : Continuous f) (hf0 : 0 < f
       (le_of_lt (hf_pos y hy.1.le hy.2)) (le_of_lt (sub_neg.mpr hy.2))
   linarith [le_of_tendsto h_slope_left h_slope_nonpos]
 
+theorem positive_barrier_on_Icc (f : ℝ → ℝ) (T : ℝ) (hf_cont : Continuous f) (hf0 : 0 < f 0)
+    (hf_barrier : ∀ t, 0 ≤ t → t ≤ T → f t = 0 → 0 < deriv f t) :
+    ∀ t, 0 ≤ t → t ≤ T → 0 < f t := by
+  intro t₀ ht₀ ht₀T
+  by_contra h; push Not at h
+  set S := Set.Icc 0 t₀ ∩ f ⁻¹' Set.Iic 0
+  have hS_ne : S.Nonempty := ⟨t₀, ⟨⟨ht₀, le_refl _⟩, h⟩⟩
+  have hS_closed : IsClosed S := isClosed_Icc.inter (isClosed_Iic.preimage hf_cont)
+  have hS_bdd : BddBelow S := ⟨0, fun t ht => ht.1.1⟩
+  set τ := sInf S
+  have hτ_mem : τ ∈ S := hS_closed.csInf_mem hS_ne hS_bdd
+  have hτ_pos : 0 < τ := by
+    suffices h : τ ≠ 0 from lt_of_le_of_ne hτ_mem.1.1 (Ne.symm h)
+    intro h; have : f τ ≤ 0 := hτ_mem.2; rw [h] at this; linarith
+  have hf_pos : ∀ t, 0 ≤ t → t < τ → 0 < f t := by
+    intro t ht htτ
+    by_contra hle; push Not at hle
+    exact not_lt.mpr (csInf_le hS_bdd ⟨⟨ht, le_trans (le_of_lt htτ) hτ_mem.1.2⟩, hle⟩) htτ
+  have hfτ : f τ = 0 := le_antisymm hτ_mem.2
+    (ge_of_tendsto (hf_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds) (by
+      filter_upwards [Ioo_mem_nhdsLT hτ_pos] with t ht
+      exact le_of_lt (hf_pos t ht.1.le ht.2)))
+  have h_deriv := hf_barrier τ hτ_pos.le (le_trans hτ_mem.1.2 ht₀T) hfτ
+  have h_slope := (differentiableAt_of_deriv_ne_zero (ne_of_gt h_deriv)).hasDerivAt.tendsto_slope
+  have h_slope_left : Tendsto (slope f τ) (𝓝[<] τ) (𝓝 (deriv f τ)) :=
+    h_slope.mono_left (nhdsWithin_mono τ fun _ hy => ne_of_lt hy)
+  have h_slope_nonpos : ∀ᶠ y in 𝓝[<] τ, slope f τ y ≤ 0 := by
+    filter_upwards [Ioo_mem_nhdsLT hτ_pos] with y hy
+    rw [slope_def_field, hfτ, sub_zero]
+    exact div_nonpos_of_nonneg_of_nonpos
+      (le_of_lt (hf_pos y hy.1.le hy.2)) (le_of_lt (sub_neg.mpr hy.2))
+  linarith [le_of_tendsto h_slope_left h_slope_nonpos]
+
 /-! ## Body persistence: Re(z) stays positive under strong coupling -/
 
 /-- Re(complexOaRHS) at Re(z)=0 with real η: equals ω·Im(z) + Kr/2·(1+Im(z)²). -/
@@ -455,6 +488,28 @@ theorem body_persistence (ω_freq K : ℝ) (z : ℝ → ℂ) (η : ℝ → ℂ)
   rw [hη_eq, hz_eq]
   exact complexOaRHS_re_pos_at_re_zero ω_freq K _ _
     (by linarith [hr_bound t ht, abs_nonneg ω_freq]) (hr_bound t ht)
+
+theorem body_persistence_on_Icc (ω_freq K : ℝ) (z : ℝ → ℂ) (η : ℝ → ℂ) (T : ℝ)
+    (hz_cont : Continuous z) (hz0_re : 0 < (z 0).re)
+    (hz_ode : ∀ t, HasDerivAt z (complexOaRHS ω_freq K (η t) (z t)) t)
+    (hη_real : ∀ t, (η t).im = 0)
+    (hr_bound : ∀ t, 0 ≤ t → t ≤ T → |ω_freq| < K * (η t).re / 2) :
+    ∀ t, 0 ≤ t → t ≤ T → 0 < (z t).re := by
+  apply positive_barrier_on_Icc (fun t => (z t).re) T
+    (Complex.continuous_re.comp hz_cont) hz0_re
+  intro t ht htT hzt_re
+  have h_re_deriv : HasDerivAt (fun s => (z s).re)
+      (complexOaRHS ω_freq K (η t) (z t)).re t := by
+    have h := Complex.reCLM.hasFDerivAt.comp_hasDerivAt t (hz_ode t)
+    simp only [Function.comp_def] at h; exact h
+  rw [h_re_deriv.deriv]
+  have hη_eq : η t = ↑((η t).re) := by
+    apply Complex.ext <;> simp [hη_real t]
+  have hz_eq : z t = ⟨0, (z t).im⟩ := by
+    apply Complex.ext <;> simp [hzt_re]
+  rw [hη_eq, hz_eq]
+  exact complexOaRHS_re_pos_at_re_zero ω_freq K _ _
+    (by linarith [hr_bound t ht htT, abs_nonneg ω_freq]) (hr_bound t ht htT)
 
 /-! ## Order parameter bounds from Cauchy-Schwarz -/
 
@@ -645,21 +700,9 @@ theorem V_deriv_rate_bound (K r r_star r_min δ₀ W I V_val F_val : ℝ)
 
 /-! ## Full assembly: compact-support h_basin_decay discharge -/
 
-/-- **COMPACT-SUPPORT BASIN DECAY DISCHARGE** (0 sorry, 0 axioms).
-
-    Wires Leibniz + error decomposition + coercivity + forcing bounds
-    into h_basin_decay for compact_support_convergence.
-
-    Hypotheses fall into groups:
-    (A) ODE data: dynamics, disk, symmetry, equilibrium
-    (B) Density: g ≥ 0, integrable, first moment finite
-    (C) Basin structure: CS bound, body persistence, Re(z*) ≥ δ₀
-    (D) Forcing: I² ≤ V·F pointwise in time
-    (E) Integrability: split integrands are integrable -/
-theorem compact_support_h_basin_decay [IsProbabilityMeasure μ]
+theorem compact_support_h_basin_decay_at [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
-    (K r_star B δ₀ F_val : ℝ)
-    -- (A) ODE data
+    (K r_star B δ₀ F_val : ℝ) {t : ℝ}
     (hK : 0 < K) (hr_star_pos : 0 < r_star)
     (hz_ode : ∀ ω t, HasDerivAt (z ω)
       (complexOaRHS (S.ω_freq ω) K
@@ -668,12 +711,153 @@ theorem compact_support_h_basin_decay [IsProbabilityMeasure μ]
     (hz_star_disk : ∀ ω, Complex.normSq (z_star ω) ≤ 1)
     (hη_real : ∀ t, (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).im = 0)
     (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
-    -- (B) Density
     (hg_nn : ∀ ω, 0 ≤ S.g ω) (hg_int : Integrable S.g μ)
     (hω_g_int : Integrable (fun ω => |S.ω_freq ω| * S.g ω) μ)
     (hz_cont : ∀ ω, Continuous (z ω))
     (hη_bdd : ∀ t, Complex.normSq (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ) ≤ 1)
-    -- (C) Basin structure
+    (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
+    (h_cs : ∀ t, ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤
+      ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
+    (hB_le : B ≤ r_star ^ 2)
+    (ht : 0 < t)
+    (hVt : (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) < B)
+    (h_body_t : ∀ ω, 0 < (z ω t).re)
+    (hδ₀ : 0 < δ₀) (hδ₀_bound : ∀ ω, δ₀ ≤ (z_star ω).re)
+    (hF_nn : 0 ≤ F_val)
+    (h_force_sq : ∀ t,
+      (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re * S.g ω ∂μ) ^ 2 ≤
+      (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) * F_val)
+    (h_coerce_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (-K * r * (z ω t + z_star ω).re * Complex.normSq (z ω t - z_star ω)) * S.g ω) μ)
+    (h_force_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (K * (r - r_star) * (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re) * S.g ω) μ)
+    (h_W_int : ∀ t, Integrable (fun ω =>
+      (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω)) μ) :
+    let V := fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
+    let rate := K * (r_star - Real.sqrt B) * δ₀ - K * Real.sqrt F_val
+    HasDerivAt V (deriv V t) t ∧ deriv V t ≤ -rate * V t := by
+  intro V rate
+  have h_leibniz := complex_leibniz S z z_star K hz_ode hz_disk hz_star_disk
+    hV_int hg_nn hg_int hω_g_int hK hz_cont hη_bdd
+  have hV_hasderiv := h_leibniz.2 t ht
+  refine ⟨hV_hasderiv.congr_deriv hV_hasderiv.deriv.symm, ?_⟩
+  rw [hV_hasderiv.deriv]
+  set r_t := (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re
+  have hη_eq : ∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ = (↑r_t : ℂ) := by
+    apply Complex.ext
+    · rfl
+    · simpa using hη_real t
+  simp_rw [hη_eq]
+  rw [V_deriv_integral_split S (fun ω => z ω t) z_star K r_t r_star hz_star_equil
+    (h_coerce_int t r_t) (h_force_int t r_t)]
+  rw [coercivity_integral_factor (fun ω => z ω t) z_star S.g K r_t,
+    forcing_integral_factor (fun ω => z ω t) z_star S.g K r_t r_star]
+  have hV_nn : 0 ≤ V t :=
+    integral_nonneg fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω)
+  have h_r_min : r_star - Real.sqrt B ≤ r_t := by
+    have := eta_re_ge_of_cs_bound r_t r_star (V t) (h_cs t)
+    linarith [Real.sqrt_le_sqrt (le_of_lt hVt)]
+  have h_W_bound : δ₀ * V t ≤
+      ∫ ω, (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω) ∂μ :=
+    coercivity_lower_bound (fun ω => z ω t) z_star S.g δ₀
+      (fun ω => coercivity_pointwise_of_body (z ω t) (z_star ω) (S.g ω) δ₀
+        (hg_nn ω) (le_of_lt hδ₀) (h_body_t ω) (hδ₀_bound ω))
+      (hV_int t) (h_W_int t)
+  have hr_t_nn : 0 ≤ r_t := by
+    have : Real.sqrt B ≤ r_star :=
+      (Real.sqrt_le_sqrt hB_le).trans_eq (Real.sqrt_sq (le_of_lt hr_star_pos))
+    linarith [h_r_min]
+  exact V_deriv_rate_bound K r_t r_star (r_star - Real.sqrt B) δ₀
+    (∫ ω, (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω) ∂μ)
+    (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) * (1 - z_star ω ^ 2)).re * S.g ω ∂μ)
+    (V t) F_val hK hr_t_nn h_r_min (le_of_lt hδ₀) hV_nn hF_nn
+    h_W_bound (h_cs t) (h_force_sq t)
+
+theorem compact_support_h_decay_of_r_floor [IsProbabilityMeasure μ]
+    (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (K r_star r_floor δ₀ F_val : ℝ) {t : ℝ}
+    (hK : 0 < K) (_hr_star_pos : 0 < r_star)
+    (hz_ode : ∀ ω t, HasDerivAt (z ω)
+      (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
+    (hz_disk : ∀ ω t, Complex.normSq (z ω t) ≤ 1)
+    (hz_star_disk : ∀ ω, Complex.normSq (z_star ω) ≤ 1)
+    (hη_real : ∀ t, (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).im = 0)
+    (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
+    (hg_nn : ∀ ω, 0 ≤ S.g ω) (hg_int : Integrable S.g μ)
+    (hω_g_int : Integrable (fun ω => |S.ω_freq ω| * S.g ω) μ)
+    (hz_cont : ∀ ω, Continuous (z ω))
+    (hη_bdd : ∀ t, Complex.normSq (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ) ≤ 1)
+    (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
+    (h_cs : ∀ t, ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤
+      ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
+    (ht : 0 < t)
+    (h_r_floor_t : r_floor ≤ (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re)
+    (hr_floor_nn : 0 ≤ r_floor)
+    (h_body_t : ∀ ω, 0 < (z ω t).re)
+    (hδ₀ : 0 < δ₀) (hδ₀_bound : ∀ ω, δ₀ ≤ (z_star ω).re)
+    (hF_nn : 0 ≤ F_val)
+    (h_force_sq : ∀ t,
+      (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re * S.g ω ∂μ) ^ 2 ≤
+      (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) * F_val)
+    (h_coerce_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (-K * r * (z ω t + z_star ω).re * Complex.normSq (z ω t - z_star ω)) * S.g ω) μ)
+    (h_force_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (K * (r - r_star) * (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re) * S.g ω) μ)
+    (h_W_int : ∀ t, Integrable (fun ω =>
+      (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω)) μ) :
+    let V := fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
+    let rate := K * r_floor * δ₀ - K * Real.sqrt F_val
+    HasDerivAt V (deriv V t) t ∧ deriv V t ≤ -rate * V t := by
+  intro V rate
+  have h_leibniz := complex_leibniz S z z_star K hz_ode hz_disk hz_star_disk
+    hV_int hg_nn hg_int hω_g_int hK hz_cont hη_bdd
+  have hV_hasderiv := h_leibniz.2 t ht
+  refine ⟨hV_hasderiv.congr_deriv hV_hasderiv.deriv.symm, ?_⟩
+  rw [hV_hasderiv.deriv]
+  set r_t := (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re
+  have hη_eq : ∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ = (↑r_t : ℂ) := by
+    apply Complex.ext
+    · rfl
+    · simpa using hη_real t
+  simp_rw [hη_eq]
+  rw [V_deriv_integral_split S (fun ω => z ω t) z_star K r_t r_star hz_star_equil
+    (h_coerce_int t r_t) (h_force_int t r_t)]
+  rw [coercivity_integral_factor (fun ω => z ω t) z_star S.g K r_t,
+    forcing_integral_factor (fun ω => z ω t) z_star S.g K r_t r_star]
+  have hV_nn : 0 ≤ V t :=
+    integral_nonneg fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω)
+  have h_W_bound : δ₀ * V t ≤
+      ∫ ω, (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω) ∂μ :=
+    coercivity_lower_bound (fun ω => z ω t) z_star S.g δ₀
+      (fun ω => coercivity_pointwise_of_body (z ω t) (z_star ω) (S.g ω) δ₀
+        (hg_nn ω) (le_of_lt hδ₀) (h_body_t ω) (hδ₀_bound ω))
+      (hV_int t) (h_W_int t)
+  exact V_deriv_rate_bound K r_t r_star r_floor δ₀
+    (∫ ω, (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω) ∂μ)
+    (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) * (1 - z_star ω ^ 2)).re * S.g ω ∂μ)
+    (V t) F_val hK (le_trans hr_floor_nn h_r_floor_t) h_r_floor_t (le_of_lt hδ₀) hV_nn hF_nn
+    h_W_bound (h_cs t) (h_force_sq t)
+
+theorem compact_support_h_basin_decay [IsProbabilityMeasure μ]
+    (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (K r_star B δ₀ F_val : ℝ)
+    (hK : 0 < K) (hr_star_pos : 0 < r_star)
+    (hz_ode : ∀ ω t, HasDerivAt (z ω)
+      (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
+    (hz_disk : ∀ ω t, Complex.normSq (z ω t) ≤ 1)
+    (hz_star_disk : ∀ ω, Complex.normSq (z_star ω) ≤ 1)
+    (hη_real : ∀ t, (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).im = 0)
+    (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
+    (hg_nn : ∀ ω, 0 ≤ S.g ω) (hg_int : Integrable S.g μ)
+    (hω_g_int : Integrable (fun ω => |S.ω_freq ω| * S.g ω) μ)
+    (hz_cont : ∀ ω, Continuous (z ω))
+    (hη_bdd : ∀ t, Complex.normSq (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ) ≤ 1)
     (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
     (h_cs : ∀ t, ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤
       ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ)
@@ -682,13 +866,11 @@ theorem compact_support_h_basin_decay [IsProbabilityMeasure μ]
       (∫ ω', Complex.normSq (z ω' t - z_star ω') * S.g ω' ∂μ) < B →
       0 < (z ω t).re)
     (hδ₀ : 0 < δ₀) (hδ₀_bound : ∀ ω, δ₀ ≤ (z_star ω).re)
-    -- (D) Forcing
     (hF_nn : 0 ≤ F_val)
     (h_force_sq : ∀ t,
       (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) *
         (1 - z_star ω ^ 2)).re * S.g ω ∂μ) ^ 2 ≤
       (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) * F_val)
-    -- (E) Integrability for split
     (h_coerce_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
       (-K * r * (z ω t + z_star ω).re * Complex.normSq (z ω t - z_star ω)) * S.g ω) μ)
     (h_force_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
@@ -701,46 +883,11 @@ theorem compact_support_h_basin_decay [IsProbabilityMeasure μ]
     ∀ t, 0 < t → V t < B →
       HasDerivAt V (deriv V t) t ∧ deriv V t ≤ -rate * V t := by
   intro V rate t ht hVt
-  -- Step 1: Leibniz → V differentiable with explicit derivative
-  have h_leibniz := complex_leibniz S z z_star K hz_ode hz_disk hz_star_disk
-    hV_int hg_nn hg_int hω_g_int hK hz_cont hη_bdd
-  have hV_hasderiv := h_leibniz.2 t ht
-  refine ⟨hV_hasderiv.congr_deriv hV_hasderiv.deriv.symm, ?_⟩
-  rw [hV_hasderiv.deriv]
-  -- Step 2: η(t) is real → rewrite to ↑r_t
-  set r_t := (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re
-  have hη_eq : ∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ = (↑r_t : ℂ) := by
-    apply Complex.ext
-    · rfl
-    · simpa using hη_real t
-  simp_rw [hη_eq]
-  -- Step 3: Decompose via V_deriv_integral_split
-  rw [V_deriv_integral_split S (fun ω => z ω t) z_star K r_t r_star hz_star_equil
-    (h_coerce_int t r_t) (h_force_int t r_t)]
-  -- Step 4: Factor integrals
-  rw [coercivity_integral_factor (fun ω => z ω t) z_star S.g K r_t,
-    forcing_integral_factor (fun ω => z ω t) z_star S.g K r_t r_star]
-  -- Step 5: Apply V_deriv_rate_bound
-  have hV_nn : 0 ≤ V t :=
-    integral_nonneg fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω)
-  have h_r_min : r_star - Real.sqrt B ≤ r_t := by
-    have := eta_re_ge_of_cs_bound r_t r_star (V t) (h_cs t)
-    linarith [Real.sqrt_le_sqrt (le_of_lt hVt)]
-  have h_W_bound : δ₀ * V t ≤
-      ∫ ω, (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω) ∂μ :=
-    coercivity_lower_bound (fun ω => z ω t) z_star S.g δ₀
-      (fun ω => coercivity_pointwise_of_body (z ω t) (z_star ω) (S.g ω) δ₀
-        (hg_nn ω) (le_of_lt hδ₀) (h_body ω t (le_of_lt ht) hVt) (hδ₀_bound ω))
-      (hV_int t) (h_W_int t)
-  have hr_t_nn : 0 ≤ r_t := by
-    have : Real.sqrt B ≤ r_star :=
-      (Real.sqrt_le_sqrt hB_le).trans_eq (Real.sqrt_sq (le_of_lt hr_star_pos))
-    linarith [h_r_min]
-  exact V_deriv_rate_bound K r_t r_star (r_star - Real.sqrt B) δ₀
-    (∫ ω, (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω) ∂μ)
-    (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) * (1 - z_star ω ^ 2)).re * S.g ω ∂μ)
-    (V t) F_val hK hr_t_nn h_r_min (le_of_lt hδ₀) hV_nn hF_nn
-    h_W_bound (h_cs t) (h_force_sq t)
+  exact compact_support_h_basin_decay_at S z z_star K r_star B δ₀ F_val
+    hK hr_star_pos hz_ode hz_disk hz_star_disk hη_real hz_star_equil
+    hg_nn hg_int hω_g_int hz_cont hη_bdd hV_int h_cs hB_le ht hVt
+    (fun ω => h_body ω t (le_of_lt ht) hVt) hδ₀ hδ₀_bound hF_nn h_force_sq
+    h_coerce_int h_force_int h_W_int
 
 /-! ## End-to-end: single theorem, no axioms -/
 
@@ -804,5 +951,226 @@ theorem compact_support_full_convergence [IsProbabilityMeasure μ]
       hη_real hz_star_equil hg_nn hg_int hω_g_int hz_cont hη_bdd
       hV_int h_cs hB_pos hB_le h_body hδ₀ hδ₀_bound hF_nn h_force_sq
       h_coerce_int h_force_int h_W_int)
+
+theorem compact_support_convergence_locked [IsProbabilityMeasure μ]
+    (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (K r_star B δ₀ F_val : ℝ)
+    (hK : 0 < K) (hr_star_pos : 0 < r_star)
+    (hz_ode : ∀ ω t, HasDerivAt (z ω)
+      (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
+    (hz_disk : ∀ ω t, Complex.normSq (z ω t) ≤ 1)
+    (hz_disk_strict : ∀ ω t, 0 ≤ t → Complex.normSq (z ω t) < 1)
+    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
+    (hz_star_lt : ∀ ω, Complex.normSq (z_star ω) < 1)
+    (hz_sym : ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t))
+    (hz_star_sym : ∀ ω, z_star (S.neg ω) = starRingEnd ℂ (z_star ω))
+    (hg_nn : ∀ ω, 0 ≤ S.g ω) (hg_int : Integrable S.g μ)
+    (hg_norm : ∫ ω, S.g ω ∂μ = 1)
+    (hω_g_int : Integrable (fun ω => |S.ω_freq ω| * S.g ω) μ)
+    (hz_cont : ∀ ω, Continuous (z ω))
+    (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
+    (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
+    (hη_real : ∀ t, (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).im = 0)
+    (hη_bdd : ∀ t, Complex.normSq (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ) ≤ 1)
+    (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
+    (hη_int : ∀ t, Integrable (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ)) μ)
+    (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
+    (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
+    (hB_pos : 0 < B) (hB_le : B ≤ r_star ^ 2)
+    (hV0 : ∫ ω, Complex.normSq (z ω 0 - z_star ω) * S.g ω ∂μ < B)
+    (hV_cont : Continuous (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
+    (hz0_re : ∀ ω, 0 < (z ω 0).re)
+    (h_lock : ∀ ω, |S.ω_freq ω| < K * (r_star - Real.sqrt B) / 2)
+    (hδ₀ : 0 < δ₀) (hδ₀_bound : ∀ ω, δ₀ ≤ (z_star ω).re)
+    (hF_nn : 0 ≤ F_val)
+    (h_force_sq : ∀ t,
+      (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re * S.g ω ∂μ) ^ 2 ≤
+      (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) * F_val)
+    (hrate : 0 < K * (r_star - Real.sqrt B) * δ₀ - K * Real.sqrt F_val)
+    (h_coerce_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (-K * r * (z ω t + z_star ω).re * Complex.normSq (z ω t - z_star ω)) * S.g ω) μ)
+    (h_force_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (K * (r - r_star) * (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re) * S.g ω) μ)
+    (h_W_int : ∀ t, Integrable (fun ω =>
+      (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω)) μ) :
+    Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
+      atTop (nhds (r_star ^ 2)) := by
+  set V := fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
+  set η := fun t => ∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ
+  have h_cs : ∀ t, ((η t).re - r_star) ^ 2 ≤ V t :=
+    fun t => eta_re_cauchy_schwarz (fun ω => z ω t) z_star S.g r_star
+      hg_nn hg_int hg_norm hr_star_eq (hV_int t) (hη_int t) hη_star_int (hφ_meas t)
+  have hV_nn : ∀ t, 0 ≤ t → 0 ≤ V t :=
+    fun t _ => integral_nonneg (fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω))
+  have h_body_from_history : ∀ ω t, 0 < t →
+      (∀ s, 0 ≤ s → s < t → V s < B) → V t < B → 0 < (z ω t).re := by
+    intro ω t ht h_hist hVt
+    have h_basin_on : ∀ s, 0 ≤ s → s ≤ t → V s < B := by
+      intro s hs hst
+      rcases eq_or_lt_of_le hst with rfl | hlt
+      · exact hVt
+      · exact h_hist s hs hlt
+    have h_coupling : ∀ s, 0 ≤ s → s ≤ t →
+        |S.ω_freq ω| < K * (η s).re / 2 := by
+      intro s hs hst
+      exact coupling_bound_in_basin (S.ω_freq ω) K r_star
+        (η s).re (V s) B hK (h_cs s) (h_basin_on s hs hst) (h_lock ω)
+    exact body_persistence_on_Icc (S.ω_freq ω) K (z ω) (fun s => η s) t
+      (hz_cont ω) (hz0_re ω) (hz_ode ω) hη_real h_coupling t (le_of_lt ht) le_rfl
+  have hV_zero : Tendsto V atTop (nhds 0) :=
+    gronwall_bootstrap_tendsto_history V B
+      (K * (r_star - Real.sqrt B) * δ₀ - K * Real.sqrt F_val) hrate hB_pos
+      hV_cont hV_nn hV0
+      (fun t ht h_hist hVt => compact_support_h_basin_decay_at S z z_star K r_star
+        B δ₀ F_val hK hr_star_pos hz_ode hz_disk
+        (fun ω => le_of_lt (hz_star_lt ω)) hη_real hz_star_equil hg_nn hg_int
+        hω_g_int hz_cont hη_bdd hV_int h_cs hB_le ht hVt
+        (fun ω => h_body_from_history ω t ht h_hist hVt)
+        hδ₀ hδ₀_bound hF_nn h_force_sq h_coerce_int h_force_int h_W_int)
+  exact complex_oa_end_to_end S z z_star K r_star hK hr_star_pos hz_disk_strict
+    hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm hz_ode hr_star_eq
+    hz_star_equil hV_int hη_int hη_star_int hφ_meas hV_zero
+
+/-- **CONVERGENCE FROM ORDER-PARAMETER FLOOR** (0 sorry, 0 axioms).
+    If Re(η(t)) ≥ r_floor > 0 and Re(z(ω,t)) > 0 for all t > 0,
+    then V → 0 and Re(η)² → r*² WITHOUT any basin condition on V(0). -/
+theorem compact_support_convergence_r_floor [IsProbabilityMeasure μ]
+    (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (K r_star r_floor δ₀ F_val : ℝ)
+    (hK : 0 < K) (hr_star_pos : 0 < r_star)
+    (hz_ode : ∀ ω t, HasDerivAt (z ω)
+      (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
+    (hz_disk : ∀ ω t, Complex.normSq (z ω t) ≤ 1)
+    (hz_disk_strict : ∀ ω t, 0 ≤ t → Complex.normSq (z ω t) < 1)
+    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
+    (hz_star_lt : ∀ ω, Complex.normSq (z_star ω) < 1)
+    (hz_sym : ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t))
+    (hz_star_sym : ∀ ω, z_star (S.neg ω) = starRingEnd ℂ (z_star ω))
+    (hg_nn : ∀ ω, 0 ≤ S.g ω) (hg_int : Integrable S.g μ)
+    (hg_norm : ∫ ω, S.g ω ∂μ = 1)
+    (hω_g_int : Integrable (fun ω => |S.ω_freq ω| * S.g ω) μ)
+    (hz_cont : ∀ ω, Continuous (z ω))
+    (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
+    (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
+    (hη_real : ∀ t, (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).im = 0)
+    (hη_bdd : ∀ t, Complex.normSq (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ) ≤ 1)
+    (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
+    (hη_int : ∀ t, Integrable (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ)) μ)
+    (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
+    (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
+    (hV_cont : Continuous (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
+    (h_r_floor : ∀ t, 0 ≤ t → r_floor ≤
+      (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re)
+    (hr_floor_nn : 0 ≤ r_floor)
+    (h_body : ∀ ω t, 0 < t → 0 < (z ω t).re)
+    (hδ₀ : 0 < δ₀) (hδ₀_bound : ∀ ω, δ₀ ≤ (z_star ω).re)
+    (hF_nn : 0 ≤ F_val)
+    (h_force_sq : ∀ t,
+      (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re * S.g ω ∂μ) ^ 2 ≤
+      (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) * F_val)
+    (hrate : 0 < K * r_floor * δ₀ - K * Real.sqrt F_val)
+    (h_coerce_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (-K * r * (z ω t + z_star ω).re * Complex.normSq (z ω t - z_star ω)) * S.g ω) μ)
+    (h_force_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (K * (r - r_star) * (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re) * S.g ω) μ)
+    (h_W_int : ∀ t, Integrable (fun ω =>
+      (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω)) μ) :
+    Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
+      atTop (nhds (r_star ^ 2)) := by
+  set V := fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ
+  have h_cs : ∀ t, ((∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re - r_star) ^ 2 ≤ V t :=
+    fun t => eta_re_cauchy_schwarz (fun ω => z ω t) z_star S.g r_star
+      hg_nn hg_int hg_norm hr_star_eq (hV_int t) (hη_int t) hη_star_int (hφ_meas t)
+  have hV_nn : ∀ t, 0 ≤ t → 0 ≤ V t :=
+    fun t _ => integral_nonneg (fun ω => mul_nonneg (Complex.normSq_nonneg _) (hg_nn ω))
+  have h_decay : ∀ t, 0 < t →
+      HasDerivAt V (deriv V t) t ∧
+      deriv V t ≤ -(K * r_floor * δ₀ - K * Real.sqrt F_val) * V t :=
+    fun t ht => compact_support_h_decay_of_r_floor S z z_star K r_star r_floor δ₀ F_val
+      hK hr_star_pos hz_ode hz_disk (fun ω => le_of_lt (hz_star_lt ω)) hη_real
+      hz_star_equil hg_nn hg_int hω_g_int hz_cont hη_bdd hV_int h_cs
+      ht (h_r_floor t (le_of_lt ht)) hr_floor_nn (fun ω => h_body ω t ht)
+      hδ₀ hδ₀_bound hF_nn h_force_sq h_coerce_int h_force_int h_W_int
+  have hV_zero : Tendsto V atTop (nhds 0) :=
+    gronwall_bootstrap_tendsto V (V 0 + 1)
+      (K * r_floor * δ₀ - K * Real.sqrt F_val) hrate
+      (by linarith [hV_nn 0 le_rfl]) hV_cont hV_nn (by linarith)
+      (fun t ht _ => h_decay t ht)
+  exact complex_oa_end_to_end S z z_star K r_star hK hr_star_pos hz_disk_strict
+    hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm hz_ode hr_star_eq
+    hz_star_equil hV_int hη_int hη_star_int hφ_meas hV_zero
+
+/-- **GLOBAL CONVERGENCE FROM ORDER-PARAMETER FLOOR** (0 sorry, 0 axioms).
+    Derives body persistence from r-floor + frequency locking + initial body,
+    then delegates to compact_support_convergence_r_floor.
+    NO basin condition V(0) < B required. -/
+theorem compact_support_convergence_r_floor_locked [IsProbabilityMeasure μ]
+    (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
+    (K r_star r_floor δ₀ F_val : ℝ)
+    (hK : 0 < K) (hr_star_pos : 0 < r_star)
+    (hz_ode : ∀ ω t, HasDerivAt (z ω)
+      (complexOaRHS (S.ω_freq ω) K
+        (∫ ω', starRingEnd ℂ (z ω' t) * (S.g ω' : ℂ) ∂μ) (z ω t)) t)
+    (hz_disk : ∀ ω t, Complex.normSq (z ω t) ≤ 1)
+    (hz_disk_strict : ∀ ω t, 0 ≤ t → Complex.normSq (z ω t) < 1)
+    (hz_star_pos : ∀ ω, 0 < Complex.normSq (z_star ω))
+    (hz_star_lt : ∀ ω, Complex.normSq (z_star ω) < 1)
+    (hz_sym : ∀ ω t, z (S.neg ω) t = starRingEnd ℂ (z ω t))
+    (hz_star_sym : ∀ ω, z_star (S.neg ω) = starRingEnd ℂ (z_star ω))
+    (hg_nn : ∀ ω, 0 ≤ S.g ω) (hg_int : Integrable S.g μ)
+    (hg_norm : ∫ ω, S.g ω ∂μ = 1)
+    (hω_g_int : Integrable (fun ω => |S.ω_freq ω| * S.g ω) μ)
+    (hz_cont : ∀ ω, Continuous (z ω))
+    (hr_star_eq : r_star = (∫ ω, starRingEnd ℂ (z_star ω) * (S.g ω : ℂ) ∂μ).re)
+    (hz_star_equil : ∀ ω, complexOaRHS (S.ω_freq ω) K ((r_star : ℂ)) (z_star ω) = 0)
+    (hη_real : ∀ t, (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).im = 0)
+    (hη_bdd : ∀ t, Complex.normSq (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ) ≤ 1)
+    (hV_int : ∀ t, Integrable (fun ω => Complex.normSq (z ω t - z_star ω) * S.g ω) μ)
+    (hη_int : ∀ t, Integrable (fun ω => starRingEnd ℂ (z ω t) * (S.g ω : ℂ)) μ)
+    (hη_star_int : Integrable (fun ω => starRingEnd ℂ (z_star ω) * (S.g ω : ℂ)) μ)
+    (hφ_meas : ∀ t, AEStronglyMeasurable (fun ω => (z ω t - z_star ω).re) μ)
+    (hV_cont : Continuous (fun t => ∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ))
+    (h_r_floor : ∀ t, 0 ≤ t → r_floor ≤
+      (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re)
+    (hr_floor_nn : 0 ≤ r_floor)
+    (hz0_re : ∀ ω, 0 < (z ω 0).re)
+    (h_lock : ∀ ω, |S.ω_freq ω| < K * r_floor / 2)
+    (hδ₀ : 0 < δ₀) (hδ₀_bound : ∀ ω, δ₀ ≤ (z_star ω).re)
+    (hF_nn : 0 ≤ F_val)
+    (h_force_sq : ∀ t,
+      (∫ ω, (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re * S.g ω ∂μ) ^ 2 ≤
+      (∫ ω, Complex.normSq (z ω t - z_star ω) * S.g ω ∂μ) * F_val)
+    (hrate : 0 < K * r_floor * δ₀ - K * Real.sqrt F_val)
+    (h_coerce_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (-K * r * (z ω t + z_star ω).re * Complex.normSq (z ω t - z_star ω)) * S.g ω) μ)
+    (h_force_int : ∀ (t : ℝ) (r : ℝ), Integrable (fun ω =>
+      (K * (r - r_star) * (starRingEnd ℂ (z ω t - z_star ω) *
+        (1 - z_star ω ^ 2)).re) * S.g ω) μ)
+    (h_W_int : ∀ t, Integrable (fun ω =>
+      (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω)) μ) :
+    Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
+      atTop (nhds (r_star ^ 2)) := by
+  set η := fun t => ∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ
+  have h_body : ∀ ω t, 0 < t → 0 < (z ω t).re := by
+    intro ω t ht
+    have h_coupling : ∀ s, 0 ≤ s → s ≤ t →
+        |S.ω_freq ω| < K * (η s).re / 2 := fun s hs _ =>
+      lt_of_lt_of_le (h_lock ω)
+        (div_le_div_of_nonneg_right
+          (mul_le_mul_of_nonneg_left (h_r_floor s hs) (le_of_lt hK)) (by positivity))
+    exact body_persistence_on_Icc (S.ω_freq ω) K (z ω) η t
+      (hz_cont ω) (hz0_re ω) (hz_ode ω) hη_real h_coupling t (le_of_lt ht) le_rfl
+  exact compact_support_convergence_r_floor S z z_star K r_star r_floor δ₀ F_val
+    hK hr_star_pos hz_ode hz_disk hz_disk_strict hz_star_pos hz_star_lt hz_sym hz_star_sym
+    hg_nn hg_int hg_norm hω_g_int hz_cont hr_star_eq hz_star_equil hη_real hη_bdd
+    hV_int hη_int hη_star_int hφ_meas hV_cont h_r_floor hr_floor_nn h_body
+    hδ₀ hδ₀_bound hF_nn h_force_sq hrate h_coerce_int h_force_int h_W_int
 
 end

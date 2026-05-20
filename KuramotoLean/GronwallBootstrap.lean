@@ -48,6 +48,89 @@ lemma basin_invariance (f : ℝ → ℝ) (B rate : ℝ)
         _ ≤ 0 := by nlinarith [hf_nn x (le_of_lt hx.1)]
   linarith [hf_anti (left_mem_Icc.mpr hT_nn) (right_mem_Icc.mpr hT_nn) hT_nn]
 
+lemma basin_invariance_history (f : ℝ → ℝ) (B rate : ℝ)
+    (hrate : 0 < rate) (_hB : 0 < B)
+    (hf_cont : Continuous f)
+    (hf_nn : ∀ t, 0 ≤ t → 0 ≤ f t)
+    (hf0 : f 0 < B)
+    (hf_deriv : ∀ t, 0 < t → (∀ s, 0 ≤ s → s < t → f s < B) → f t < B →
+      HasDerivAt f (deriv f t) t ∧ deriv f t ≤ -rate * f t)
+    (t : ℝ) (ht : 0 ≤ t) : f t < B := by
+  by_contra h; push Not at h
+  let S := Set.Ici (0 : ℝ) ∩ {s | B ≤ f s}
+  have hS_ne : S.Nonempty := ⟨t, ht, h⟩
+  have hS_bdd : BddBelow S := ⟨0, fun x hx => hx.1⟩
+  have hS_closed : IsClosed S := isClosed_Ici.inter (isClosed_le continuous_const hf_cont)
+  set T := sInf S
+  have hT_mem : T ∈ S := hS_closed.csInf_mem hS_ne hS_bdd
+  have hT_nn : (0 : ℝ) ≤ T := hT_mem.1
+  have hfT : B ≤ f T := hT_mem.2
+  have hT_pos : 0 < T := by
+    rcases eq_or_lt_of_le hT_nn with h0 | h0
+    · exfalso; linarith [h0 ▸ hfT]
+    · exact h0
+  have hf_lt_B : ∀ s, 0 ≤ s → s < T → f s < B := by
+    intro s hs hsT
+    by_contra hc; push Not at hc
+    exact absurd (csInf_le hS_bdd (show s ∈ S from ⟨hs, hc⟩)) (not_le.mpr hsT)
+  have hf_anti : AntitoneOn f (Set.Icc 0 T) := by
+    apply antitoneOn_of_deriv_nonpos (convex_Icc 0 T)
+    · exact hf_cont.continuousOn
+    · intro x hx
+      rw [interior_Icc] at hx
+      have ⟨hd, _⟩ := hf_deriv x hx.1
+        (fun s hs hsx => hf_lt_B s hs (hsx.trans hx.2))
+        (hf_lt_B x (le_of_lt hx.1) hx.2)
+      exact hd.differentiableAt.differentiableWithinAt
+    · intro x hx
+      rw [interior_Icc] at hx
+      have ⟨_, hd⟩ := hf_deriv x hx.1
+        (fun s hs hsx => hf_lt_B s hs (hsx.trans hx.2))
+        (hf_lt_B x (le_of_lt hx.1) hx.2)
+      calc deriv f x ≤ -rate * f x := hd
+        _ ≤ 0 := by nlinarith [hf_nn x (le_of_lt hx.1)]
+  linarith [hf_anti (left_mem_Icc.mpr hT_nn) (right_mem_Icc.mpr hT_nn) hT_nn]
+
+lemma eventually_below (f : ℝ → ℝ) (B c : ℝ) (hc : 0 < c)
+    (hf_cont : Continuous f)
+    (hf_deriv : ∀ t, 0 < t → B ≤ f t →
+      HasDerivAt f (deriv f t) t ∧ deriv f t ≤ -c) :
+    ∃ T, 0 ≤ T ∧ f T < B := by
+  by_cases hf0 : f 0 < B
+  · exact ⟨0, le_rfl, hf0⟩
+  push_neg at hf0
+  by_contra h_all
+  simp only [not_exists, not_and, not_lt] at h_all
+  set T := (f 0 - B) / c + 1
+  have hT_pos : 0 < T := by
+    have : 0 ≤ (f 0 - B) / c := div_nonneg (by linarith) (le_of_lt hc)
+    linarith
+  have h_lin : ∀ x, HasDerivAt (fun t => c * t) c x := fun x => by
+    simpa using (hasDerivAt_id x).const_mul c
+  set g := fun t => f t + c * t
+  have hg_anti : AntitoneOn g (Set.Icc 0 T) := by
+    apply antitoneOn_of_deriv_nonpos (convex_Icc 0 T)
+    · exact (hf_cont.add (continuous_const.mul continuous_id')).continuousOn
+    · intro x hx
+      rw [interior_Icc] at hx
+      have ⟨hd, _⟩ := hf_deriv x hx.1 (h_all x (le_of_lt hx.1))
+      exact (hd.add (h_lin x)).differentiableAt.differentiableWithinAt
+    · intro x hx
+      rw [interior_Icc] at hx
+      have ⟨hd, hd_le⟩ := hf_deriv x hx.1 (h_all x (le_of_lt hx.1))
+      have hg_d : HasDerivAt g (deriv f x + c) x := hd.add (h_lin x)
+      rw [hg_d.deriv]; linarith
+  have h1 : g T ≤ g 0 :=
+    hg_anti (left_mem_Icc.mpr (le_of_lt hT_pos))
+      (right_mem_Icc.mpr (le_of_lt hT_pos)) (le_of_lt hT_pos)
+  have h2 : f T ≤ B - c := by
+    have hg0 : g 0 = f 0 := by simp [g]
+    have hcT : c * T = f 0 - B + c := by
+      show c * ((f 0 - B) / c + 1) = f 0 - B + c
+      rw [mul_add, mul_div_cancel₀ _ (ne_of_gt hc), mul_one]
+    linarith [show g T = f T + c * T from rfl]
+  linarith [h_all T (le_of_lt hT_pos)]
+
 lemma exp_decay_bound (f : ℝ → ℝ) (B rate : ℝ)
     (_hrate : 0 < rate) (_hB : 0 < B)
     (hf_cont : Continuous f)
@@ -119,5 +202,19 @@ theorem gronwall_bootstrap_tendsto
     have h3 : Tendsto (fun t => f 0 * exp (-(rate * t))) atTop (𝓝 0) := by
       simpa [mul_zero] using h2.const_mul (f 0)
     exact h3.congr (fun t => by ring_nf)
+
+theorem gronwall_bootstrap_tendsto_history
+    (f : ℝ → ℝ) (B rate : ℝ)
+    (hrate : 0 < rate) (hB : 0 < B)
+    (hf_cont : Continuous f)
+    (hf_nn : ∀ t, 0 ≤ t → 0 ≤ f t)
+    (hf0 : f 0 < B)
+    (hf_deriv : ∀ t, 0 < t → (∀ s, 0 ≤ s → s < t → f s < B) → f t < B →
+      HasDerivAt f (deriv f t) t ∧ deriv f t ≤ -rate * f t) :
+    Tendsto f atTop (nhds 0) := by
+  have hf_basin : ∀ t, 0 ≤ t → f t < B :=
+    fun t ht => basin_invariance_history f B rate hrate hB hf_cont hf_nn hf0 hf_deriv t ht
+  exact gronwall_bootstrap_tendsto f B rate hrate hB hf_cont hf_nn hf0
+    (fun t ht hfB => hf_deriv t ht (fun s hs _ => hf_basin s hs) hfB)
 
 end
