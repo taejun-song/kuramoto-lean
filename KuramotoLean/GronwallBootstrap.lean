@@ -217,4 +217,13 @@ theorem gronwall_bootstrap_tendsto_history
   exact gronwall_bootstrap_tendsto f B rate hrate hB hf_cont hf_nn hf0
     (fun t ht hfB => hf_deriv t ht (fun s hs _ => hf_basin s hs) hfB)
 
+lemma tendsto_of_sq_tendsto {f : ℝ → ℝ} {L : ℝ} (hL : 0 < L)
+    (hf_nn : ∀ᶠ t in atTop, 0 ≤ f t)
+    (hf_sq : Tendsto (fun t => f t ^ 2) atTop (nhds (L ^ 2))) :
+    Tendsto f atTop (nhds L) := by
+  have h_sq_cont : Tendsto (fun t => Real.sqrt (f t ^ 2)) atTop (nhds (Real.sqrt (L ^ 2))) :=
+    continuous_sqrt.continuousAt.tendsto.comp hf_sq
+  rw [Real.sqrt_sq (le_of_lt hL)] at h_sq_cont
+  exact (h_sq_cont.congr' (hf_nn.mono (fun t ht => Real.sqrt_sq ht)))
+
 end

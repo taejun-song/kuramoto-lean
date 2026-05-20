@@ -1106,9 +1106,9 @@ theorem compact_support_convergence_r_floor [IsProbabilityMeasure μ]
     hz_star_pos hz_star_lt hz_sym hz_star_sym hg_nn hg_int hg_norm hz_ode hr_star_eq
     hz_star_equil hV_int hη_int hη_star_int hφ_meas hV_zero
 
-/-- **GLOBAL CONVERGENCE FROM ORDER-PARAMETER FLOOR** (0 sorry, 0 axioms).
-    Derives body persistence from r-floor + frequency locking + initial body,
-    then delegates to compact_support_convergence_r_floor.
+/-- **GLOBAL CONVERGENCE: r(t) → r*** (0 sorry, 0 axioms).
+    Given r-floor + frequency locking + initial body positive,
+    proves Re(η(t)) → r* (the order parameter converges).
     NO basin condition V(0) < B required. -/
 theorem compact_support_convergence_r_floor_locked [IsProbabilityMeasure μ]
     (S : SymmetricFreq Ω μ) (z : Ω → ℝ → ℂ) (z_star : Ω → ℂ)
@@ -1155,8 +1155,8 @@ theorem compact_support_convergence_r_floor_locked [IsProbabilityMeasure μ]
         (1 - z_star ω ^ 2)).re) * S.g ω) μ)
     (h_W_int : ∀ t, Integrable (fun ω =>
       (z ω t + z_star ω).re * (Complex.normSq (z ω t - z_star ω) * S.g ω)) μ) :
-    Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re ^ 2)
-      atTop (nhds (r_star ^ 2)) := by
+    Tendsto (fun t => (∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ).re)
+      atTop (nhds r_star) := by
   set η := fun t => ∫ ω, starRingEnd ℂ (z ω t) * (S.g ω : ℂ) ∂μ
   have h_body : ∀ ω t, 0 < t → 0 < (z ω t).re := by
     intro ω t ht
@@ -1167,10 +1167,12 @@ theorem compact_support_convergence_r_floor_locked [IsProbabilityMeasure μ]
           (mul_le_mul_of_nonneg_left (h_r_floor s hs) (le_of_lt hK)) (by positivity))
     exact body_persistence_on_Icc (S.ω_freq ω) K (z ω) η t
       (hz_cont ω) (hz0_re ω) (hz_ode ω) hη_real h_coupling t (le_of_lt ht) le_rfl
-  exact compact_support_convergence_r_floor S z z_star K r_star r_floor δ₀ F_val
+  have h_sq := compact_support_convergence_r_floor S z z_star K r_star r_floor δ₀ F_val
     hK hr_star_pos hz_ode hz_disk hz_disk_strict hz_star_pos hz_star_lt hz_sym hz_star_sym
     hg_nn hg_int hg_norm hω_g_int hz_cont hr_star_eq hz_star_equil hη_real hη_bdd
     hV_int hη_int hη_star_int hφ_meas hV_cont h_r_floor hr_floor_nn h_body
     hδ₀ hδ₀_bound hF_nn h_force_sq hrate h_coerce_int h_force_int h_W_int
+  exact tendsto_of_sq_tendsto hr_star_pos
+    (eventually_atTop.mpr ⟨0, fun t ht => le_trans hr_floor_nn (h_r_floor t ht)⟩) h_sq
 
 end
