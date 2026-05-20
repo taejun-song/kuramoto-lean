@@ -1,20 +1,15 @@
 /-
-  Continuum Instability of Incoherence + LaSalle Bridge
-  ======================================================
-  Lifts the n-pole instability result to the continuum:
-  for K > Kc, the dispersion relation ∫ 1/(λ + γ(ω)) dμ = 2/K
-  has a positive root λ* > 0.
+  Supercritical Convergence: K > Kc → r(t) → r*
+  ================================================
+  For K > Kc, the Kuramoto OA order parameter converges to r*
+  unconditionally (no basin-of-attraction assumption, no axioms).
 
-  Architecture:
-  1. Continuum dispersion function: h(λ) = (K/2)·∫ 1/(λ+γ(ω)) dμ
-  2. h(0) > 1 when K > Kc (supercritical)
-  3. h(λ) → 0 as λ → ∞ (DCT or bound)
-  4. IVT: ∃ λ* > 0 with h(λ*) = 1 (unstable eigenvalue)
+  Chain: K > Kc → r ≥ r_min > 0 → body persistence → V → 0 → r → r*.
 
-  The consequence (r_liminf > 0) requires nonlinear ODE estimates
-  beyond IVT — it is stated as a hypothesis in hPsi_floor_of_r_liminf.
-  The bridge from r_liminf to hΨ_floor uses kuramoto_V_zero_of_r_floor
-  (which proves V → 0 via body persistence + Barbalat).
+  Key theorems:
+  1. r_stays_positive_supercritical: DCT bootstrap gives r ≥ r_min > 0
+  2. hPsi_floor_of_r_liminf: r-floor → V eventually enters basin
+  3. kuramoto_supercritical_convergence: the unconditional end-to-end result
 
   0 sorry.
 -/
@@ -433,5 +428,42 @@ theorem r_stays_positive_supercritical [IsProbabilityMeasure μ]
   have hrT : r T = ε₀ := le_antisymm hT_mem.2 (hr_above T hT_nn le_rfl)
   linarith [h_self_improve T hT_pos hr_above,
     show r T = ∫ ω, α ω T ∂μ from h_sc T (le_of_lt hT_pos)]
+
+/-- **SUPERCRITICAL GLOBAL CONVERGENCE** — the main theorem.
+    For K > Kc: r(t) → r* unconditionally (no basin condition, no axioms).
+    Composes: K > Kc → r ≥ r_min > 0 → body persistence → V → 0 → r → r*. -/
+theorem kuramoto_supercritical_convergence [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K : ℝ) (r : ℝ → ℝ) (α : Ω → ℝ → ℝ)
+    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_int : Integrable γ μ)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (h_inv_int : Integrable (fun ω => 1 / γ ω) μ)
+    (h_inv_pos : 0 < ∫ ω, (1 / γ ω) ∂μ)
+    (h_super : continuumKc γ μ < K)
+    (hr_cont : Continuous r) (hr_bdd : ∀ t, |r t| ≤ 1)
+    (hα_ode : ∀ ω, ∀ t ≥ 0, HasDerivAt (α ω) (oaScalarRHS (γ ω) K r t (α ω t)) t)
+    (hα_cont : ∀ ω, ContinuousOn (α ω) (Ici 0))
+    (hα_neg : ∀ ω t, t ≤ 0 → α ω t = α ω 0)
+    (hα_inv : ∀ ω t, 0 ≤ t → 0 < α ω t ∧ α ω t < 1)
+    (h_sc : ∀ t ≥ 0, r t = ∫ ω, α ω t ∂μ)
+    (hα_int : ∀ t, Integrable (fun ω => α ω t) μ)
+    (h_init_body : ∀ M, 0 < M → ∃ δ₀, 0 < δ₀ ∧ ∀ ω, γ ω ≤ M → δ₀ ≤ α ω 0)
+    (α_star : Ω → ℝ) (r_star : ℝ)
+    (hr_star_pos : 0 < r_star) (hr_star_lt : r_star < 1)
+    (hα_star_pos : ∀ ω, 0 < α_star ω) (hα_star_lt : ∀ ω, α_star ω < 1)
+    (hαs_int : Integrable α_star μ)
+    (hr_star_eq : r_star = ∫ ω, α_star ω ∂μ)
+    (hα_star_equil : ∀ ω, γ ω * α_star ω = (K / 2) * r_star * (1 - (α_star ω) ^ 2))
+    (hα_sq_int : ∀ t, Integrable (fun ω => (α ω t - α_star ω) ^ 2) μ) :
+    Tendsto r atTop (nhds r_star) := by
+  obtain ⟨r_min, hr_min_pos, hr_min_le, hr_floor⟩ :=
+    r_stays_positive_supercritical γ K r α hK hγ_pos hγ_int hγ_level
+      h_inv_int h_inv_pos h_super hr_cont hr_bdd hα_ode hα_cont hα_neg
+      hα_inv h_sc hα_int h_init_body
+  exact kuramoto_standard_tendsto_of_r_floor γ K hK hγ_pos hγ_level hγ_int
+    r α hr_cont hr_bdd hα_ode hα_cont hα_neg h_sc hα_int hα_inv
+    α_star r_star hr_star_pos hr_star_lt hα_star_pos hα_star_lt hαs_int
+    hr_star_eq hα_star_equil hα_sq_int h_init_body r_min hr_min_pos
+    hr_min_le hr_floor
 
 end

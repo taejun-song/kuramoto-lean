@@ -149,6 +149,23 @@
    │ 12 theorems                              │
    └──────────────────────────────────────────┘
 
+   ┌──────────────────────────────────────────┐
+   │ ComplexOAEquilibriumExclusion.lean       │
+   │ re_eta_z_zero_at_interior_equil          │  ← 0 sorry, 0 axioms
+   │ eta_vanishes_at_interior_equilibrium     │     Interior equilibrium ⟹
+   │ eta_eq_zero_at_interior_equilibrium      │     η = 0. Non-trivial sync
+   │ 3 theorems                               │     requires |z|=1 boundary.
+   └──────────────────────────────────────────┘     Uses: ComplexOAEnergy
+
+   ┌──────────────────────────────────────────┐
+   │ BarbalatConvergence.lean                 │
+   │ psi_diverges_of_frequent_eta             │  ← 0 sorry, 0 axioms
+   │ barbalat_tendsto_zero                    │     Barbalat's lemma:
+   │ psi_eta_dichotomy                        │     Ψ bounded + UC ⟹ η→0.
+   │ psi_diverges_of_instability              │     Dichotomy: η→0 or Ψ→∞.
+   │ 4 theorems                               │     Uses: PsiBarbalatBridge
+   └──────────────────────────────────────────┘
+
 ════════════════════════════════════════════
  Real Scalar Track (independent)
 ════════════════════════════════════════════
@@ -237,3 +254,5 @@ The main axiom-free result for the complex OA. Shows how the circularity is brok
 | Y-damping | `kuramoto_fresh` | 0 | 0 | **PROVED** (takes h_basin_decay) |
 | Penrose criterion | `lorentzian_penrose_criterion` | 0 | 0 | **PROVED** (K > 2γ ⟹ ∃ s* > 0, D(s*) = 1) |
 | Ψ-Barbalat bridge | `eta_sq_drops_below` + 11 more | 0 | 0 | **PROVED** (dΨ/dt = K|η|² → η summability) |
+| Equilibrium exclusion | `eta_eq_zero_at_interior_equilibrium` | 0 | 0 | **PROVED** (interior equil ⟹ η = 0) |
+| Barbalat convergence | `barbalat_tendsto_zero` + 3 more | 0 | 0 | **PROVED** (Ψ bounded+UC ⟹ η→0; dichotomy) |
