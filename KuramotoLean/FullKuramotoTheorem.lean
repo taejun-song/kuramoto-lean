@@ -101,4 +101,63 @@ theorem full_kuramoto_pde_stability_via_axiom [IsProbabilityMeasure μ]
   exact @full_kuramoto_pde_stability Ω _ μ _ f₁ z_oa g hg_nn
     (fun t => ∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) η_oa r_star hr_star h_oa_stable h_diff
 
+def OAInvariant (f₁ z_oa : Ω → ℝ → ℂ) (g : Ω → ℝ) (μ : Measure Ω) : Prop :=
+  ∀ t, ∫ ω, f₁ ω t * (g ω : ℂ) ∂μ = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ
+
+theorem full_kuramoto_pde_on_oa_manifold [IsProbabilityMeasure μ]
+    (f₁ z_oa : Ω → ℝ → ℂ) (g : Ω → ℝ)
+    (η_oa : ℝ → ℂ) (r_star : ℝ) (hr_star : 0 < r_star)
+    (h_oa_invariant : OAInvariant f₁ z_oa g μ)
+    (h_oa_stable : Tendsto (fun t => ‖η_oa t‖) atTop (nhds r_star))
+    (h_η_oa_eq : ∀ t, η_oa t = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ) :
+    Tendsto (fun t => ‖∫ ω, f₁ ω t * (g ω : ℂ) ∂μ‖) atTop (nhds r_star) := by
+  convert h_oa_stable using 1
+  ext t
+  congr 1
+  rw [h_η_oa_eq t, h_oa_invariant t]
+
+theorem full_kuramoto_pde_of_eventual_tracking [IsProbabilityMeasure μ]
+    (f₁ z_oa : Ω → ℝ → ℂ) (g : Ω → ℝ) (hg_nn : ∀ ω, 0 ≤ g ω)
+    (η_oa : ℝ → ℂ) (r_star : ℝ) (hr_star : 0 < r_star)
+    (h_oa_stable : Tendsto (fun t => ‖η_oa t‖) atTop (nhds r_star))
+    (h_η_oa_eq : ∀ t, η_oa t = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ)
+    (hf_int : ∀ t, Integrable (fun ω => f₁ ω t * (g ω : ℂ)) μ)
+    (hz_int : ∀ t, Integrable (fun ω => z_oa ω t * (g ω : ℂ)) μ)
+    (h_tracking : Tendsto (fun t => ‖∫ ω, (f₁ ω t - z_oa ω t) * (g ω : ℂ) ∂μ‖) atTop (nhds 0)) :
+    Tendsto (fun t => ‖∫ ω, f₁ ω t * (g ω : ℂ) ∂μ‖) atTop (nhds r_star) := by
+  have h_diff : Tendsto (fun t => ‖(∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) - η_oa t‖) atTop (nhds 0) := by
+    suffices h : (fun t => ‖(∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) - η_oa t‖) = fun t =>
+        ‖∫ ω, (f₁ ω t - z_oa ω t) * (g ω : ℂ) ∂μ‖ by rw [h]; exact h_tracking
+    ext t; congr 1; rw [h_η_oa_eq]
+    rw [← integral_sub (hf_int t) (hz_int t)]
+    congr 1; ext ω; ring
+  exact @full_kuramoto_pde_stability Ω _ μ _ f₁ z_oa g hg_nn
+    (fun t => ∫ ω, f₁ ω t * (g ω : ℂ) ∂μ) η_oa r_star hr_star h_oa_stable h_diff
+
+theorem full_kuramoto_pde_of_exp_tracking [IsProbabilityMeasure μ]
+    (f₁ z_oa : Ω → ℝ → ℂ) (g : Ω → ℝ) (hg_nn : ∀ ω, 0 ≤ g ω)
+    (η_oa : ℝ → ℂ) (r_star : ℝ) (hr_star : 0 < r_star)
+    (h_oa_stable : Tendsto (fun t => ‖η_oa t‖) atTop (nhds r_star))
+    (h_η_oa_eq : ∀ t, η_oa t = ∫ ω, z_oa ω t * (g ω : ℂ) ∂μ)
+    (hf_int : ∀ t, Integrable (fun ω => f₁ ω t * (g ω : ℂ)) μ)
+    (hz_int : ∀ t, Integrable (fun ω => z_oa ω t * (g ω : ℂ)) μ)
+    (C rate : ℝ) (hrate : 0 < rate)
+    (h_exp_decay : ∀ t, 0 ≤ t →
+      ‖∫ ω, (f₁ ω t - z_oa ω t) * (g ω : ℂ) ∂μ‖ ≤ C * Real.exp (-rate * t)) :
+    Tendsto (fun t => ‖∫ ω, f₁ ω t * (g ω : ℂ) ∂μ‖) atTop (nhds r_star) := by
+  apply full_kuramoto_pde_of_eventual_tracking f₁ z_oa g hg_nn η_oa r_star hr_star
+    h_oa_stable h_η_oa_eq hf_int hz_int
+  apply squeeze_zero'
+  · exact eventually_atTop.mpr ⟨0, fun t ht => norm_nonneg _⟩
+  · exact eventually_atTop.mpr ⟨0, fun t ht => h_exp_decay t ht⟩
+  · have h1 : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+      tendsto_atTop_atTop.mpr fun b => ⟨b / rate, fun s hs => by
+        calc b = rate * (b / rate) := by field_simp
+          _ ≤ rate * s := mul_le_mul_of_nonneg_left hs (le_of_lt hrate)⟩
+    have h2 : Tendsto (fun t => Real.exp (-(rate * t))) atTop (nhds 0) :=
+      (Real.tendsto_exp_neg_atTop_nhds_zero.comp h1).congr fun _ => by simp
+    have h3 : Tendsto (fun t => C * Real.exp (-(rate * t))) atTop (nhds 0) := by
+      simpa [mul_zero] using h2.const_mul C
+    exact h3.congr (fun t => by ring_nf)
+
 end

@@ -19,6 +19,7 @@
 
 import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.Topology.MetricSpace.Lipschitz
@@ -43,15 +44,51 @@ def kuramotoODE (N : ℕ) (K : ℝ) (ω : Fin N → ℝ) (θ : Fin N → ℝ) : 
 /-! ## 2. Lipschitz property of the coupling -/
 
 /-- sin is 1-Lipschitz. -/
-theorem sin_lipschitz : LipschitzWith 1 sin := by
-  sorry
+theorem sin_lipschitz : LipschitzWith 1 sin := lipschitzWith_sin
 
 /-- The mean-field coupling (1/N)Σ sin(θⱼ - θᵢ) is Lipschitz in the ℓ¹ sense. -/
 theorem coupling_lipschitz (N : ℕ) (hN : 0 < N) (K : ℝ) (hK : 0 ≤ K)
     (ω : Fin N → ℝ) (θ₁ θ₂ : Fin N → ℝ) :
     ∑ i : Fin N, |particleVelocity N K ω θ₁ i - particleVelocity N K ω θ₂ i|
       ≤ 2 * K * ∑ i : Fin N, |θ₁ i - θ₂ i| := by
-  sorry
+  have hN' : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+  have hKN : 0 ≤ K / ↑N := div_nonneg hK hN'.le
+  have step1 : ∀ i : Fin N,
+      |particleVelocity N K ω θ₁ i - particleVelocity N K ω θ₂ i| ≤
+        K / ↑N * ∑ j, (|θ₁ j - θ₂ j| + |θ₁ i - θ₂ i|) := by
+    intro i
+    change |ω i + K / ↑N * ∑ j, sin (θ₁ j - θ₁ i) -
+          (ω i + K / ↑N * ∑ j, sin (θ₂ j - θ₂ i))| ≤ _
+    have : ω i + K / ↑N * ∑ j, sin (θ₁ j - θ₁ i) -
+        (ω i + K / ↑N * ∑ j, sin (θ₂ j - θ₂ i)) =
+        K / ↑N * (∑ j, sin (θ₁ j - θ₁ i) - ∑ j, sin (θ₂ j - θ₂ i)) := by ring
+    rw [this, abs_mul, abs_of_nonneg hKN]
+    gcongr
+    rw [← Finset.sum_sub_distrib]
+    calc |∑ j : Fin N, (sin (θ₁ j - θ₁ i) - sin (θ₂ j - θ₂ i))|
+        ≤ ∑ j : Fin N, |sin (θ₁ j - θ₁ i) - sin (θ₂ j - θ₂ i)| :=
+          Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ j : Fin N, |(θ₁ j - θ₁ i) - (θ₂ j - θ₂ i)| :=
+          Finset.sum_le_sum fun j _ => abs_sin_sub_sin_le _ _
+      _ ≤ ∑ j : Fin N, (|θ₁ j - θ₂ j| + |θ₁ i - θ₂ i|) :=
+          Finset.sum_le_sum fun j _ => by
+            have : (θ₁ j - θ₁ i) - (θ₂ j - θ₂ i) = (θ₁ j - θ₂ j) - (θ₁ i - θ₂ i) := by ring
+            rw [this]
+            exact (abs_sub_le (θ₁ j - θ₂ j) 0 (θ₁ i - θ₂ i)).trans (by simp [abs_sub_comm])
+  calc ∑ i, |particleVelocity N K ω θ₁ i - particleVelocity N K ω θ₂ i|
+      ≤ ∑ i, K / ↑N * ∑ j, (|θ₁ j - θ₂ j| + |θ₁ i - θ₂ i|) :=
+        Finset.sum_le_sum fun i _ => step1 i
+    _ = K / ↑N * ∑ i, ∑ j, (|θ₁ j - θ₂ j| + |θ₁ i - θ₂ i|) := by
+        rw [← Finset.mul_sum]
+    _ = K / ↑N * ∑ i : Fin N, (∑ j : Fin N, |θ₁ j - θ₂ j| + ↑N * |θ₁ i - θ₂ i|) := by
+        congr 1; apply Finset.sum_congr rfl; intro i _
+        rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_fin, nsmul_eq_mul]
+    _ = K / ↑N * (↑N * ∑ i : Fin N, |θ₁ i - θ₂ i| + ↑N * ∑ i : Fin N, |θ₁ i - θ₂ i|) := by
+        congr 1
+        rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_fin, nsmul_eq_mul,
+            Finset.mul_sum]
+    _ = 2 * K * ∑ i : Fin N, |θ₁ i - θ₂ i| := by
+        field_simp; ring
 
 /-! ## 3. Gronwall estimate: finite-N synchronization bound -/
 
@@ -65,7 +102,56 @@ theorem finite_N_gronwall_bound (N : ℕ) (hN : 0 < N) (K : ℝ) (hK : 0 ≤ K)
     (ε : ℝ) (hε : ∑ i : Fin N, |θ₁ 0 i - θ₂ 0 i| ≤ ε)
     (t : ℝ) (ht : 0 ≤ t) :
     ∑ i : Fin N, |θ₁ t i - θ₂ t i| ≤ ε * exp (2 * K * t) := by
-  sorry
+  set u : ℝ → ℝ := fun s => ∑ i : Fin N, |θ₁ s i - θ₂ s i|
+  set u' : ℝ → ℝ := fun s =>
+    ∑ i : Fin N, |kuramotoODE N K ω (θ₁ s) i - kuramotoODE N K ω (θ₂ s) i|
+  have h_cont_comp : ∀ i : Fin N, Continuous (fun s => θ₁ s i - θ₂ s i) :=
+    fun i => (Differentiable.continuous (fun x => (hθ₁ x i).sub (hθ₂ x i) |>.differentiableAt))
+  have hu_cont : ContinuousOn u (Set.Icc 0 t) :=
+    (continuous_finset_sum _ fun i _ => (h_cont_comp i).abs).continuousOn
+  have h_diff : ∀ x (i : Fin N), HasDerivAt (fun s => θ₁ s i - θ₂ s i)
+      (kuramotoODE N K ω (θ₁ x) i - kuramotoODE N K ω (θ₂ x) i) x :=
+    fun x i => (hθ₁ x i).sub (hθ₂ x i)
+  have hu_liminf : ∀ x ∈ Set.Ico 0 t, ∀ r, u' x < r →
+      ∃ᶠ z in nhdsWithin x (Set.Ioi x), (z - x)⁻¹ * (u z - u x) < r := by
+    intro x _ r hr
+    have h_slope_lim : Filter.Tendsto
+        (fun z => ∑ i : Fin N, |(z - x)⁻¹ * ((θ₁ z i - θ₂ z i) - (θ₁ x i - θ₂ x i))|)
+        (nhdsWithin x (Set.Ioi x)) (nhds (u' x)) := by
+      change Filter.Tendsto _ _ (nhds (∑ i : Fin N,
+        |kuramotoODE N K ω (θ₁ x) i - kuramotoODE N K ω (θ₂ x) i|))
+      apply tendsto_finset_sum
+      intro i _
+      have h_right := (hasDerivAt_iff_tendsto_slope_left_right.mp (h_diff x i)).2
+      have h_eq : ∀ z ≠ x, slope (fun s => θ₁ s i - θ₂ s i) x z =
+          (z - x)⁻¹ * ((θ₁ z i - θ₂ z i) - (θ₁ x i - θ₂ x i)) := by
+        intro z hz; simp [slope_def_field, div_eq_inv_mul]
+      exact (h_right.congr' (eventually_nhdsWithin_of_forall fun z hz => h_eq z (ne_of_gt hz))).abs
+    have h_bound : ∀ᶠ z in nhdsWithin x (Set.Ioi x),
+        (z - x)⁻¹ * (u z - u x) ≤
+        ∑ i : Fin N, |(z - x)⁻¹ * ((θ₁ z i - θ₂ z i) - (θ₁ x i - θ₂ x i))| := by
+      filter_upwards [self_mem_nhdsWithin] with z (hz : x < z)
+      have hzx : 0 < z - x := sub_pos.mpr hz
+      rw [← Finset.sum_sub_distrib]
+      calc (z - x)⁻¹ * ∑ i, (|θ₁ z i - θ₂ z i| - |θ₁ x i - θ₂ x i|)
+          ≤ (z - x)⁻¹ * ∑ i, |(θ₁ z i - θ₂ z i) - (θ₁ x i - θ₂ x i)| :=
+            mul_le_mul_of_nonneg_left
+              (Finset.sum_le_sum fun i _ => abs_sub_abs_le_abs_sub _ _)
+              (le_of_lt (inv_pos.mpr hzx))
+        _ = ∑ i, |(z - x)⁻¹ * ((θ₁ z i - θ₂ z i) - (θ₁ x i - θ₂ x i))| := by
+            rw [Finset.mul_sum]
+            congr 1; ext i
+            rw [abs_mul, abs_of_pos (inv_pos.mpr hzx)]
+    have h_ev : ∀ᶠ z in nhdsWithin x (Set.Ioi x),
+        (z - x)⁻¹ * (u z - u x) < r := by
+      filter_upwards [h_bound, h_slope_lim.eventually (Iio_mem_nhds hr)] with z hle hlt
+      exact lt_of_le_of_lt hle hlt
+    exact h_ev.frequently
+  have hu_bound : ∀ x ∈ Set.Ico (0 : ℝ) t, u' x ≤ (2 * K) * u x + 0 := by
+    intro x _; rw [add_zero]; exact coupling_lipschitz N hN K hK ω (θ₁ x) (θ₂ x)
+  have hgw := le_gronwallBound_of_liminf_deriv_right_le hu_cont hu_liminf hε hu_bound t
+    (Set.right_mem_Icc.mpr ht)
+  rwa [sub_zero, gronwallBound_ε0] at hgw
 
 /-! ## 4. Empirical measure and weak convergence (Tier 2 skeleton) -/
 
