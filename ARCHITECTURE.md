@@ -129,6 +129,14 @@
    │ oa_manifold_attractivity          │      OA attractivity)
    └───────────────────────────────────┘
 
+   ┌───────────────────────────────────────┐
+   │ ComplexOAInstability.lean             │
+   │ dispersionD, lorentzianDensity        │  ← 0 sorry, 0 axioms
+   │ lorentzian_penrose_criterion          │     ∫(a²+ω²)⁻² = π/(2a³)
+   │ integral_univ_inv_one_add_sq_sq       │     D(s*) = 1 for K > 2γ
+   │ integral_univ_inv_sq_add_sq_sq        │     (unconditional, no K≠4γ)
+   └───────────────────────────────────────┘
+
 ════════════════════════════════════════════
  Real Scalar Track (independent)
 ════════════════════════════════════════════
@@ -215,3 +223,4 @@ The main axiom-free result for the complex OA. Shows how the circularity is brok
 | Real scalar | `kuramoto_standard_tendsto` | 0 | 0 | **PROVED** |
 | Real scalar global | `kuramoto_global_unconditional` | 0 | 0 | **PROVED** |
 | Y-damping | `kuramoto_fresh` | 0 | 0 | **PROVED** (takes h_basin_decay) |
+| Penrose criterion | `lorentzian_penrose_criterion` | 0 | 0 | **PROVED** (K > 2γ ⟹ ∃ s* > 0, D(s*) = 1) |
