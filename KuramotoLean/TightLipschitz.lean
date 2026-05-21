@@ -417,6 +417,31 @@ theorem sc_map_linear_bound [IsProbabilityMeasure μ]
     _ = (∫ ω, (1 / γ ω) ∂μ) * (K * r / 2) := integral_mul_const _ _
     _ = K / continuumKc γ μ * r := by unfold continuumKc; field_simp
 
+/-- **SUBCRITICAL EXPONENTIAL DECAY.**
+    For K < Kc: Φⁿ(r₀) ≤ (K/Kc)ⁿ · r₀ → 0.
+    The incoherent state is exponentially stable with rate K/Kc. -/
+theorem subcritical_geometric_decay [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r₀ : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr₀ : 0 < r₀)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (h_inv_int : Integrable (fun ω => 1 / γ ω) μ)
+    (h_inv_pos : 0 < ∫ ω, (1 / γ ω) ∂μ) :
+    ∀ n, scMapIter γ K μ n r₀ ≤ (K / continuumKc γ μ) ^ n * r₀ := by
+  intro n
+  induction n with
+  | zero => simp [scMapIter]
+  | succ n ih =>
+    have h_pos_n := scMapIter_pos (μ := μ) γ K hγ_pos hK hγ_level r₀ hr₀ n
+    calc scMapIter γ K μ (n + 1) r₀
+        = ∫ ω, explicitEquil (γ ω) K (scMapIter γ K μ n r₀) ∂μ := rfl
+      _ ≤ K / continuumKc γ μ * scMapIter γ K μ n r₀ :=
+          sc_map_linear_bound γ K _ hγ_pos hK h_pos_n hγ_level h_inv_int h_inv_pos
+      _ ≤ K / continuumKc γ μ * ((K / continuumKc γ μ) ^ n * r₀) :=
+          mul_le_mul_of_nonneg_left ih (by
+            have hKc : 0 < continuumKc γ μ := by unfold continuumKc; positivity
+            exact le_of_lt (div_pos hK hKc))
+      _ = (K / continuumKc γ μ) ^ (n + 1) * r₀ := by ring
+
 /-! ## Geometric convergence of Picard iteration -/
 
 private theorem equil_integrable' [IsProbabilityMeasure μ]
