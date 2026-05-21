@@ -167,6 +167,42 @@ theorem tight_lipschitz_lt_one [IsProbabilityMeasure μ]
       rw [measure_univ]; exact one_pos)
   linarith [integral_sub hg_int hf_int]
 
+/-! ## Spectral gap identity -/
+
+/-- **SPECTRAL GAP IDENTITY.**
+    The gap between the slope and the tight slope equals K³r²/(D(γ+D)²). -/
+theorem spectral_gap_pointwise (γ K r : ℝ) (hγ : 0 < γ) (hK : 0 < K) (hr : 0 < r) :
+    K / (γ + sqrt (γ ^ 2 + K ^ 2 * r ^ 2)) -
+    K * γ / (sqrt (γ ^ 2 + K ^ 2 * r ^ 2) * (γ + sqrt (γ ^ 2 + K ^ 2 * r ^ 2))) =
+    K ^ 3 * r ^ 2 / (sqrt (γ ^ 2 + K ^ 2 * r ^ 2) *
+      (γ + sqrt (γ ^ 2 + K ^ 2 * r ^ 2)) ^ 2) := by
+  set D := sqrt (γ ^ 2 + K ^ 2 * r ^ 2)
+  have hD : 0 < D := sqrt_pos.mpr (by positivity)
+  have hD_sq : D ^ 2 = γ ^ 2 + K ^ 2 * r ^ 2 := sq_sqrt (by positivity)
+  have hden : 0 < γ + D := by linarith
+  field_simp
+  nlinarith [hD_sq, sq_nonneg γ, sq_nonneg K, sq_nonneg r, sq_nonneg D,
+    mul_pos hK hr, sq_pos_of_pos hD, sq_pos_of_pos hden]
+
+/-- **SPECTRAL GAP = ∫ K³r²/(D(γ+D)²) dμ.**
+    At the fixed point, 1 - λ(r*) = ∫ K³r*²/(D(γ+D)²) dμ > 0. -/
+theorem spectral_gap_integral [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r_star : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr : 0 < r_star)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (hfp : ∫ ω, explicitEquil (γ ω) K r_star ∂μ = r_star) :
+    1 - ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) ∂μ =
+    ∫ ω, K ^ 3 * r_star ^ 2 / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2) ∂μ := by
+  have hγ_meas : Measurable γ := measurable_of_Iic hγ_level
+  have h_slope_one := slope_integral_eq_one γ K r_star hγ_pos hK hr hγ_meas hfp
+  have hf_int := tight_slope_integrable γ K r_star hγ_pos hK hr hγ_meas (μ := μ)
+  have hg_int := slope_integrable γ K r_star hγ_pos hK hr hγ_meas (μ := μ)
+  rw [← h_slope_one, ← integral_sub hg_int hf_int]
+  congr 1; ext ω
+  exact spectral_gap_pointwise (γ ω) K r_star (hγ_pos ω) hK hr
+
 /-! ## Geometric convergence of Picard iteration -/
 
 private theorem equil_integrable' [IsProbabilityMeasure μ]
