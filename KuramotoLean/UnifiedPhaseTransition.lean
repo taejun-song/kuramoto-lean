@@ -16,11 +16,12 @@
      e. r* → 1 as K → ∞ (strong coupling limit)
      f. Φ contracts toward r* (iteration convergence)
 
-  0 sorry.
 -/
 
 import KuramotoLean.DistributionSensitivity
 import KuramotoLean.CriticalExponent
+import KuramotoLean.IterationConvergence
+import KuramotoLean.ContractionRate
 
 open MeasureTheory Real Set Filter Topology
 
@@ -108,5 +109,36 @@ theorem wider_distribution_harder_to_sync [IsProbabilityMeasure μ]
   ⟨continuumKc_mono_gamma γ₁ γ₂ hγ₁_pos hγ₂_pos h_le h_inv₁_int h_inv₂_int h_inv₂_pos,
    rstar_mono_gamma γ₁ γ₂ K r₁ r₂ hγ₁_pos hγ₂_pos hK h_le hγ₁_level hγ₂_level
      hr₁ hr₂ hfp₁ hfp₂⟩
+
+/-- **PICARD ITERATION.**
+    The Picard iteration Φⁿ(r₀) converges to r*:
+    monotone + bounded + contracting. -/
+theorem picard_iteration_converges [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r₀ r_star : ℝ)
+    (hK : 0 < K) (hγ_pos : ∀ ω, 0 < γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (hr₀ : 0 < r₀) (hr_star : 0 < r_star)
+    (hfp : ∫ ω, explicitEquil (γ ω) K r_star ∂μ = r_star)
+    (h_below : r₀ < r_star) :
+    (∀ n, scMapIter γ K μ n r₀ ≤ scMapIter γ K μ (n + 1) r₀) ∧
+    (∀ n, scMapIter γ K μ n r₀ ≤ r_star) ∧
+    (∀ n, scMapIter γ K μ n r₀ ≠ r_star →
+      |scMapIter γ K μ (n + 1) r₀ - r_star| <
+      |scMapIter γ K μ n r₀ - r_star|) :=
+  scMapIter_converges_below γ K r₀ r_star hγ_pos hK hγ_level
+    hr₀ hr_star hfp h_below
+
+/-- **SUBCRITICAL QUANTITATIVE.**
+    If K/(2γ_min) < 1, the self-consistency map contracts by factor λ. -/
+theorem subcritical_quantitative_contraction [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (hr : 0 < r)
+    (γ_min : ℝ) (hγ_min : 0 < γ_min) (hγ_min_le : ∀ ω, γ_min ≤ γ ω)
+    (h_sub : K / (2 * γ_min) < 1) :
+    ∫ ω, explicitEquil (γ ω) K r ∂μ < r :=
+  no_fixed_point_from_contraction γ K r hγ_pos hK hγ_level hr
+    γ_min hγ_min hγ_min_le h_sub
 
 end
