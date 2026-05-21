@@ -373,4 +373,45 @@ theorem scMapIter_geometric_above [IsProbabilityMeasure μ]
             mul_le_mul_of_nonneg_left ih (le_of_lt hcRate_pos)
         _ = cRate ^ (n + 1) * (r₀ - r_star) := by ring
 
+/-- **CONVERGENCE TO EQUILIBRIUM (above r*).**
+    Picard iterates converge to r* in the topological sense. -/
+theorem scMapIter_tendsto_above [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r₀ r_star : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr₀ : 0 < r₀) (hr_star : 0 < r_star)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (hfp : ∫ ω, explicitEquil (γ ω) K r_star ∂μ = r_star)
+    (h_above : r_star < r₀) :
+    Filter.Tendsto (fun n => scMapIter γ K μ n r₀) Filter.atTop (nhds r_star) := by
+  have hfp' : scMap γ K r_star μ = r_star := hfp
+  have hγ_meas := measurable_of_Iic hγ_level
+  set cRate := ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+    (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) ∂μ
+  have hcRate_lt := tight_lipschitz_lt_one γ K r_star hγ_pos hK hr_star hγ_level hfp
+  have hcRate_nn : 0 ≤ cRate := by
+    apply integral_nonneg; intro ω
+    exact le_of_lt (div_pos (mul_pos hK (hγ_pos ω))
+      (mul_pos (sqrt_pos.mpr (by positivity))
+        (by linarith [hγ_pos ω,
+          sqrt_pos.mpr (show 0 < (γ ω) ^ 2 + K ^ 2 * r_star ^ 2 by positivity)])))
+  have h_geom := scMapIter_geometric_above γ K r₀ r_star hγ_pos hK hr₀ hr_star
+    hγ_level hfp h_above
+  have h_above_n := scMapIter_above_rstar γ K r₀ r_star hγ_pos hK hγ_level
+    hr₀ hr_star hfp' (le_of_lt h_above)
+  have h_pow_tend : Filter.Tendsto (fun n => cRate ^ n * (r₀ - r_star))
+      Filter.atTop (nhds 0) := by
+    have h1 := tendsto_pow_atTop_nhds_zero_of_lt_one hcRate_nn hcRate_lt
+    have h2 : Filter.Tendsto (fun _ : ℕ => r₀ - r_star) Filter.atTop (nhds (r₀ - r_star)) :=
+      tendsto_const_nhds
+    have h3 := h1.mul h2
+    simp only [zero_mul] at h3; exact h3
+  rw [tendsto_order]
+  constructor
+  · intro a ha
+    exact Filter.Eventually.of_forall fun n =>
+      lt_of_lt_of_le ha (h_above_n n)
+  · intro a ha
+    have h_gap := sub_pos.mpr ha
+    have := (tendsto_order.mp h_pow_tend).2 (a - r_star) h_gap
+    exact this.mono fun n hn => by linarith [h_geom n]
+
 end
