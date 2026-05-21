@@ -321,6 +321,52 @@ theorem contraction_rate_upper [IsProbabilityMeasure μ]
     _ = (∫ ω, γ ω ∂μ) * (1 / (K * r ^ 2)) := integral_mul_const _ _
     _ = (∫ ω, γ ω ∂μ) / (K * r ^ 2) := by ring
 
+/-- **LINEAR BOUND: Φ(r) ≤ (K/Kc) · r.**
+    The self-consistency map is bounded by K/Kc times r.
+    Subcritical (K < Kc): immediate contraction.
+    Supercritical (K > Kc): constraint on Φ growth. -/
+theorem sc_map_linear_bound [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr : 0 < r)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (h_inv_int : Integrable (fun ω => 1 / γ ω) μ)
+    (h_inv_pos : 0 < ∫ ω, (1 / γ ω) ∂μ) :
+    ∫ ω, explicitEquil (γ ω) K r ∂μ ≤ K / continuumKc γ μ * r := by
+  have hγ_meas := measurable_of_Iic hγ_level
+  have h_pw : ∀ ω, explicitEquil (γ ω) K r ≤ K * r / (2 * γ ω) := by
+    intro ω
+    rw [explicitEquil_rationalized (γ ω) K r (hγ_pos ω) hK hr]
+    have hD : 0 < sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) := sqrt_pos.mpr (by positivity)
+    have hD_ge : γ ω ≤ sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) := by
+      calc γ ω = sqrt ((γ ω) ^ 2) := (sqrt_sq (le_of_lt (hγ_pos ω))).symm
+        _ ≤ sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) :=
+          sqrt_le_sqrt (by nlinarith [sq_nonneg (K * r)])
+    apply div_le_div_of_nonneg_left (by positivity : 0 ≤ K * r)
+      (by linarith [hγ_pos ω]) (by linarith)
+  have hg_int : Integrable (fun ω => K * r / (2 * γ ω)) μ := by
+    have : (fun ω => K * r / (2 * γ ω)) = fun ω => (K * r / 2) * (1 / γ ω) :=
+      funext fun ω => by ring
+    rw [this]; exact h_inv_int.const_mul _
+  have hf_int : Integrable (fun ω => explicitEquil (γ ω) K r) μ :=
+    hg_int.mono
+      (by have hc : Continuous (fun x : ℝ => explicitEquil x K r) := by
+            unfold explicitEquil; apply Continuous.div_const
+            exact continuous_neg.add (Real.continuous_sqrt.comp
+              ((continuous_pow 2).add continuous_const))
+          exact (hc.measurable.comp hγ_meas).aestronglyMeasurable)
+      (Eventually.of_forall fun ω => by
+        rw [Real.norm_eq_abs, Real.norm_eq_abs]
+        rw [abs_of_nonneg (le_of_lt (explicitEquil_pos (γ ω) K r (hγ_pos ω) hK hr))]
+        rw [abs_of_nonneg (le_of_lt (div_pos (by positivity) (by linarith [hγ_pos ω])))]
+        exact h_pw ω)
+  have h_rw : (fun ω => K * r / (2 * γ ω)) = fun ω => (1 / γ ω) * (K * r / 2) :=
+    funext fun ω => by ring
+  calc ∫ ω, explicitEquil (γ ω) K r ∂μ
+      ≤ ∫ ω, K * r / (2 * γ ω) ∂μ := integral_mono hf_int hg_int h_pw
+    _ = ∫ ω, (1 / γ ω) * (K * r / 2) ∂μ := by rw [h_rw]
+    _ = (∫ ω, (1 / γ ω) ∂μ) * (K * r / 2) := integral_mul_const _ _
+    _ = K / continuumKc γ μ * r := by unfold continuumKc; field_simp
+
 /-! ## Geometric convergence of Picard iteration -/
 
 private theorem equil_integrable' [IsProbabilityMeasure μ]
