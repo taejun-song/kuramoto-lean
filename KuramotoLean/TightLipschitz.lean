@@ -14,6 +14,7 @@
 
 import KuramotoLean.SelfConsistencyContraction
 import KuramotoLean.IterationConvergence
+import KuramotoLean.CriticalExponent
 
 open MeasureTheory Real Set Filter Topology
 
@@ -290,6 +291,55 @@ theorem spectral_gap_upper_bound [IsProbabilityMeasure μ]
           (sq_nonneg _) (le_of_lt hD_ω)
     _ = K ^ 3 * r_star ^ 2 / (D_min * (γ_min + D_min) ^ 2) := by
         rw [integral_const]; simp
+
+/-- **CRITICAL SLOWING DOWN.**
+    1 - λ(r*) ≤ (K-Kc)(2γ_max+K)²/(4γ_min³).
+    The spectral gap vanishes linearly at K = Kc. -/
+theorem critical_slowing_down [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r_star γ_min γ_max : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K)
+    (hr_pos : 0 < r_star) (hr_lt : r_star < 1)
+    (hγ_min_pos : 0 < γ_min) (hγ_min : ∀ ω, γ_min ≤ γ ω)
+    (hγ_max_pos : 0 < γ_max) (hγ_max : ∀ ω, γ ω ≤ γ_max)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (h_inv_int : Integrable (fun ω => 1 / γ ω) μ)
+    (h_inv_pos : 0 < ∫ ω, (1 / γ ω) ∂μ)
+    (h_super : continuumKc γ μ < K)
+    (hfp : ∫ ω, explicitEquil (γ ω) K r_star ∂μ = r_star) :
+    1 - ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) ∂μ ≤
+    (K - continuumKc γ μ) * (2 * γ_max + K) ^ 2 / (4 * γ_min ^ 3) := by
+  have h_gap := spectral_gap_upper_bound γ K r_star γ_min hγ_pos hK hr_pos
+    hγ_min_pos hγ_min hγ_level hfp
+  have h_rstar := rstar_le_sqrt_gap γ K r_star γ_max hγ_pos hK hr_pos hr_lt
+    hγ_max_pos hγ_max hγ_level h_inv_int h_inv_pos h_super hfp
+  set D_min := sqrt (γ_min ^ 2 + K ^ 2 * r_star ^ 2)
+  have hD_min : 0 < D_min := sqrt_pos.mpr (by positivity)
+  have hD_min_ge : γ_min ≤ D_min := by
+    calc γ_min = sqrt (γ_min ^ 2) := (sqrt_sq (le_of_lt hγ_min_pos)).symm
+      _ ≤ D_min := sqrt_le_sqrt (by nlinarith [sq_nonneg (K * r_star)])
+  have hden_min : 0 < γ_min + D_min := by linarith
+  have h_rstar_sq : r_star ^ 2 ≤
+      (K - continuumKc γ μ) * (2 * γ_max + K) ^ 2 / K ^ 3 := by
+    have h_nn : 0 ≤ (K - continuumKc γ μ) * (2 * γ_max + K) ^ 2 / K ^ 3 := by
+      apply div_nonneg (mul_nonneg (by linarith) (sq_nonneg _)) (by positivity)
+    have := sq_le_sq' (by linarith [hr_pos]) h_rstar
+    rwa [sq_sqrt h_nn] at this
+  calc 1 - ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+        (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) ∂μ
+      ≤ K ^ 3 * r_star ^ 2 / (D_min * (γ_min + D_min) ^ 2) := h_gap
+    _ ≤ K ^ 3 * r_star ^ 2 / (γ_min * (2 * γ_min) ^ 2) := by
+        apply div_le_div_of_nonneg_left (by positivity)
+          (mul_pos hγ_min_pos (sq_pos_of_pos (by linarith)))
+        exact mul_le_mul hD_min_ge (sq_le_sq' (by linarith) (by linarith))
+          (sq_nonneg _) (le_of_lt hD_min)
+    _ = K ^ 3 * r_star ^ 2 / (4 * γ_min ^ 3) := by ring
+    _ ≤ K ^ 3 * ((K - continuumKc γ μ) * (2 * γ_max + K) ^ 2 / K ^ 3) /
+        (4 * γ_min ^ 3) := by
+        apply div_le_div_of_nonneg_right _ (by positivity)
+        exact mul_le_mul_of_nonneg_left h_rstar_sq (by positivity)
+    _ = (K - continuumKc γ μ) * (2 * γ_max + K) ^ 2 / (4 * γ_min ^ 3) := by
+        field_simp
 
 /-- **CONTRACTION RATE UPPER BOUND.**
     λ(r) ≤ E[γ]/(Kr²) — convergence accelerates with stronger coupling. -/
