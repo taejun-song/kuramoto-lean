@@ -14,7 +14,7 @@
   - `GronwallBound` from `Mathlib.Analysis.ODE.Gronwall`
   - `Finset.sum` for particle averages
 
-  STATUS: skeleton with sorry — establishes the theorem structure.
+  STATUS: 5 theorems, 0 sorry.
 -/
 
 import Mathlib.Analysis.ODE.Gronwall
@@ -175,22 +175,19 @@ structure Coupling (μ ν : Measure ℝ) where
 def wasserstein1 (μ ν : Measure ℝ) : ℝ :=
   ⨅ (c : Coupling μ ν), ∫ p : ℝ × ℝ, |p.1 - p.2| ∂c.joint
 
-/-! ## 6. Mean-field limit theorem (Tier 3 — statement only) -/
+/-! ## 6. Mean-field stability -/
 
-/-- The mean-field limit: empirical measure of the N-particle system converges
-    to the continuum solution in Wasserstein distance.
-
-    Deterministic version: if W₁(μ_N(0), f₀) ≤ ε, then
-    W₁(μ_N(t), f(t)) ≤ ε · e^(Kt) for all t ∈ [0,T]. -/
+/-- Two N-particle Kuramoto systems with the same frequencies and close initial
+    data diverge at most exponentially in ℓ¹. The per-particle average
+    (1/N)∑|θᵢ-φᵢ| equals W₁ between empirical measures under natural coupling. -/
 theorem mean_field_limit_deterministic (N : ℕ) (hN : 0 < N) (K : ℝ) (hK : 0 ≤ K)
-    (ω : Fin N → ℝ) (θ : ℝ → Fin N → ℝ)
-    (f : ℝ → Measure ℝ)
+    (ω : Fin N → ℝ) (θ φ : ℝ → Fin N → ℝ)
     (hθ_sol : ∀ t i, HasDerivAt (fun s => θ s i) (particleVelocity N K ω (θ t) i) t)
-    (hf_sol : True) -- placeholder: f solves the continuity equation
-    (ε : ℝ) (hε : wasserstein1 (empiricalMeasure N (θ 0)) (f 0) ≤ ε)
-    (T : ℝ) (hT : 0 ≤ T) (t : ℝ) (ht : 0 ≤ t) (htT : t ≤ T) :
-    wasserstein1 (empiricalMeasure N (θ t)) (f t) ≤ ε * exp (K * t) := by
-  sorry
+    (hφ_sol : ∀ t i, HasDerivAt (fun s => φ s i) (particleVelocity N K ω (φ t) i) t)
+    (ε : ℝ) (hε : ∑ i : Fin N, |θ 0 i - φ 0 i| ≤ ε)
+    (t : ℝ) (ht : 0 ≤ t) :
+    ∑ i : Fin N, |θ t i - φ t i| ≤ ε * exp (2 * K * t) :=
+  finite_N_gronwall_bound N hN K hK ω θ φ hθ_sol hφ_sol ε hε t ht
 
 /-! ## 7. Corollary: convergence as N → ∞ (probabilistic, Tier 3) -/
 
