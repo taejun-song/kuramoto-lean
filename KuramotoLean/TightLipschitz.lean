@@ -246,6 +246,51 @@ theorem spectral_gap_lower_bound [IsProbabilityMeasure μ]
           (mul_pos hD_ω (sq_pos_of_pos hden_ω))
         exact mul_le_mul hD_le (sq_le_sq' (by linarith) hden_le) (sq_nonneg _) (le_of_lt hD_max)
 
+/-- **SPECTRAL GAP UPPER BOUND.**
+    1 - λ(r*) ≤ K³r*²/(D_min(γ_min+D_min)²) — gap vanishes as r* → 0. -/
+theorem spectral_gap_upper_bound [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r_star γ_min : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr : 0 < r_star)
+    (hγ_min_pos : 0 < γ_min) (hγ_min : ∀ ω, γ_min ≤ γ ω)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (hfp : ∫ ω, explicitEquil (γ ω) K r_star ∂μ = r_star) :
+    1 - ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) ∂μ ≤
+    K ^ 3 * r_star ^ 2 / (sqrt (γ_min ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ_min + sqrt (γ_min ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2) := by
+  have hγ_meas := measurable_of_Iic hγ_level
+  rw [spectral_gap_integral γ K r_star hγ_pos hK hr hγ_level hfp]
+  have hg_int := slope_integrable γ K r_star hγ_pos hK hr hγ_meas (μ := μ)
+  have hf_int := tight_slope_integrable γ K r_star hγ_pos hK hr hγ_meas (μ := μ)
+  have h_gap_int : Integrable (fun ω => K ^ 3 * r_star ^ 2 /
+      (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2)) μ := by
+    convert hg_int.sub hf_int using 1; ext ω
+    exact (spectral_gap_pointwise (γ ω) K r_star (hγ_pos ω) hK hr).symm
+  set D_min := sqrt (γ_min ^ 2 + K ^ 2 * r_star ^ 2)
+  have hD_min : 0 < D_min := sqrt_pos.mpr (by positivity)
+  have hden_min : 0 < γ_min + D_min := by linarith
+  calc ∫ ω, K ^ 3 * r_star ^ 2 / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+        (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2) ∂μ
+      ≤ ∫ _ : Ω, K ^ 3 * r_star ^ 2 / (D_min * (γ_min + D_min) ^ 2) ∂μ := by
+        apply integral_mono h_gap_int (integrable_const _)
+        intro ω
+        have hD_ω : 0 < sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) :=
+          sqrt_pos.mpr (by positivity)
+        have hden_ω : 0 < γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) :=
+          by linarith [hγ_pos ω]
+        have hγ_sq : γ_min ^ 2 ≤ (γ ω) ^ 2 := by nlinarith [hγ_min ω, hγ_min_pos]
+        have hD_ge : D_min ≤ sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) :=
+          sqrt_le_sqrt (by linarith)
+        have hden_ge : γ_min + D_min ≤ γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) :=
+          add_le_add (hγ_min ω) hD_ge
+        apply div_le_div_of_nonneg_left (by positivity : 0 ≤ K ^ 3 * r_star ^ 2)
+          (mul_pos hD_min (sq_pos_of_pos hden_min))
+        exact mul_le_mul hD_ge (sq_le_sq' (by linarith) hden_ge)
+          (sq_nonneg _) (le_of_lt hD_ω)
+    _ = K ^ 3 * r_star ^ 2 / (D_min * (γ_min + D_min) ^ 2) := by
+        rw [integral_const]; simp
+
 /-- **CONTRACTION RATE UPPER BOUND.**
     λ(r) ≤ E[γ]/(Kr²) — convergence accelerates with stronger coupling. -/
 theorem contraction_rate_upper [IsProbabilityMeasure μ]
