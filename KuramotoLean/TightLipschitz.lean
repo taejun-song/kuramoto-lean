@@ -246,6 +246,36 @@ theorem spectral_gap_lower_bound [IsProbabilityMeasure μ]
           (mul_pos hD_ω (sq_pos_of_pos hden_ω))
         exact mul_le_mul hD_le (sq_le_sq' (by linarith) hden_le) (sq_nonneg _) (le_of_lt hD_max)
 
+/-- **CONTRACTION RATE UPPER BOUND.**
+    λ(r) ≤ E[γ]/(Kr²) — convergence accelerates with stronger coupling. -/
+theorem contraction_rate_upper [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr : 0 < r)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (h_int_γ : Integrable γ μ) :
+    ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2))) ∂μ ≤
+    (∫ ω, γ ω ∂μ) / (K * r ^ 2) := by
+  have hγ_meas := measurable_of_Iic hγ_level
+  have hf_int := tight_slope_integrable γ K r hγ_pos hK hr hγ_meas (μ := μ)
+  have h_pw : ∀ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2))) ≤ γ ω / (K * r ^ 2) := by
+    intro ω
+    have hD : 0 < sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) := sqrt_pos.mpr (by positivity)
+    have hden : 0 < γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) :=
+      by linarith [hγ_pos ω]
+    have hDsq : (sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2)) ^ 2 =
+        (γ ω) ^ 2 + K ^ 2 * r ^ 2 := sq_sqrt (by positivity)
+    rw [div_le_div_iff₀ (mul_pos hD hden) (by positivity : 0 < K * r ^ 2)]
+    nlinarith [hγ_pos ω, sq_nonneg (γ ω)]
+  have h_rw : ∀ ω, γ ω / (K * r ^ 2) = γ ω * (1 / (K * r ^ 2)) := fun ω => by ring
+  calc ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2) *
+        (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r ^ 2))) ∂μ
+      ≤ ∫ ω, γ ω / (K * r ^ 2) ∂μ := integral_mono hf_int (h_int_γ.div_const _) h_pw
+    _ = ∫ ω, γ ω * (1 / (K * r ^ 2)) ∂μ := by congr 1; ext ω; exact h_rw ω
+    _ = (∫ ω, γ ω ∂μ) * (1 / (K * r ^ 2)) := integral_mul_const _ _
+    _ = (∫ ω, γ ω ∂μ) / (K * r ^ 2) := by ring
+
 /-! ## Geometric convergence of Picard iteration -/
 
 private theorem equil_integrable' [IsProbabilityMeasure μ]
