@@ -203,6 +203,49 @@ theorem spectral_gap_integral [IsProbabilityMeasure μ]
   congr 1; ext ω
   exact spectral_gap_pointwise (γ ω) K r_star (hγ_pos ω) hK hr
 
+/-- **SPECTRAL GAP LOWER BOUND.**
+    1 - λ(r*) ≥ K³r*²/(D_max(γ_max+D_max)²) where D_max = √(γ_max²+K²r*²). -/
+theorem spectral_gap_lower_bound [IsProbabilityMeasure μ]
+    (γ : Ω → ℝ) (K r_star γ_max : ℝ)
+    (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr : 0 < r_star)
+    (hγ_max_pos : 0 < γ_max) (hγ_max : ∀ ω, γ ω ≤ γ_max)
+    (hγ_level : ∀ M : ℝ, MeasurableSet {ω | γ ω ≤ M})
+    (hfp : ∫ ω, explicitEquil (γ ω) K r_star ∂μ = r_star) :
+    K ^ 3 * r_star ^ 2 / (sqrt (γ_max ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ_max + sqrt (γ_max ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2) ≤
+    1 - ∫ ω, K * γ ω / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) ∂μ := by
+  have hγ_meas := measurable_of_Iic hγ_level
+  rw [spectral_gap_integral γ K r_star hγ_pos hK hr hγ_level hfp]
+  have hg_int := slope_integrable γ K r_star hγ_pos hK hr hγ_meas (μ := μ)
+  have hf_int := tight_slope_integrable γ K r_star hγ_pos hK hr hγ_meas (μ := μ)
+  have h_gap_int : Integrable (fun ω => K ^ 3 * r_star ^ 2 /
+      (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+      (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2)) μ := by
+    convert hg_int.sub hf_int using 1; ext ω
+    exact (spectral_gap_pointwise (γ ω) K r_star (hγ_pos ω) hK hr).symm
+  set D_max := sqrt (γ_max ^ 2 + K ^ 2 * r_star ^ 2)
+  have hD_max : 0 < D_max := sqrt_pos.mpr (by positivity)
+  have hden_max : 0 < γ_max + D_max := by linarith
+  calc K ^ 3 * r_star ^ 2 / (D_max * (γ_max + D_max) ^ 2)
+      = ∫ _ : Ω, K ^ 3 * r_star ^ 2 / (D_max * (γ_max + D_max) ^ 2) ∂μ := by
+        rw [integral_const]; simp
+    _ ≤ ∫ ω, K ^ 3 * r_star ^ 2 / (sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) *
+          (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2)) ^ 2) ∂μ := by
+        apply integral_mono (integrable_const _) h_gap_int
+        intro ω
+        have hD_ω : 0 < sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) := sqrt_pos.mpr (by positivity)
+        have hden_ω : 0 < γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) :=
+          by linarith [hγ_pos ω]
+        have hγ_sq : (γ ω) ^ 2 ≤ γ_max ^ 2 := by nlinarith [hγ_max ω, hγ_pos ω]
+        have hD_le : sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) ≤ D_max :=
+          sqrt_le_sqrt (by linarith)
+        have hden_le : γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2) ≤ γ_max + D_max :=
+          add_le_add (hγ_max ω) hD_le
+        apply div_le_div_of_nonneg_left (by positivity : 0 ≤ K ^ 3 * r_star ^ 2)
+          (mul_pos hD_ω (sq_pos_of_pos hden_ω))
+        exact mul_le_mul hD_le (sq_le_sq' (by linarith) hden_le) (sq_nonneg _) (le_of_lt hD_max)
+
 /-! ## Geometric convergence of Picard iteration -/
 
 private theorem equil_integrable' [IsProbabilityMeasure μ]
@@ -269,7 +312,8 @@ theorem scMapIter_geometric_above [IsProbabilityMeasure μ]
       (γ ω + sqrt ((γ ω) ^ 2 + K ^ 2 * r_star ^ 2))) := fun ω =>
     div_pos (mul_pos hK (hγ_pos ω))
       (mul_pos (sqrt_pos.mpr (by positivity))
-        (by have := hγ_pos ω; linarith [sqrt_pos.mpr (show 0 < (γ ω)^2+K^2*r_star^2 by positivity)]))
+        (by linarith [hγ_pos ω,
+          sqrt_pos.mpr (show 0 < (γ ω) ^ 2 + K ^ 2 * r_star ^ 2 by positivity)]))
   have hcRate_pos : 0 < cRate :=
     (integral_pos_iff_support_of_nonneg (fun ω => le_of_lt (h_pw_pos ω))
       (tight_slope_integrable γ K r_star hγ_pos hK hr_star hγ_meas (μ := μ))).mpr (by
