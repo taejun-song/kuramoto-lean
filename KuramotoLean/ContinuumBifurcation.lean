@@ -62,7 +62,7 @@ private theorem slope_integral_strict_lt [IsProbabilityMeasure μ]
       rw [measure_univ]; exact one_pos)
   linarith [integral_sub hf₁ hf₂]
 
-private theorem slope_integral_eq_one [IsProbabilityMeasure μ]
+theorem slope_integral_eq_one [IsProbabilityMeasure μ]
     (γ : Ω → ℝ) (K r : ℝ)
     (hγ_pos : ∀ ω, 0 < γ ω) (hK : 0 < K) (hr : 0 < r)
     (hγ_meas : Measurable γ)
