@@ -23,3 +23,7 @@ import KuramotoLean.ComplexLeibniz
 import KuramotoLean.KuramotoComplete
 -- Real scalar end-to-end (0 sorry, derives body persistence internally)
 import KuramotoLean.RealScalarComplete
+-- Standalone theory (0 sorry)
+import KuramotoLean.TightLipschitz
+import KuramotoLean.OscillatorLocking
+import KuramotoLean.FiniteContinuumBridge
