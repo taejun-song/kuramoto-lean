@@ -25,5 +25,6 @@ import KuramotoLean.KuramotoComplete
 import KuramotoLean.RealScalarComplete
 -- Standalone theory (0 sorry)
 import KuramotoLean.TightLipschitz
+import KuramotoLean.QuantitativeRefinements
 import KuramotoLean.OscillatorLocking
 import KuramotoLean.FiniteContinuumBridge
