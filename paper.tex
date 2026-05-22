@@ -1,0 +1,593 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{Quantitative Convergence Rates for the Kuramoto\\Self-Consistency Iteration}
+\author{Taejun Song}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent\textit{MSC2020:} 34C15, 37N25, 68V15, 34D20
+
+\begin{abstract}
+We establish explicit convergence rates for the self-consistency iteration
+of the Kuramoto model on the Ott--Antonsen (OA) manifold.  At critical coupling
+$K = K_c$, we prove that iterates of the self-consistency map $\Phi$ satisfy
+$r_n \le r_0/\sqrt{1 + Bn}$ where $B = K^3 r_0^2/(\gamma_{\max}(2\gamma_{\max} + K)^2)$,
+providing the first explicit bound with computable constants for the critical regime.
+Above $K_c$, for initial data $r_0$ with $\Phi'(r_0) < 1$,
+we prove geometric convergence with rate $L_0 = \Phi'(r_0)$.
+For the real scalar reduction we construct an $L^2$ Lyapunov function
+and prove stability via a new sum-of-squares pair bound inequality.
+For the general complex Ott--Antonsen equation, we establish the Dietert
+energy identity $d\Psi/dt = K|\eta|^2$ and obtain stability via
+two explicit axioms encoding the Dietert--Fernandez Landau damping theorem.
+All results are formally verified in Lean~4 with the Mathlib library
+(87 files, 0 \texttt{sorry}, 2 axioms).
+\end{abstract}
+
+\section{Introduction}
+
+The Kuramoto model \cite{kuramoto1975,kuramoto1984} describes the dynamics
+of $N$ coupled phase oscillators:
+\begin{equation}\label{eq:kuramoto}
+\dot\theta_i = \omega_i + \frac{K}{N}\sum_{j=1}^N \sin(\theta_j - \theta_i), \quad i = 1,\ldots,N,
+\end{equation}
+where $\omega_i$ are natural frequencies drawn from a distribution $g$
+and $K > 0$ is the coupling strength.  The central phenomenon is a phase
+transition at a critical coupling $K_c$: for $K < K_c$ the oscillators
+are incoherent, while for $K > K_c$ a macroscopic fraction synchronizes,
+producing a nonzero order parameter $r^* > 0$.
+
+Since Kuramoto's original work, the mathematical theory has advanced through
+several stages: the self-consistency equation \cite{kuramoto1984,strogatz2000},
+the Ott--Antonsen reduction \cite{ott2008,ott2009}, bifurcation analysis
+\cite{chiba2015}, and Landau damping for the kinetic PDE
+\cite{dietert2018,fernandez2016}.  While existence and uniqueness of $r^*$
+are well-established (see \cite{acebron2005}), explicit convergence rates
+for the Picard iteration $r_{n+1} = \Phi(r_n)$---including computable
+constants---have not appeared in the literature.  The critical dynamics
+at $K = K_c$, where $\Phi'(r^*) \to 1$, have been studied only
+phenomenologically \cite{pazo2005}.
+
+In this paper we establish three main results:
+
+\begin{enumerate}[label=(\roman*)]
+\item \textbf{Critical algebraic decay} (Theorem~\ref{thm:algebraic}):
+At $K = K_c$, the iterates $r_n = \Phi^n(r_0)$ satisfy
+$r_n \le r_0/\sqrt{1+Bn}$ with an explicit constant $B$ depending
+on $K$, $r_0$, and $\gamma_{\max}$, giving $O(1/\sqrt{n})$ decay
+with a computable prefactor.
+
+\item \textbf{Geometric convergence} (Theorem~\ref{thm:geometric}):
+For $K > K_c$ and $r_0 \in (0, r^*)$ with $\Phi'(r_0) < 1$,
+the iterates converge geometrically:
+$r^* - r_n \le L_0^n (r^* - r_0)$ where $L_0 = \Phi'(r_0)$.
+
+\item \textbf{OA stability} (Theorem~\ref{thm:complex_stability}):
+On the real scalar OA manifold, $V = \int (z_\omega - z^*_\omega)^2 g\,d\mu$
+is a Lyapunov function via a new sum-of-squares pair bound inequality.
+For the general complex OA, stability follows from a single explicit
+axioms encoding the Dietert--Fernandez theorem.
+\end{enumerate}
+
+\noindent All proofs are formally verified in the Lean~4 proof assistant.
+The formalization is available at
+\url{https://github.com/taejun-song/kuramoto-lean}.
+
+\subsection{Relation to prior work}
+
+The $O(1/\sqrt{n})$ rate at criticality is the natural consequence of the
+cubic tangency $\Phi(r) = r - cr^3 + O(r^5)$ at $K = K_c$, a structure
+implicit in Crawford's center manifold analysis \cite{crawford1994}.
+Our contribution is making this quantitative: we provide explicit,
+distribution-dependent constants and a complete inductive proof that
+has been machine-checked.  The reciprocal-growth technique we employ is
+standard for maps with cubic tangency (see e.g.\ \cite{strogatz2000}),
+but has not been applied to the Kuramoto self-consistency map with
+explicit bounds.
+
+The OA reduction \cite{ott2008} was developed for Lorentzian
+distributions and later extended to rational frequency densities.
+Our $L^2$ Lyapunov analysis on the real scalar OA works for arbitrary
+symmetric distributions on a probability space $(\Omega, \mu)$, not
+requiring analyticity of $g$.
+The sum-of-squares pair bound inequality (Lemma~\ref{lem:pair_bound})
+establishing $dV/dt \le 0$ appears to be new as a proof technique for
+OA stability.
+
+The connection to the full Kuramoto PDE relies on
+the Landau damping results of Dietert and Fernandez \cite{dietert2018},
+which we incorporate as two precisely stated axioms.
+
+
+\section{The Self-Consistency Map}
+
+\subsection{Setup and equilibrium formula}
+
+Let $(\Omega, \mu)$ be a probability space and $\gamma : \Omega \to \mathbb{R}_{>0}$
+a measurable function representing the absolute values of natural frequencies
+(equivalently, the half-widths in the symmetric case $g(\omega) = g(-\omega)$,
+where only $|\omega|$ enters the self-consistency equation).
+We assume throughout that $\gamma$ is essentially bounded:
+\[
+\gamma_{\min} := \operatorname{ess\,inf}_\omega \gamma(\omega) > 0, \qquad
+\gamma_{\max} := \operatorname{ess\,sup}_\omega \gamma(\omega) < \infty.
+\]
+The \emph{critical coupling} is
+\begin{equation}\label{eq:Kc}
+K_c = \frac{2}{\int_\Omega \frac{1}{\gamma(\omega)}\,d\mu(\omega)}.
+\end{equation}
+
+For $K > 0$ and $r > 0$, the individual equilibrium amplitude
+satisfies $(K/2)r\,(1 - \alpha^2) = \gamma\alpha$, i.e.,
+$(K/2)r\cdot\alpha^2 + \gamma\cdot\alpha - (K/2)r = 0$.
+We use the \emph{rationalized form} of the positive root:
+
+\begin{definition}[Equilibrium amplitude]\label{def:equil}
+\[
+\alpha^*(\gamma, K, r) = \frac{Kr}{\gamma + \sqrt{\gamma^2 + K^2 r^2}}.
+\]
+\end{definition}
+
+This presentation, equivalent to the classical formula
+$\alpha^* = (-\gamma + \sqrt{\gamma^2 + K^2r^2})/(Kr)$
+after rationalization, is the algebraic engine enabling all subsequent estimates.
+
+\begin{proposition}[Properties of $\alpha^*$]\label{prop:equil_props}
+For $\gamma, K, r > 0$:
+\begin{enumerate}[label=(\alph*)]
+\item $0 < \alpha^*(\gamma,K,r) < 1$;
+\item $\alpha^*$ is strictly decreasing in $\gamma$;
+\item $\frac{Kr}{2\sqrt{\gamma^2+K^2r^2}} \le \alpha^*(\gamma,K,r) < \frac{Kr}{\gamma}$;
+\item $\alpha^*$ is strictly increasing in $r$.
+\end{enumerate}
+\end{proposition}
+
+The \emph{self-consistency map} is
+\begin{equation}\label{eq:sc_map}
+\Phi(r) = \int_\Omega \alpha^*(\gamma(\omega), K, r)\,d\mu(\omega).
+\end{equation}
+A fixed point $\Phi(r^*) = r^*$ with $r^* > 0$ exists if and only if $K > K_c$.
+
+\subsection{Slope estimates}
+
+\begin{theorem}[Slope of $\Phi$]\label{thm:slope}
+For any $r > 0$, the derivative of $\Phi$ is
+\begin{equation}\label{eq:phi_prime}
+\Phi'(r) = \int_\Omega \frac{K\gamma(\omega)}{\sqrt{\gamma(\omega)^2 + K^2 r^2}\bigl(\gamma(\omega) + \sqrt{\gamma(\omega)^2 + K^2 r^2}\bigr)}\,d\mu(\omega).
+\end{equation}
+Moreover: (a) $\Phi'(r) \le K/(2\gamma_{\min})$; (b) $\Phi'$ is strictly
+decreasing in $r$; (c) $\Phi'(0^+) = K/K_c$.
+\end{theorem}
+
+\begin{proof}[Proof of (b)]
+The integrand in \eqref{eq:phi_prime} has the form $K\gamma/(D(\gamma+D))$ where
+$D = \sqrt{\gamma^2 + K^2r^2}$.  As $r$ increases, $D$ increases, so both $D$
+and $\gamma + D$ increase, making the integrand strictly decrease for each $\omega$.
+Hence $\Phi'(r)$ is strictly decreasing.
+\end{proof}
+
+\begin{theorem}[Fixed point uniqueness]\label{thm:uniqueness}
+For $K > K_c$, the equation $\Phi(r) = r$ has a unique solution
+$r^* \in (0,1)$.  Moreover, $\Phi(r) > r$ for $r < r^*$ and
+$\Phi(r) < r$ for $r > r^*$.
+\end{theorem}
+
+
+\section{Critical Algebraic Decay}
+
+\subsection{Cubic drop estimate}
+
+The key ingredient is a lower bound on $r - \Phi(r)$ at criticality.
+
+\begin{theorem}[Cubic drop at $K_c$]\label{thm:cubic_drop}
+Let $K = K_c$ and $0 < r \le 1$.  Then
+\begin{equation}\label{eq:cubic_drop}
+r - \Phi(r) \ge \frac{K^3 r^3}{2\gamma_{\max}(2\gamma_{\max} + K)^2}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+At $K = K_c$, the identity $\int K/(2\gamma(\omega))\,d\mu = 1$ holds
+by definition of $K_c$.  Therefore
+$r = \int_\Omega Kr/(2\gamma(\omega))\,d\mu(\omega)$.
+It suffices to show for $\mu$-a.e.\ $\omega$ that
+\[
+\frac{Kr}{2\gamma} - \alpha^*(\gamma,K,r) \ge \frac{K^3 r^3}{2\gamma_{\max}(2\gamma_{\max}+K)^2}.
+\]
+Using the rationalized formula, the left side equals
+\[
+\frac{Kr}{2\gamma} - \frac{Kr}{\gamma + D} = Kr\cdot\frac{D - \gamma}{2\gamma(\gamma + D)}
+\]
+where $D = \sqrt{\gamma^2 + K^2 r^2}$.  Since $D^2 - \gamma^2 = K^2r^2$, we have
+$D - \gamma = K^2r^2/(D + \gamma)$, giving
+\[
+Kr \cdot \frac{K^2r^2}{2\gamma(\gamma+D)^2} = \frac{K^3 r^3}{2\gamma(\gamma+D)^2}.
+\]
+For $r \le 1$: $D = \sqrt{\gamma^2 + K^2r^2} \le \sqrt{(\gamma+K)^2} = \gamma + K$, so
+$\gamma + D \le 2\gamma + K \le 2\gamma_{\max} + K$ and $\gamma \le \gamma_{\max}$.  Hence
+\[
+\frac{K^3 r^3}{2\gamma(\gamma+D)^2} \ge \frac{K^3 r^3}{2\gamma_{\max}(2\gamma_{\max}+K)^2}.
+\]
+Integrating against $\mu$ (using $\int K/(2\gamma)\,d\mu = 1$) completes the proof.
+\end{proof}
+
+\subsection{Algebraic decay via reciprocal growth}
+
+\begin{theorem}[Critical algebraic decay]\label{thm:algebraic}
+Let $K = K_c$, $0 < r_0 < 1$, and suppose
+$K^3 r_0^2 < 2\gamma_{\max}(2\gamma_{\max}+K)^2$.
+Define $B = K^3 r_0^2/(\gamma_{\max}(2\gamma_{\max}+K)^2)$ and
+$r_n = \Phi^n(r_0)$.  Then for all $n \ge 0$,
+\begin{equation}\label{eq:algebraic_decay}
+r_n \le \frac{r_0}{\sqrt{1 + Bn}}.
+\end{equation}
+In particular, $r_n = O(1/\sqrt{n})$ as $n \to \infty$.
+\end{theorem}
+
+\begin{proof}
+Set $c = K^3/(2\gamma_{\max}(2\gamma_{\max}+K)^2)$ so that
+$r - \Phi(r) \ge cr^3$ by Theorem~\ref{thm:cubic_drop}, and $B = 2cr_0^2$.
+
+We first verify $\Phi(r) < r$ for all $r \in (0,1]$ when $K = K_c$.
+Since $\Phi(0) = 0$ (as $\alpha^*(\gamma,K,0) = 0$) and $\Phi'(0^+) = K/K_c = 1$
+by Theorem~\ref{thm:slope}(c), while $\Phi'(r) < 1$ for all $r > 0$ by
+Theorem~\ref{thm:slope}(b), we have
+$\Phi(r) = \int_0^r \Phi'(s)\,ds < r$ for all $r > 0$.
+Thus the iterates satisfy $0 < r_{n+1} < r_n \le r_0$, ensuring
+$cr_n^2 \le cr_0^2 < 1$ throughout.
+
+We prove the equivalent statement
+\begin{equation}\label{eq:reciprocal}
+r_n^2\bigl(1 + Bn\bigr) \le r_0^2
+\end{equation}
+by induction on $n$.  The base case $n=0$ is immediate.
+
+For the inductive step, assume \eqref{eq:reciprocal} holds for $n$.
+From the cubic drop, $r_{n+1} \le r_n(1 - cr_n^2)$.  Squaring:
+\[
+r_{n+1}^2 \le r_n^2(1 - cr_n^2)^2.
+\]
+The algebraic inequality $(1+2t)(1-t)^2 \le 1$ for $t \in [0,1]$,
+verified by $1 - (1+2t)(1-t)^2 = t^2(3-2t) \ge 0$,
+applied with $t = cr_n^2 \in [0,1]$ gives
+\begin{equation}\label{eq:key_ineq}
+r_{n+1}^2(1 + 2cr_n^2) \le r_n^2.
+\end{equation}
+Now the division chain.  From the inductive hypothesis,
+$1 + Bn \le r_0^2/r_n^2$.  We compute:
+\begin{align*}
+\frac{r_0^2}{r_n^2}(1 + 2cr_n^2)
+&= \frac{r_0^2}{r_n^2} + \frac{r_0^2}{r_n^2} \cdot 2cr_n^2
+= \frac{r_0^2}{r_n^2} + 2cr_0^2
+= \frac{r_0^2}{r_n^2} + B.
+\end{align*}
+Therefore:
+\begin{align*}
+1 + B(n+1)
+&= (1 + Bn) + B
+\le \frac{r_0^2}{r_n^2} + B
+= \frac{r_0^2}{r_n^2}(1 + 2cr_n^2)
+\le \frac{r_0^2}{r_{n+1}^2},
+\end{align*}
+where the last inequality uses \eqref{eq:key_ineq}.
+This establishes \eqref{eq:reciprocal} for $n+1$.
+
+From \eqref{eq:reciprocal}: $r_n^2 \le r_0^2/(1+Bn)$, hence
+$r_n \le r_0/\sqrt{1+Bn}$ since $r_n > 0$.
+\end{proof}
+
+\begin{remark}
+The $O(1/\sqrt{n})$ rate is the generic rate for iteration of a map with
+cubic tangency to the identity at a fixed point (cf.\ the continuous analogue
+$dr/dt = -cr^3$ giving $r(t) \sim 1/\sqrt{t}$).  The contribution here is
+the explicit constant $B$ depending on the frequency distribution via
+$\gamma_{\max}$.
+\end{remark}
+
+
+\section{Geometric Convergence Above $K_c$}
+
+\begin{theorem}[Geometric convergence]\label{thm:geometric}
+Let $K > K_c$ with fixed point $r^*$.  Let $r_0 \in (0, r^*)$ and define
+$L_0 = \Phi'(r_0)$ as in \eqref{eq:phi_prime}.
+If $L_0 < 1$, then for all $n \ge 0$:
+\begin{equation}
+r^* - r_n \le L_0^n\,(r^* - r_0).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:slope}(b), $\Phi'$ is strictly decreasing in $r$.
+Since $r_n \ge r_0$ for all $n$ (the iterates increase toward $r^*$ by
+Theorem~\ref{thm:uniqueness}), we have $\Phi'(r_n) \le \Phi'(r_0) = L_0 < 1$.
+By the mean value theorem,
+\[
+r^* - r_{n+1} = \Phi(r^*) - \Phi(r_n) \le \Phi'(r_0)\,(r^* - r_n)
+= L_0\,(r^* - r_n) \le L_0^{n+1}(r^* - r_0). \qedhere
+\]
+\end{proof}
+
+\begin{corollary}[Critical slowing down]\label{cor:slowing}
+Since $\Phi'$ is decreasing (Theorem~\ref{thm:slope}(b)) and
+$\Phi'(0^+) = K/K_c$, the condition $\Phi'(r_0) < 1$ holds
+for all $r_0$ above a threshold that vanishes as $K \to \infty$.
+As $K \downarrow K_c$, the best available rate $\Phi'(r^*) \to 1$,
+recovering the algebraic regime of Section~3.
+\end{corollary}
+
+
+\section{Stability on the Complex Ott--Antonsen Manifold}
+
+The Ott--Antonsen reduction \cite{ott2008} yields an infinite-dimensional
+ODE on the open unit disk parametrized by $\omega \in \Omega$.
+We present two complementary stability results: an unconditional
+pair bound for the real scalar reduction, and an axiom-based
+convergence theorem for the general complex case.
+In this section we specialize to $\Omega \subseteq \mathbb{R}$
+(so that $\omega$ denotes a real frequency) with density
+$g(\omega) \ge 0$, $\int g\,d\mu = 1$.
+The setup of Section~2 corresponds to $g \equiv 1$ with
+$\gamma(\omega) = |\omega|$.
+
+\subsection{The complex OA equation}
+
+The Ott--Antonsen equation on the unit disk is
+\begin{equation}\label{eq:complex_oa}
+\dot z_\omega = -i\omega\, z_\omega + \tfrac{K}{2}\bigl(\bar\eta - \eta\, z_\omega^2\bigr),
+\quad \eta = \int_\Omega \bar z_\omega\, g(\omega)\,d\mu(\omega),
+\end{equation}
+where $g : \Omega \to \mathbb{R}_{\ge 0}$ with $\int g\,d\mu = 1$.
+The open unit disk $|z_\omega| < 1$ is forward-invariant:
+$\frac{d}{dt}|z_\omega|^2 = K\operatorname{Re}(\eta z_\omega)(1 - |z_\omega|^2)$.
+The equilibrium $z^*_\omega$ satisfies $|z^*_\omega| = \alpha^*(|\omega|, K, r^*)$
+with $r^* = \eta^* > 0$ (real on the symmetric subspace).
+
+\subsection{Dietert energy identity}
+
+\begin{theorem}[$\Psi$-monotonicity]\label{thm:psi_mono}
+Define the Dietert energy
+\[
+\Psi(t) = -\int_\Omega \log\bigl(1 - |z_\omega(t)|^2\bigr)\,g(\omega)\,d\mu.
+\]
+Then along solutions of \eqref{eq:complex_oa},
+\begin{equation}\label{eq:psi_deriv}
+\frac{d\Psi}{dt} = K|\eta(t)|^2 \ge 0.
+\end{equation}
+In particular, $\Psi$ is non-decreasing: once $\Psi(0) > 0$
+(i.e., the oscillators are not all at $z_\omega = 0$), the system
+cannot return to the fully incoherent state $z_\omega \equiv 0$.
+\end{theorem}
+
+The proof (\texttt{ComplexOAEnergy.lean}, 0~\texttt{sorry}) uses disk
+invariance:
+\[
+\tfrac{d}{dt}\bigl(-\log(1-|z_\omega|^2)\bigr) = K\operatorname{Re}(\eta z_\omega).
+\]
+Integrating over $\Omega$ and using $\int z_\omega g\,d\mu = \bar\eta$
+gives $d\Psi/dt = K\operatorname{Re}(\eta\bar\eta) = K|\eta|^2$.
+
+\subsection{Pair bound (real scalar case)}
+
+\begin{lemma}[Pair bound]\label{lem:pair_bound}
+On the symmetric subspace ($z_\omega \in \mathbb{R}$, $g(\omega)=g(-\omega)$),
+let $V(t) = \int_\Omega (z_\omega(t) - z^*_\omega)^2\,g(\omega)\,d\mu$.
+Then $dV/dt \le 0$.
+\end{lemma}
+
+The proof (\texttt{L2Lyapunov.lean}, 0 \texttt{sorry}) applies the
+Fubini identity to express $dV/dt$ as a double integral:
+for each pair $(\omega_1, \omega_2)$, the integrand equals
+$-K \cdot Q(\omega_1,\omega_2)$ where $Q \ge 0$ is a sum-of-squares
+expression whose non-negativity uses $0 < z^*_\omega < 1$.
+The pointwise SOS decomposition is the algebraic core (${\sim}250$ lines).
+
+\begin{remark}
+The pointwise pair bound is specific to real $z$.  For complex $z$,
+a counterexample shows the pointwise bound fails
+(\texttt{ComplexPairBoundProof.lean}); the integral version remains
+an open question.
+\end{remark}
+
+\subsection{Stability theorem}
+
+\begin{theorem}[OA stability]\label{thm:complex_stability}
+Let $V(t) = \int |z_\omega(t) - z^*_\omega|^2 g\,d\mu$
+and $r(t) = \int z_\omega(t)\,g\,d\mu = \operatorname{Re}\eta(t)$
+on the symmetric subspace.
+\begin{enumerate}[label=(\alph*)]
+\item (Real scalar, 0 axioms) On the symmetric subspace with
+$V(0) < (r^*)^2$: $V(t) \to 0$ and $r(t) \to r^*$.
+\item (General, axiom-based) Under the hypotheses of the
+Dietert--Fernandez theorem \cite{dietert2018}:
+$V(t) \to 0$ and $|\eta(t)| \to r^*$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For (a): $V$ is non-increasing by Lemma~\ref{lem:pair_bound} and
+non-negative, so $V(t) \to V_\infty \ge 0$.  The basin condition
+$V(0) < (r^*)^2$ gives by Cauchy--Schwarz:
+\[
+|r(t) - r^*| = \Bigl|\int_\Omega (z_\omega(t) - z^*_\omega)\,g\,d\mu\Bigr|
+\le \sqrt{V(t)} < r^*,
+\]
+so $r(t) \ge r^* - \sqrt{V(0)} =: \delta > 0$ for all $t$.
+With $r(t)$ bounded below, the contraction mechanism in
+$dV/dt$ (from the pair bound) can be quantified: the proof
+decomposes $V$ into ``body'' and ``tail'' contributions,
+bounds the body using $r(t) \ge \delta$ and the structure of the
+pair integrand, and applies a Barbalat-type argument to conclude
+$V(t) \to 0$.  The full argument (${\sim}700$ lines) is in
+\texttt{ContinuumSolvedFinal.lean}, 0~\texttt{sorry}.
+
+For (b): the Dietert--Fernandez Landau damping theorem gives $V(t) \to 0$
+directly.  By Cauchy--Schwarz applied to $\eta(t) - \eta^*$:
+\[
+|\eta(t) - r^*|^2 = \Bigl|\int_\Omega (\bar z_\omega(t) - \bar z^*_\omega)\,g\,d\mu\Bigr|^2
+\le V(t) \to 0,
+\]
+hence $|\eta(t)| \to r^*$.
+\end{proof}
+
+
+\section{From OA to the Full Kuramoto PDE}
+
+\begin{remark}[Connection to the full Kuramoto PDE]\label{rem:full_pde}
+The OA stability results (Sections~2--5) concern dynamics on the
+OA manifold (an ODE system parametrized by $\omega$).  For the full kinetic Kuramoto equation, Dietert and
+Fernandez~\cite{dietert2018} prove that under regularity conditions on $g$
+(Sobolev decay of $\hat g$) and linear stability of the partially locked state,
+solutions starting $\delta$-close in weighted Sobolev norm satisfy
+$V(t) \to 0$ with algebraic decay.  In the formalization, this uses two axioms:
+\texttt{dietert\_landau\_damping\_2017} (Landau damping gives $V(t) \to 0$
+on the OA manifold) and \texttt{oa\_manifold\_attractivity}
+(full PDE solutions converge to the OA manifold).
+The Cauchy--Schwarz step $|\eta(t)| \to r^*$ is machine-checked.
+This cleanly separates the verified OA theory from the analytic
+arguments (whose formalization requires Sobolev space theory not
+yet available in Lean/Mathlib).
+\end{remark}
+
+
+\section{Formal Verification}
+
+The proof is implemented in 87 Lean~4 files (${\sim}27{,}000$ lines)
+built against Mathlib v4.30.0-rc1, containing 0 uses of \texttt{sorry}
+and 2 explicit axioms (both encoding the Dietert--Fernandez theorem:
+one for Landau damping on the OA manifold, one for OA attractivity
+from the full PDE).
+The source is available at
+\url{https://github.com/taejun-song/kuramoto-lean}.
+
+The dependency graph has three branches:
+(1) \textbf{Real scalar}: Defs $\to$ EquilibriumFormula $\to$
+SelfConsistencyContraction $\to$ IterationConvergence $\to$
+QuantitativeRefinements;
+(2) \textbf{Complex OA}: ComplexOA $\to$ ComplexOAEnergy $\to$
+ComplexOAPairBound $\to$ ComplexOAStability $\to$ ComplexOAConvergence;
+(3) \textbf{PDE wiring}: FullKuramotoTheorem $\to$ KuramotoEndToEnd.
+
+Key formalization challenges include: nonlinear arithmetic requiring
+\texttt{nlinarith} with \texttt{sq\_nonneg} witnesses for polynomial
+inequalities; division chains structured as explicit \texttt{calc} blocks
+with \texttt{mul\_div\_cancel\textsuperscript{0}} to satisfy Lean's
+kernel; and measure-theoretic integration via \texttt{integral\_mono}
+with integrability from the uniform bound $|\alpha^*| < 1$.
+
+
+\section{Discussion}
+
+The algebraic decay rate $r_n = O(1/\sqrt{n})$ at $K = K_c$
+makes explicit the critical slowing down that is qualitatively
+well-understood: at criticality, $\Phi$ has third-order tangency with
+the identity ($\Phi'(0^+) = 1$, $\Phi''(0^+) = 0$), and the cubic
+nonlinearity governs the decay.  The constant
+$B = K^3 r_0^2/(\gamma_{\max}(2\gamma_{\max}+K)^2)$ captures the
+distribution-dependence of this rate.
+
+The basin condition $V(0) < (r^*)^2$ in Theorem~\ref{thm:complex_stability}(a)
+is required for the Barbalat argument but not fundamental:
+the Dietert--Fernandez axioms (Theorem~\ref{thm:complex_stability}(b))
+gives $V \to 0$ from Sobolev-small initial data without passing through
+the basin.  The $\Psi$-monotonicity prevents return to incoherence
+but does not by itself force $V$ into the basin.
+Extending the pair bound from the real scalar to the full complex
+case remains an open problem (the pointwise bound fails; the
+integral version is conjectured positive).
+
+\subsection*{Open problems}
+\begin{enumerate}
+\item \textbf{Eliminate the axioms}: formalize Dietert--Fernandez Landau
+damping in Lean~4 (requires Sobolev spaces and resolvent estimates).
+\item \textbf{Sharp constants}: is the constant $B$ optimal, or can it be
+improved to depend on $\gamma_{\min}$?
+\item \textbf{Subcritical decay}: prove exponential decay $r_n \to 0$
+for $K < K_c$ with explicit rate (partial results exist in the formalization).
+\end{enumerate}
+
+\section*{Acknowledgements}
+
+The author thanks the Lean and Mathlib communities for maintaining the
+infrastructure that made this formalization possible.
+
+\section*{Data availability}
+
+The Lean~4 source code is available at
+\url{https://github.com/taejun-song/kuramoto-lean}.
+
+\begin{thebibliography}{99}
+
+\bibitem{acebron2005}
+J.~A.~Acebr\'on, L.~L.~Bonilla, C.~J.~P\'erez Vicente, F.~Ritort, and R.~Spigler,
+\emph{The Kuramoto model: A simple paradigm for synchronization phenomena},
+Rev.\ Mod.\ Phys.\ \textbf{77} (2005), 137--185.
+
+\bibitem{chiba2015}
+H.~Chiba,
+\emph{A proof of the Kuramoto conjecture for a bifurcation structure of the infinite-dimensional Kuramoto model},
+Ergodic Theory Dynam.\ Systems \textbf{35} (2015), 762--834.
+
+\bibitem{crawford1994}
+J.~D.~Crawford,
+\emph{Amplitude expansions for instabilities in populations of globally-coupled oscillators},
+J.\ Stat.\ Phys.\ \textbf{74} (1994), 1047--1084.
+
+\bibitem{dietert2018}
+H.~Dietert and B.~Fernandez,
+\emph{The mathematics of asymptotic stability in the Kuramoto model},
+Proc.\ R.\ Soc.\ A \textbf{474} (2018), 20180467.
+
+\bibitem{fernandez2016}
+B.~Fernandez, D.~G\'erard-Varet, and G.~Giacomin,
+\emph{Landau damping in the Kuramoto model},
+Ann.\ Henri Poincar\'e \textbf{17} (2016), 1793--1823.
+
+\bibitem{kuramoto1975}
+Y.~Kuramoto,
+\emph{Self-entrainment of a population of coupled non-linear oscillators},
+in: International Symposium on Mathematical Problems in Theoretical Physics,
+Lecture Notes in Physics, vol.~39 (1975), 420--422.
+
+\bibitem{kuramoto1984}
+Y.~Kuramoto,
+\emph{Chemical Oscillations, Waves, and Turbulence},
+Springer-Verlag, Berlin, 1984.
+
+\bibitem{ott2008}
+E.~Ott and T.~M.~Antonsen,
+\emph{Low dimensional behavior of large systems of globally coupled oscillators},
+Chaos \textbf{18} (2008), 037113.
+
+\bibitem{ott2009}
+E.~Ott and T.~M.~Antonsen,
+\emph{Long time evolution of phase oscillator systems},
+Chaos \textbf{19} (2009), 023117.
+
+\bibitem{pazo2005}
+D.~Paz\'o,
+\emph{Thermodynamic limit of the first-order phase transition in the Kuramoto model},
+Phys.\ Rev.\ E \textbf{72} (2005), 046211.
+
+\bibitem{strogatz2000}
+S.~H.~Strogatz,
+\emph{From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators},
+Physica D \textbf{143} (2000), 1--20.
+
+\end{thebibliography}
+
+\end{document}
